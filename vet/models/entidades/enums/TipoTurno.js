@@ -1,5 +1,5 @@
 export const tipoTurno = {
-    Paseo: 'Paseo',
-    Veterinario: 'VETERINARIO',
-    Cuidado: 'Cuidado'
+    PASEO: 'PASEO',
+    VETERINARIO: 'VETERINARIO',
+    CUIDADO: 'CUIDADO'
 };

@@ -19,7 +19,10 @@ export class Filtro {
     }
 
     validadTipoServicio(proveedorUsuario, tipoServicio) {
-        if(tipoServicio == null) return true;
+        if (this.tipoServicio == null || !(proveedorUsuario instanceof VETERINARIO)) {
+            return true;
+        }
+        this.tipoTurno = TipoTurno.VETERINARIO; // Asignamos el tipo de turno a Veterinario si es un servicio de veterinaria
         return proveedorUsuario.serviciosDisponibles.includes(tipoServicio);
     }
     
@@ -40,10 +43,10 @@ export class Filtro {
     cumplenCon(proveedorUsuarios) {
         return proveedorUsuarios.filter(a => {
             return (
-              this.validarLocalidad(a, this.localidad) &&
-              this.validarMascotasAceptadas(a, this.mascotasAceptadas) &&
-              this.validarTipoTurno(a, this.tipoTurno) &&
-              this.validadTipoServicio(a, this.tipoServicio) 
+                this.validarLocalidad(a, this.localidad) &&
+                this.validarMascotasAceptadas(a, this.mascotasAceptadas) &&
+                this.validarTipoTurno(a, this.tipoTurno) &&
+                this.validadTipoServicio(a, this.tipoServicio)
             );
         });
     }

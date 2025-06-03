@@ -6,7 +6,7 @@ import { Veterinaria } from './Veterinaria.js';
 
 export class Reserva{
 
-    constructor(cliente, usuarioProveedor, mascota, fechaAlta, fechaInicio, fechaFin, servicio, rangoHorario, estado, precioUnitario, cantidadUnidades, precioTotal) {
+    constructor(cliente, usuarioProveedor, mascota, fechaAlta, fechaInicio, fechaFin, servicio, rangoHorario, precioUnitario, cantidadUnidades, localidad) {
         this.cliente = cliente; 
         this.usuarioProveedor = usuarioProveedor; 
         this.mascota = mascota;  
@@ -14,6 +14,8 @@ export class Reserva{
         this.fechaInicio = fechaInicio;
         this.estado = EstadoReserva.PENDIENTE; 
         this.precioUnitario = precioUnitario ; 
+        this.localidad = localidad; // Localidad del cliente
+
 
 
         if (usuarioProveedor instanceof Veterinaria || usuarioProveedor instanceof Paseador) {
@@ -28,7 +30,7 @@ export class Reserva{
             this.cantidadUnidades = this.calcularDias(); // Para cuidadores, calculamos días
         }
 
-        precioTotal=calcularPrecioTotal(precioUnitario,cantidadUnidades);
+        this.precioTotal=calcularPrecioTotal(precioUnitario,cantidadUnidades);
 
     }
 

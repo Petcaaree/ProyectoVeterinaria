@@ -19,10 +19,9 @@ export class Filtro {
     }
 
     validadTipoServicio(proveedorUsuario, tipoServicio) {
-        if (this.tipoServicio == null || !(proveedorUsuario instanceof VETERINARIO)) {
+        if (this.tipoServicio == null && (proveedorUsuario instanceof VETERINARIO)) {
             return true;
         }
-        this.tipoTurno = TipoTurno.VETERINARIO; // Asignamos el tipo de turno a Veterinario si es un servicio de veterinaria
         return proveedorUsuario.serviciosDisponibles.includes(tipoServicio);
     }
     

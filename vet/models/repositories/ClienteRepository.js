@@ -1,3 +1,4 @@
+import path from "path"
 import { ClienteModel } from "../schemas/clienteSchema.js"
 
 export class ClienteRepository {
@@ -13,11 +14,17 @@ export class ClienteRepository {
                 datosActualizados,
                 { new: true, runValidators: true }
             )
-            return clienteExistente
+            return await this.model.populate(clienteExistente, [
+                {path: 'mascotas'}
+
+            ])
+
         } else {
             const newcliente = new this.model(cliente)
             const clienteGuardado = await newcliente.save()
-            return clienteGuardado
+            return await this.model.populate(clienteGuardado, [
+                {path: 'mascotas'}
+            ])
         }
     }
 
@@ -27,15 +34,15 @@ export class ClienteRepository {
     }
 
     async findById(id) {
-        return await this.model.findById(id)
+        return await this.model.findById(id).populate('mascotas')
     }
 
     async findByName(nombre){
-        return await this.model.findOne({nombre})
+        return await this.model.findOne({nombre}).populate('mascotas')
     }
 
     async findByEmail(email) {
-        return await this.model.findOne({ email })
+        return await this.model.findOne({ email }).populate('mascotas')
     } 
 
     async findByPage(pageNum, limitNum) {
@@ -43,6 +50,7 @@ export class ClienteRepository {
         const clientes = await this.model.find()
             .skip(skip)
             .limit(limitNum)
+            .populate('mascotas')
             .exec()
         return clientes
     }

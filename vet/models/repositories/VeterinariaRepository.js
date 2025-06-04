@@ -13,11 +13,15 @@ export class VeterinariaRepository {
                 datosActualizados,
                 { new: true, runValidators: true }
             )
-            return veterinariaExistente
+            return await this.model.populate(VeterinariaExistente, [
+                {path: 'serviciosDisponibles'}
+            ])
         } else {
             const newveterinaria = new this.model(veterinaria)
             const veterinariaGuardado = await newveterinaria.save()
-            return veterinariaGuardado
+            return await this.model.populate(veterinariaGuardado, [
+                {path: 'serviciosDisponibles'}
+            ])
         }
     }
 
@@ -27,19 +31,23 @@ export class VeterinariaRepository {
     }
 
     async findById(id) {
-        return await this.model.findById(id)
+        return await this.model.findById(id).populate('serviciosDisponibles')
     }
 
     async findByName(nombre){
-        return await this.model.findOne({nombre})
+        return await this.model.findOne({nombre}).populate('serviciosDisponibles')
     }
 
     async findByEmail(email) {
-        return await this.model.findOne({ email })
+        return await this.model.findOne({ email }).populate('serviciosDisponibles')
     } 
 
     async findByTipoServicio(tipoServicio){
-        return await 
+        return await this.model.find({ serviciosDisponibles: tipoServicio }).populate('serviciosDisponibles')
+    }
+
+    async findByMascotasAceptadas(mascotasAceptadas) {
+        return await this.model.find({ mascotasAceptadas: { $in: mascotasAceptadas } }).populate('serviciosDisponibles')
     }
 
     async findByPage(pageNum, limitNum) {
@@ -47,6 +55,7 @@ export class VeterinariaRepository {
         const veterinarias = await this.model.find()
             .skip(skip)
             .limit(limitNum)
+            .populate('serviciosDisponibles')
             .exec()
         return veterinarias
     }

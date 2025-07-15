@@ -1,11 +1,12 @@
 import { TipoServicio } from "./enums/TipoServicio";
 
-export class Filtro {
-    constructor(localidad=null, mascotasAceptadas=[], tipoServicio=null,tipoTurno=null) {
+export class FiltroVeterinaria {
+    constructor(nombre = null ,localidad=null, fechaInicio=null, fechaFin=null , mascotasAceptadas=[]) {
+        this.nombre = nombre;
         this.localidad = localidad;
+        this.fechaInicio = fechaInicio;
+        this.fechaFin = fechaFin;
         this.mascotasAceptadas = mascotasAceptadas;
-        this.tipoServicio = tipoServicio;
-        this.tipoTurno = tipoTurno;
     }
 
     validarLocalidad(proveedorUsuario, localidad) {

@@ -1,4 +1,3 @@
-import path from "path"
 import { ClienteModel } from "../schemas/clienteSchema.js"
 
 export class ClienteRepository {
@@ -17,8 +16,8 @@ export class ClienteRepository {
             return clienteExistente
 
         } else {
-            const newcliente = new this.model(cliente)
-            const clienteGuardado = await newcliente.save()
+            const newCliente = new this.model(cliente)
+            const clienteGuardado = await newCliente.save()
             return clienteGuardado
         }
     }

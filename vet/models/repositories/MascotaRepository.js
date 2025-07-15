@@ -1,6 +1,6 @@
 import { MascotaModel } from "../schemas/mascotaSchema.js"
 
-export class ClienteRepository {
+export class MascotaRepository {
     constructor() {
         this.model = MascotaModel
     }
@@ -15,8 +15,8 @@ export class ClienteRepository {
             )
             return mascotaExistente
         } else {
-            const newcliente = new this.model(mascota)
-            const mascotaGuardado = await newmascota.save()
+            const newMascota = new this.model(mascota)
+            const mascotaGuardado = await newMascota.save()
             return mascotaGuardado
         }
     }
@@ -34,9 +34,7 @@ export class ClienteRepository {
         return await this.model.findOne({nombre})
     }
 
-    async findByEmail(email) {
-        return await this.model.findOne({ email })
-    } 
+    
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum

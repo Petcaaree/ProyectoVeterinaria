@@ -15,8 +15,8 @@ export class PaseadorRepository {
             )
             return paseadorExistente
         } else {
-            const newcliente = new this.model(paseador)
-            const paseadorGuardado = await newpaseador.save()
+            const newPaseador = new this.model(paseador)
+            const paseadorGuardado = await newPaseador.save()
             return paseadorGuardado
         }
     }

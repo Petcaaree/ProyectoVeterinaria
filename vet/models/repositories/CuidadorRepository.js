@@ -1,6 +1,6 @@
 import { CuidadorModel } from "../schemas/cuidadorSchema.js"
 
-export class ClienteRepository {
+export class CuidadorRepository {
     constructor() {
         this.model = CuidadorModel
     }
@@ -15,8 +15,8 @@ export class ClienteRepository {
             )
             return cuidadorExistente
         } else {
-            const newcliente = new this.model(cuidador)
-            const cuidadorGuardado = await newcuidador.save()
+            const newCuidador = new this.model(cuidador)
+            const cuidadorGuardado = await newCuidador.save()
             return cuidadorGuardado
         }
     }

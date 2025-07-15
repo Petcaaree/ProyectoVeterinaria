@@ -1,3 +1,4 @@
+import path from "path"
 import { ReservaModel } from "../schemas/reservaSchema.js"
 
 export class VeterinariaRepository {
@@ -6,54 +7,42 @@ export class VeterinariaRepository {
     }
 
     async save(reserva) {
-        if(reserva.id) {
-            const { id, ...datosActualizados } = reserva
-            let reservaExistente = await this.model.findByIdAndUpdate(
-                reserva.id,
-                datosActualizados,
-                { new: true, runValidators: true }
-            )
+        const { id, ...datos } = reserva;
 
-            reservaExistente = await this.model.populate(reservaExistente, [
-                { path: 'mascota' },
-                {
-                    path: 'cliente',
-                    populate: { path: 'mascotas' }
-                },
-                { path: 'usuarioProveedor' }
-            ])
+        let reservaGuardada;
 
-            // Populate adicional solo si tiene servicios
-            if (reservaExistente.usuarioProveedor?.serviciosDisponibles?.length) {
-                await reservaExistente.populate({
-                    path: 'usuarioProveedor.serviciosDisponibles'
-                })
-            }
-
-            return reservaExistente
-
-            } else {
-            const newReserva = new this.model(reserva)
-            let reservaGuardada = await newReserva.save()
-
-            reservaGuardada = await this.model.populate(reservaGuardada, [
-            { path: 'mascota' },
-            {
-                path: 'cliente',
-                populate: { path: 'mascotas' }
-            },
-            { path: 'usuarioProveedor' }
-            ])
-
-            // Populate condicional para serviciosDisponibles dentro de usuarioProveedor
-            if (reservaGuardada.usuarioProveedor?.serviciosDisponibles?.length) {
-            await reservaGuardada.populate({
-                path: 'usuarioProveedor.serviciosDisponibles'
-            })
-            }
-
-            return reservaGuardada
+        if (id) {
+            // Actualiza si existe
+            reservaGuardada = await this.model.findByIdAndUpdate(
+            id,
+            datos,
+            { new: true, runValidators: true }
+            );
+        } else {
+            // Crea nueva si no existe
+            const nuevaReserva = new this.model(reserva);
+            reservaGuardada = await nuevaReserva.save();
         }
+
+        // Primero: populate cliente, mascota y servicioReservado (con refPath)
+        reservaGuardada = await this.model.populate(reservaGuardada, [
+            { path: 'mascota' },
+            { path: 'cliente' },
+            { path: 'servicioReservado' }
+        ]);
+
+        // Segundo: populate anidado sobre servicioReservado
+        if (reservaGuardada.servicioReservado) {
+            reservaGuardada.servicioReservado = await reservaGuardada.servicioReservado.populate([
+            { path: 'usuarioProveedor' },
+            {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            }
+            ]);
+        }
+
+        return reservaGuardada;
     }
 
     async deleteById(id) {
@@ -64,39 +53,68 @@ export class VeterinariaRepository {
     async findById(id) {
         let reserva = await this.model.findById(id)
             .populate('mascota')
-            .populate({
-            path: 'cliente',
-            populate: { path: 'mascotas' }
-            })
-            .populate('usuarioProveedor');
+            .populate('cliente')
+            .populate('servicioReservado'); // refPath lo resuelve automáticamente
 
         if (!reserva) return null;
 
-        if (reserva.usuarioProveedor?.__t === 'Veterinaria') {
-            await reserva.populate({
-            path: 'usuarioProveedor.serviciosDisponibles'
-            });
+        // Segundo nivel de populate sobre servicioReservado
+        if (reserva.servicioReservado) {
+            reserva.servicioReservado = await reserva.servicioReservado.populate([
+            { path: 'usuarioProveedor' },
+            {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            }
+            ]);
         }
 
         return reserva;
     }
 
-    async findByUsuarioProveedor(usuarioProveedor) {
-        const reservas = await this.model.find({ usuarioProveedor }) // Mongoose castea automáticamente el ID
-            .populate('mascota')
-            .populate({
-            path: 'cliente',
-            populate: { path: 'mascotas' }
-            })
-            .populate('usuarioProveedor');
-
-        if (usuarioProveedor.__t === 'Veterinaria') {
-            await Promise.all(
-            reservas.map(reserva =>
-                reserva.populate({ path: 'usuarioProveedor.serviciosDisponibles' })
-            )
-            );
+    async findByUsuarioProveedor(serviciosReservadosIds) {
+        if (!Array.isArray(serviciosReservadosIds) || serviciosReservadosIds.length === 0) {
+            return [];
         }
+
+        const reservas = await this.model.find({
+            servicioReservado: { $in: serviciosReservadosIds }
+        })
+        .populate('mascota')
+        .populate('cliente')
+        .populate({
+            path: 'servicioReservado',
+            populate: [
+            { path: 'usuarioProveedor' },
+            {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            }
+            ]
+        });
+
+        return reservas;
+    }
+
+    async findByServicioReservado(servicioReservado) {
+        const reservas = await this.model.find({ servicioReservado })
+            .populate('mascota')
+            .populate('cliente')
+            .populate('servicioReservado');
+
+        if (!reservas.length) return [];
+
+        await Promise.all(reservas.map(async reserva => {
+            if (reserva.servicioReservado) {
+            reserva.servicioReservado = await reserva.servicioReservado.populate([
+                { path: 'usuarioProveedor' },
+                {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+                }
+            ]);
+            }
+        }));
 
         return reservas;
     }
@@ -104,125 +122,51 @@ export class VeterinariaRepository {
     async findByCliente(pageNum, limitNum, cliente) {
         const skip = (pageNum - 1) * limitNum;
 
-        const reservas = await this.model.find({ cliente })
+        let reservas = await this.model.find({ cliente })
             .skip(skip)
             .limit(limitNum)
             .populate('mascota')
-            .populate({
-            path: 'cliente',
-            populate: { path: 'mascotas' }
-            })
-            .populate('usuarioProveedor');
+            .populate('cliente')
+            .populate('servicioReservado'); // refPath lo resuelve automáticamente
 
-        const reservasConVet = reservas.filter(r =>
-            r.usuarioProveedor?.__t === 'Veterinaria'
-        );
+        if (!reservas.length) return [];
 
-        const vetIds = reservasConVet.map(r => r.usuarioProveedor._id);
-
-        const veterinariasConServicios = await this.model.db.model('Veterinaria')
-            .find({ _id: { $in: vetIds } })
-            .populate('serviciosDisponibles');
-
-        const serviciosPorVetId = {};
-        veterinariasConServicios.forEach(vet => {
-            serviciosPorVetId[vet._id.toString()] = vet.serviciosDisponibles;
-        });
-
-        reservas.forEach(reserva => {
-            if (reserva.usuarioProveedor?.__t === 'Veterinaria') {
-            const idStr = reserva.usuarioProveedor._id.toString();
-            reserva.usuarioProveedor.serviciosDisponibles = serviciosPorVetId[idStr] || [];
+        // Segundo nivel de populate sobre cada servicioReservado
+        await Promise.all(reservas.map(async reserva => {
+            if (reserva.servicioReservado) {
+            reserva.servicioReservado = await reserva.servicioReservado.populate([
+                { path: 'usuarioProveedor' },
+                {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+                }
+            ]);
             }
-        });
+        }));
 
         return reservas;
-    }
+        }
 
     async findAll() {
-        const reservas = await this.model.find()
+        return await this.model.find()
             .populate('mascota')
+            .populate('cliente')
             .populate({
-            path: 'cliente',
-            populate: { path: 'mascotas' }
-            })
-            .populate('usuarioProveedor');
-
-        const reservasConVet = reservas.filter(r => r.usuarioProveedor?.__t === 'Veterinaria');
-
-        const vetIds = reservasConVet.map(r => r.usuarioProveedor._id);
-
-        const veterinariasConServicios = await this.model.db.model('Veterinaria')
-            .find({ _id: { $in: vetIds } })
-            .populate('serviciosDisponibles');
-
-        const serviciosPorVetId = {};
-        veterinariasConServicios.forEach(vet => {
-            serviciosPorVetId[vet._id.toString()] = vet.serviciosDisponibles;
-        });
-
-        reservas.forEach(reserva => {
-            if (reserva.usuarioProveedor?.__t === 'Veterinaria') {
-            const idStr = reserva.usuarioProveedor._id.toString();
-            reserva.usuarioProveedor.serviciosDisponibles = serviciosPorVetId[idStr] || [];
-            }
-        });
-
-        return reservas;
+            path: 'servicioReservado',
+            populate: [
+                { path: 'usuarioProveedor' },
+                {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+                }
+            ]
+            });
     }
 
 
-    async findByPage(pageNum, limitNum) {
-        const skip = (pageNum - 1) * limitNum;
+    
 
-        // 1. Populates básicos
-        const reservas = await this.model.find()
-            .skip(skip)
-            .limit(limitNum)
-            .populate('mascota')
-            .populate({
-            path: 'cliente',
-            populate: { path: 'mascotas' }
-            })
-            .populate({
-            path: 'usuarioProveedor',
-            // Suponiendo que apuntás a un modelo base con discriminators
-            model: 'UsuarioProveedor'
-            })
-            .exec();
-
-        // 2. Filtrar reservas donde el proveedor es una Veterinaria
-        const reservasConVet = reservas.filter(r =>
-            r.usuarioProveedor && r.usuarioProveedor.__t === 'Veterinaria'
-        );
-
-        // 3. Obtener IDs de esas veterinarias
-        const vetIds = reservasConVet.map(r => r.usuarioProveedor._id);
-
-        // 4. Buscar veterinarias con serviciosDisponibles poblados
-        const veterinariasConServicios = await this.model.db.model('Veterinaria')
-            .find({ _id: { $in: vetIds } })
-            .populate('serviciosDisponibles')
-            .exec();
-
-        // 5. Mapear por ID
-        const serviciosPorVetId = {};
-        veterinariasConServicios.forEach(vet => {
-            serviciosPorVetId[vet._id.toString()] = vet.serviciosDisponibles;
-        });
-
-        // 6. Asignar serviciosDisponibles manualmente a reservas con veterinaria
-        reservas.forEach(reserva => {
-            if (reserva.usuarioProveedor?.__t === 'Veterinaria') {
-            const idStr = reserva.usuarioProveedor._id.toString();
-            reserva.usuarioProveedor.serviciosDisponibles = serviciosPorVetId[idStr] || [];
-            }
-        });
-
-        // 7. Devolver todas las reservas
-        return reservas;
-    }
-
+    
     async countAll() {
         return await this.model.countDocuments()
     }

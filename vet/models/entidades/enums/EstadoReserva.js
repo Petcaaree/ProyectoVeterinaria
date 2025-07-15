@@ -1,5 +1,6 @@
 export const EstadoReserva = {
     PENDIENTE: 'PENDIENTE',
     CONFIRMADA: 'CONFIRMADA',
-    CANCELADA: 'CANCELADA'
+    CANCELADA: 'CANCELADA',
+    COMPLETADA: 'COMPLETADA'
   };

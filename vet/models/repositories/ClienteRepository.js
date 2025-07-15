@@ -14,17 +14,12 @@ export class ClienteRepository {
                 datosActualizados,
                 { new: true, runValidators: true }
             )
-            return await this.model.populate(clienteExistente, [
-                {path: 'mascotas'}
-
-            ])
+            return clienteExistente
 
         } else {
             const newcliente = new this.model(cliente)
             const clienteGuardado = await newcliente.save()
-            return await this.model.populate(clienteGuardado, [
-                {path: 'mascotas'}
-            ])
+            return clienteGuardado
         }
     }
 
@@ -34,15 +29,15 @@ export class ClienteRepository {
     }
 
     async findById(id) {
-        return await this.model.findById(id).populate('mascotas')
+        return await this.model.findById(id)
     }
 
     async findByName(nombre){
-        return await this.model.findOne({nombre}).populate('mascotas')
+        return await this.model.findOne({nombre})
     }
 
     async findByEmail(email) {
-        return await this.model.findOne({ email }).populate('mascotas')
+        return await this.model.findOne({ email })
     } 
 
     async findByPage(pageNum, limitNum) {
@@ -50,7 +45,6 @@ export class ClienteRepository {
         const clientes = await this.model.find()
             .skip(skip)
             .limit(limitNum)
-            .populate('mascotas')
             .exec()
         return clientes
     }

@@ -24,12 +24,12 @@ export class FactoryNotificacion {
 
   static crearCancelacion(reserva) {
    
-    if (usuarioProvedor instanceof Cuidador ){
+    if (reserva.servicioReservado.usuarioProveedor instanceof Cuidador ){
         const mensaje = `Reserva cancelada del dia ${reserva.fechaInicio.toDateString()} al dia ${reserva.fechaFin.toDateString()} `;
-    } else if (usuarioProvedor instanceof Paseador) {
+    } else if (reserva.servicioReservado.usuarioProveedor instanceof Paseador) {
         const mensaje = `Reserva cancelada del dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
     } else {
-        const mensaje = `Reserva de ${reserva.servicio.tipoServicio} cancelada del dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+        const mensaje = `Reserva de ${reserva.servicioReservado.tipoServicio} cancelada del dia ${reserva.rangoFechas.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
     }
     return new Notificacion(mensaje);
   }

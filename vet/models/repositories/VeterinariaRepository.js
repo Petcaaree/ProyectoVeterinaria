@@ -8,20 +8,16 @@ export class VeterinariaRepository {
     async save(veterinaria) {
         if(veterinaria.id) {
             const { id, ...datosActualizados } = veterinaria
-            const VeterinariaExistente = await this.model.findByIdAndUpdate(
+            const veterinariaExistente = await this.model.findByIdAndUpdate(
                 veterinaria.id,
                 datosActualizados,
                 { new: true, runValidators: true }
             )
-            return await this.model.populate(VeterinariaExistente, [
-                {path: 'serviciosDisponibles'}
-            ])
+            return veterinariaExistente
         } else {
             const newveterinaria = new this.model(veterinaria)
             const veterinariaGuardado = await newveterinaria.save()
-            return await this.model.populate(veterinariaGuardado, [
-                {path: 'serviciosDisponibles'}
-            ])
+            return veterinariaExistente
         }
     }
 
@@ -31,31 +27,26 @@ export class VeterinariaRepository {
     }
 
     async findById(id) {
-        return await this.model.findById(id).populate('serviciosDisponibles')
+        return await this.model.findById(id)
     }
 
     async findByName(nombre){
-        return await this.model.findOne({nombre}).populate('serviciosDisponibles')
+        return await this.model.findOne({nombre})
     }
 
     async findByEmail(email) {
-        return await this.model.findOne({ email }).populate('serviciosDisponibles')
+        return await this.model.findOne({ email })
     } 
 
-    async findByTipoServicio(tipoServicio){
-        return await this.model.find({ serviciosDisponibles: tipoServicio }).populate('serviciosDisponibles')
-    }
+    
 
-    async findByMascotasAceptadas(mascotasAceptadas) {
-        return await this.model.find({ mascotasAceptadas: { $in: mascotasAceptadas } }).populate('serviciosDisponibles')
-    }
+   
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
         const veterinarias = await this.model.find()
             .skip(skip)
             .limit(limitNum)
-            .populate('serviciosDisponibles')
             .exec()
         return veterinarias
     }

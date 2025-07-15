@@ -4,11 +4,7 @@ import { EstadoReserva } from "./enums/EstadoReserva.js"
 
 export class Cliente extends Usuario {
 
-    constructor(nombreUsuario, email, localidad, mascotas , telefono ) {
-        super(nombreUsuario, email, localidad);
-        this.mascotas = mascotas ;
-        this.telefono = telefono ;
-    }
+    
 
 
 
@@ -28,6 +24,14 @@ export class Cliente extends Usuario {
             this.mascotas.splice(index, 1);
         } else {
             throw new Error("Mascota no encontrada");
+        }
+    }
+
+    agregarMascota(mascota) {
+        if (!this.mascotas.includes(mascota)) {
+            this.mascotas.push(mascota);
+        } else {
+            throw new Error("La mascota ya está registrada");
         }
     }
 }

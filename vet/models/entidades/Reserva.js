@@ -3,35 +3,22 @@ import { Cuidador } from './Cuidador.js';
 import { TipoServicio } from './enums/TipoServicio.js';
 import { Paseador } from './Paseador.js';
 import { Veterinaria } from './Veterinaria.js';
+import { ServicioVeterinaria } from './ServicioVeterinaria.js';
+import { ServicioCuidador } from './ServicioCuidador.js';
+import { ServicioPaseador} from './ServicioPaseador.js';
 
 export class Reserva{
 
-    constructor(cliente, usuarioProveedor, mascota, fechaAlta, fechaInicio, fechaFin, servicio, rangoHorario, precioUnitario, cantidadUnidades, localidad) {
-        this.cliente = cliente; 
-        this.usuarioProveedor = usuarioProveedor; 
+    constructor(cliente, servicioReservado, mascota, rangoFechas, rangoHorario, notaAdicional, serviciOfrecido ) {
+        this.cliente = cliente;
+        this.serviciOfrecido = serviciOfrecido; // Tipo de servicio (Veterinaria, Cuidador, Paseador) 
+        this.servicioReservado = servicioReservado; 
         this.mascota = mascota;  
-        this.fechaAlta = fechaAlta; 
-        this.fechaInicio = fechaInicio;
+        this.rangoFechas = rangoFechas; 
         this.estado = EstadoReserva.PENDIENTE; 
-        this.precioUnitario = precioUnitario ; 
-        this.localidad = localidad; // Localidad del cliente
-
-
-
-        if (usuarioProveedor instanceof Veterinaria || usuarioProveedor instanceof Paseador) {
-            this.cantidadUnidades = cantidadUnidades || 1;
-            this.rangoHorario = rangoHorario;
-            this.servicio = usuarioProveedor instanceof Veterinaria ? servicio : null;
-            this.fechaFin = this.calcularFechaFin(); // Calculamos fechaFin basado en cantidadUnidades
-        } else if (usuarioProveedor instanceof Cuidador) {
-            this.fechaFin = fechaFin;
-            this.rangoHorario = null;
-            this.servicio = null;
-            this.cantidadUnidades = this.calcularDias(); // Para cuidadores, calculamos días
-        }
-
-        this.precioTotal=calcularPrecioTotal(precioUnitario,cantidadUnidades);
-
+        this.rangoHorario = rangoHorario;
+        this.notaAdicional = notaAdicional;
+        this.cantidadDias = this.calcularDias(); // Para cuidadores, calculamos días
     }
 
     // Metodo para calcular fecha fin basado en cantidad de unidades
@@ -56,8 +43,8 @@ export class Reserva{
 
     // Metodo para calcular dias para cuidadores
     calcularDias() {
-        if (this.usuarioProveedor instanceof Cuidador) {
-            const diffTime = Math.abs(this.fechaFin - this.fechaInicio);
+        if (this.servicioReservado instanceof ServicioCuidador) {
+            const diffTime = Math.abs(this.rangoFechas.fechaFin - this.rangoFechas.fechaInicio);
             return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
         return this.cantidadUnidades;
@@ -69,15 +56,15 @@ export class Reserva{
 
     notificar() {
     const notificacion = FactoryNotificacion.crearSegunReserva(this);
-    const proveedor = this.usuarioProveedor
+    const proveedor = this.servicioReservado.usuarioProveedor
     proveedor.recibirNotificacion(notificacion);
     return proveedor;
   }
 
   notificarActualizacion() {
     const notificacion = FactoryNotificacion.crearActualizacion(this);
-    this.usuarioProveedor.recibirNotificacion(notificacion);
-    return this.usuarioProveedor;
+    this.servicioReservado.usuarioProveedor.recibirNotificacion(notificacion);
+    return this.servicioReservado.usuarioProveedor;
   }
 
   notificarCambioEstado(nuevoEstado, motivo=null) {
@@ -87,8 +74,8 @@ export class Reserva{
     if(nuevoEstado === EstadoReserva.CANCELADA) {
 
       notificacion = FactoryNotificacion.crearCancelacion(this, motivo)
-      this.usuarioProveedor.recibirNotificacion(notificacion)
-      return this.usuarioProveedor
+      this.servicioReservado.usuarioProveedor.recibirNotificacion(notificacion)
+      return this.servicioReservado.usuarioProveedor
 
     } else if(nuevoEstado === EstadoReserva.CONFIRMADA) {
 

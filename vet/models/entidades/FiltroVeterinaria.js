@@ -1,11 +1,13 @@
 import { TipoServicio } from "./enums/TipoServicio";
 
 export class FiltroVeterinaria {
-    constructor(nombre = null ,localidad=null, fechaInicio=null, fechaFin=null , mascotasAceptadas=[]) {
+    constructor(nombre = null ,localidad=null, precioMin =null , precioMax =null, tipoServicio =null, fecha=null, mascotasAceptadas=[]) {
         this.nombre = nombre;
         this.localidad = localidad;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+        this.precioMin = precioMin;
+        this.precioMax = precioMax;
+        this.tipoServicio = tipoServicio; // Tipo de servicio (consulta, vacunación, etc.)
+        this.fecha = fecha; // Fecha del servicio
         this.mascotasAceptadas = mascotasAceptadas;
     }
 

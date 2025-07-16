@@ -1,5 +1,9 @@
 export const TipoServicioVeterinario = {
-    CONTROL : 'CONTROL',
-    VACUNACION : 'VACUNACION',
-    BANIO : 'BANIO'
+    CONTROL : 'Control',
+    VACUNACION : 'Vacunacion',
+    BANIO : 'Baño',
+    DESPARACITACION : 'Desparacitacion',    
+    CIRUGIA : 'Cirugia',
+    RADIOGRAFIA : 'Radiografia',
+    ECOGRAFIA : 'Ecografia'
 } 

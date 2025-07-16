@@ -96,28 +96,54 @@ export class VeterinariaRepository {
         return reservas;
     }
 
-    async findByServicioReservado(servicioReservado) {
-        const reservas = await this.model.find({ servicioReservado })
-            .populate('mascota')
-            .populate('cliente')
-            .populate('servicioReservado');
+    async findByUsuarioProveedorByPage(pageNum, limitNum, serviciosReservadosIds) {
 
-        if (!reservas.length) return [];
+        const skip = (pageNum - 1) * limitNum;
 
-        await Promise.all(reservas.map(async reserva => {
-            if (reserva.servicioReservado) {
-            reserva.servicioReservado = await reserva.servicioReservado.populate([
-                { path: 'usuarioProveedor' },
-                {
+        if (!Array.isArray(serviciosReservadosIds) || serviciosReservadosIds.length === 0) {
+            return [];
+        }
+        
+        const reservas = await this.model.find({
+            servicioReservado: { $in: serviciosReservadosIds }
+        })
+        .skip(skip)
+        .limit(limitNum)
+        .populate('mascota')
+        .populate('cliente')
+        .populate({
+            path: 'servicioReservado',
+            populate: [
+            { path: 'usuarioProveedor' },
+            {
                 path: 'direccion.ciudad',
                 populate: { path: 'localidad' }
-                }
-            ]);
             }
-        }));
+            ]
+        });
 
         return reservas;
     }
+
+
+    // ESTE LO HICE POR LAS DUDAS
+    async findByServicioReservado(servicioReservado) {
+    const reservas = await this.model.find({ servicioReservado })
+        .populate('mascota')
+        .populate('cliente')
+        .populate({
+            path: 'servicioReservado',
+            populate: [
+                { path: 'usuarioProveedor' },
+                {
+                    path: 'direccion.ciudad',
+                    populate: { path: 'localidad' }
+                }
+            ]
+        });
+
+    return reservas;
+}
 
     async findByCliente(pageNum, limitNum, cliente) {
         const skip = (pageNum - 1) * limitNum;
@@ -127,25 +153,21 @@ export class VeterinariaRepository {
             .limit(limitNum)
             .populate('mascota')
             .populate('cliente')
-            .populate('servicioReservado'); // refPath lo resuelve automáticamente
-
-        if (!reservas.length) return [];
-
-        // Segundo nivel de populate sobre cada servicioReservado
-        await Promise.all(reservas.map(async reserva => {
-            if (reserva.servicioReservado) {
-            reserva.servicioReservado = await reserva.servicioReservado.populate([
-                { path: 'usuarioProveedor' },
-                {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
-                }
-            ]);
-            }
-        }));
+            .populate({
+                path: 'servicioReservado',
+                populate: [
+                    { path: 'usuarioProveedor' },
+                    {
+                        path: 'direccion.ciudad',
+                        populate: { path: 'localidad' }
+                    }
+                ]
+            });
 
         return reservas;
         }
+
+    asyn 
 
     async findAll() {
         return await this.model.find()

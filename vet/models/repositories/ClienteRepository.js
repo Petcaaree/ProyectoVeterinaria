@@ -6,19 +6,34 @@ export class ClienteRepository {
     }
 
     async save(cliente) {
-        if(cliente.id) {
-            const { id, ...datosActualizados } = cliente
-            const clienteExistente = await this.model.findByIdAndUpdate(
-                cliente.id,
+        if (cliente.id) {
+            const { id, ...datosActualizados } = cliente;
+
+            // Actualizás el cliente (no usás el retorno)
+            await this.model.findByIdAndUpdate(
+                id,
                 datosActualizados,
-                { new: true, runValidators: true }
-            )
-            return clienteExistente
+                { new: false, runValidators: true }
+            );
+
+            // Traés el cliente actualizado con las mascotas populadas
+            const clienteActualizado = await this.model.findById(id)
+                .populate('mascotas') // podés agregar más campos si querés
+                .exec();
+
+            return clienteActualizado;
 
         } else {
-            const newCliente = new this.model(cliente)
-            const clienteGuardado = await newCliente.save()
-            return clienteGuardado
+            // Guardás el nuevo cliente
+            const nuevoCliente = new this.model(cliente);
+            const clienteGuardado = await nuevoCliente.save();
+
+            // Lo traés con populate
+            const clienteConMascotas = await this.model.findById(clienteGuardado._id)
+                .populate('mascotas')
+                .exec();
+
+            return clienteConMascotas;
         }
     }
 
@@ -46,6 +61,23 @@ export class ClienteRepository {
             .limit(limitNum)
             .exec()
         return clientes
+    }
+
+
+    async findByMascota(mascotaId) {
+        return await this.model.find({ mascotas: mascotaId })
+            .populate('mascotas')
+            .exec() 
+    }
+
+    async findMascotasByCliente(clienteId) {
+        const cliente = await this.model.findById(clienteId)
+            .populate('mascotas')
+            .exec();
+
+        if (!cliente) return [];
+
+        return cliente.mascotas;
     }
 
     async countAll() {

@@ -47,7 +47,7 @@ export class ServicioCuidadorRepository {
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum
-        const alojamientos = await this.model.find()
+        const servicioCuidador = await this.model.find()
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
@@ -55,7 +55,7 @@ export class ServicioCuidadorRepository {
                 path: 'direccion.ciudad',
                 populate: {path: 'localidad'}
             })
-        return alojamientos
+        return servicioCuidador
     }
 
    async findByFilters(filtro) {
@@ -122,8 +122,8 @@ export class ServicioCuidadorRepository {
             })
     }
 
-    async findByAnfitrion(userCuidadorId) {
-        return await this.model.find({ usuarioProveedor: userCuidadorId })
+    async findByAnfitrion(anfitrionID) {
+        return await this.model.find({ usuarioProveedor: anfitrionID })
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.ciudad',

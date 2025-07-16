@@ -1,11 +1,13 @@
 import { TipoServicio } from "./enums/TipoServicio";
 
 export class FiltroPaseador {
-    constructor(nombre = null ,localidad=null, fechaInicio=null, fechaFin=null , mascotasAceptadas=[]) {
+    constructor(nombre = null, precioMin = null, precioMax = null, antiguedad = null ,localidad=null, fecha = null , mascotasAceptadas=[]) {
         this.nombre = nombre;
         this.localidad = localidad;
-        this.fechaInicio = fechaInicio;
-        this.fechaFin = fechaFin;
+        this.precioMin = precioMin;
+        this.precioMax = precioMax;
+        this.antiguedad = antiguedad; // Antigüedad en años
+        this.fecha = fecha; // Fecha del servicio
         this.mascotasAceptadas = mascotasAceptadas;
     }
 

@@ -59,59 +59,62 @@ export class ServicioCuidadorRepository {
     }
 
    async findByFilters(filtro) {
-        
-        const query = {}
-
-        if(filtro.precioMax != null) {
-            query.precioPorNoche = {}
-            query.precioPorNoche.$lte = filtro.precioMax
-        }
-        
-        if(filtro.precioMin != null) {
-            query.precioPorNoche.$gte = filtro.precioMin
-        }
-
-        if(filtro.cantHuespedes != null) {
-            query.cantHuespedesMax = { $gte: filtro.cantHuespedes}
-        }
-
-        if(filtro.caracteristicas && filtro.caracteristicas.length > 0) {
-            query.caracteristicas = { $all: filtro.caracteristicas }
-        }
-
-        if (filtro.fechaInicio && filtro.fechaFin) {
-            const fechaInicioDate = parseFechaDDMMYYYY(filtro.fechaInicio);
-            const fechaFinDate = parseFechaDDMMYYYY(filtro.fechaFin);
-
-            query.fechasNoDisponibles = {
-                $not: {
-                    $elemMatch: {
-                        fechaInicio: { $lte: fechaFinDate },
-                        fechaFin: { $gte: fechaInicioDate }
-                    }
-                }
-            };
-        }
-
-
-        const resultadosFiltro1 = await this.model.find(query)
-            .populate('anfitrion')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'pais'}
-            })
-
-        return resultadosFiltro1.filter(r => {
-            const ciudad = r.direccion?.ciudad
-            const pais = ciudad?.pais
-
-            const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
-            const coincidePais = filtro.pais ? pais?.nombre === filtro.pais : true
-
-            return coincideCiudad && coincidePais
-        })
-
-    }
+              
+              const query = {}
+      
+              if(filtro.precioMax != null) {
+                  query.precio = {}
+                  query.precio.$lte = filtro.precioMax
+              }
+              
+              if(filtro.precioMin != null) {
+                  query.precio.$gte = filtro.precioMin
+              }
+      
+              /* if(filtro.antiguedad != null) {
+                  query.cantHuespedesMax = { $gte: filtro.antiguedad}
+              } */
+      
+              if(filtro.mascotasAceptadas && filtro.mascotasAceptadas.length > 0) {
+                  query.mascotasAceptadas = { $all: filtro.mascotasAceptadas }
+              }
+      
+              if (filtro.fechaInicio && filtro.fechaFin) {
+                  const fechaInicioDate = parseFechaDDMMYYYY(filtro.fechaInicio);
+                  const fechaFinDate = parseFechaDDMMYYYY(filtro.fechaFin);
+      
+                  query.fechasNoDisponibles = {
+                      $not: {
+                          $elemMatch: {
+                              fechaInicio: { $lte: fechaFinDate },
+                              fechaFin: { $gte: fechaInicioDate }
+                          }
+                      }
+                  };
+              }
+      
+      
+              const resultadosFiltro1 = await this.model.find(query)
+                  .populate('usuarioProveedor')
+                  .populate({
+                      path: 'direccion.ciudad',
+                      populate: {path: 'localidad'}
+                  })
+      
+              return resultadosFiltro1.filter(r => {
+                  const ciudad = r.direccion?.ciudad
+                  const localidad = ciudad?.localidad
+                  const nombreServicio = r.nombreServicio
+      
+                  const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
+                  const coincideLocalidad = filtro.localidad ? pais?.nombre === filtro.localidad : true
+                   const coincideNombreServicio = filtro.nombre ? nombreServicio === filtro.nombreServicio : true
+   
+      
+                  return coincideCiudad && coincideLocalidad && coincideNombreServicio
+              })
+      
+          }
 
     async findById(id) {
         return await this.model.findById(id)

@@ -1,15 +1,14 @@
-export class FechaHorarioTurno {
-  constructor(fecha, horarioInicio, duracionEnMinutos) {
+export class FechaHorariosNoDisponibles {
+  constructor(fecha, horario) {
     this.fecha = fecha; // Fecha en formato YYYY-MM-DD
-    this.horarioInicio = horarioInicio; // Horario de inicio en formato HH:MM
-    this.duracionEnMinutos = duracionEnMinutos;
+    this.horario = horario; // Horario de inicio en formato HH:MM
    } // Duración en minutos}
 
-  seSuperponeConElHorario(fechaHorarioNueva, fechaHorarioExistente) {
-    const inicioNueva = new Date(`${fechaHorarioNueva.fecha}T${fechaHorarioNueva.horarioInicio}`);
-    const finNueva = new Date(inicioNueva.getTime() + fechaHorarioNueva.duracionEnMinutos * 60000);
-    const inicioExistente = new Date(`${fechaHorarioExistente.fecha}T${fechaHorarioExistente.horarioInicio}`);
-    const finExistente = new Date(inicioExistente.getTime() + fechaHorarioExistente.duracionEnMinutos * 60000);
+  seSuperponeConElHorario(fechaHorarioNueva, fechaHorarioExistente, duracionEnMinutos) {
+    const inicioNueva = new Date(`${fechaHorarioNueva.fecha}T${fechaHorarioNueva.horario}`);
+    const finNueva = new Date(inicioNueva.getTime() + duracionEnMinutos * 60000);
+    const inicioExistente = new Date(`${fechaHorarioExistente.fecha}T${fechaHorarioExistente.horario}`);
+    const finExistente = new Date(inicioExistente.getTime() + duracionEnMinutos * 60000);
     // Verifica si los horarios se superponen
     if (inicioNueva.getTime() === finExistente.getTime() || finNueva.getTime() === inicioExistente.getTime()) {
       return false; // No se superponen si son iguales
@@ -26,4 +25,5 @@ export class FechaHorarioTurno {
     return false; // No hay superposición
     }
    
+  
 }

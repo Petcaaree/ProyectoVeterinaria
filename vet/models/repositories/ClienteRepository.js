@@ -9,31 +9,21 @@ export class ClienteRepository {
         if (cliente.id) {
             const { id, ...datosActualizados } = cliente;
 
-            // Actualizás el cliente (no usás el retorno)
-            await this.model.findByIdAndUpdate(
+            // Actualizar el cliente y retornar el actualizado
+            const clienteActualizado = await this.model.findByIdAndUpdate(
                 id,
                 datosActualizados,
-                { new: false, runValidators: true }
+                { new: true, runValidators: true }
             );
-
-            // Traés el cliente actualizado con las mascotas populadas
-            const clienteActualizado = await this.model.findById(id)
-                .populate('mascotas') // podés agregar más campos si querés
-                .exec();
 
             return clienteActualizado;
 
         } else {
-            // Guardás el nuevo cliente
+            // Guardar el nuevo cliente
             const nuevoCliente = new this.model(cliente);
             const clienteGuardado = await nuevoCliente.save();
 
-            // Lo traés con populate
-            const clienteConMascotas = await this.model.findById(clienteGuardado._id)
-                .populate('mascotas')
-                .exec();
-
-            return clienteConMascotas;
+            return clienteGuardado;
         }
     }
 
@@ -65,14 +55,12 @@ export class ClienteRepository {
 
 
     async findByMascota(mascotaId) {
-        return await this.model.find({ mascotas: mascotaId })
-            .populate('mascotas')
+        return await this.model.find({ "mascotas._id": mascotaId })
             .exec() 
     }
 
     async findMascotasByCliente(clienteId) {
         const cliente = await this.model.findById(clienteId)
-            .populate('mascotas')
             .exec();
 
         if (!cliente) return [];

@@ -11,6 +11,7 @@ export class ServicioVeterinaria{
         this.duracionMinutos = duracionMinutos; // Duración del servicio en minutos
         this.nombreClinica = nombreClinica; // Nombre de la clínica veterinaria 
         this.fechasNoDisponibles = []; // Fechas no disponibles para el servicio
+        this.horariosNoDisponibles = []; // Horarios no disponibles para el servicio
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.horariosDisponibles = horariosDisponibles ; // Horarios disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
@@ -23,4 +24,27 @@ export class ServicioVeterinaria{
     actualizarDuracion(nuevaDuracion) {
         this.duracion = nuevaDuracion;
     }
+
+
+    estaDisponibleParaFechaYHorario(fechaHorarioTurno) {
+        this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
+            if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
+                if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
+                    return false; // La fecha y horario están en la lista de no disponibles
+                }
+            }
+        });
+        return true; // Si no se encontró ninguna coincidencia, está disponible
+    }
+
+    cancelarHorarioReserva(fechaHorarioTurno) {
+        this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
+            if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
+                if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
+                    fechaHorariosNodispo.horariosNoDisponibles.eliminarHorarioNoDisponible(fechaHorarioTurno.horario); // Elimina el horario de la lista de no disponibles
+                }
+            }
+        });
+    }
+    
 }

@@ -6,9 +6,9 @@ export class Cliente extends Usuario {
 
     
 
-    constructor(nombreUsuario, email, telefono, direccion, contrasenia, notificaciones, mascotas = []) {
-        super(nombreUsuario, email, telefono, direccion, contrasenia, notificaciones);
-        this.mascotas = mascotas; // Array de objetos Mascota
+    constructor(nombreUsuario, email, direccion, telefono, contrasenia, mascotas = []) {
+        super(nombreUsuario, email, direccion, telefono, contrasenia); // sin notificaciones
+        this.mascotas = mascotas;
     }
 
 

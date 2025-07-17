@@ -8,38 +8,78 @@ import { Server } from "./server.js";
 import swaggerUi from "swagger-ui-express";
 import YAML from "yamljs";
 
-import routes from "./birbnb/routes/routes.js";
+import routes from "./vet/routes/routes.js";
 
-import { CiudadRepository } from "./birbnb/models/repositories/ciudadRepository.js";
-import { PaisRepository } from "./birbnb/models/repositories/paisRepository.js";
-import { CiudadService } from "./birbnb/services/ciudadService.js";
-import { CiudadController } from "./birbnb/controllers/ciudadController.js";
+import { CiudadRepository } from "./vet/models/repositories/CiudadRepository.js";
+import { LocalidadRepository } from "./vet/models/repositories/LocalidadRepository.js";
+import { CiudadService } from "./vet/services/ciudadService.js";
+import { CiudadController } from "./vet/controllers/ciudadController.js";
 
-import { AlojamientoRepository } from "./birbnb/models/repositories/alojamientoRepository.js";
-import { AnfitrionRepository } from "./birbnb/models/repositories/anfitrionRepository.js";
-import { HuespedRepository } from "./birbnb/models/repositories/huespedRepository.js";
-import { ReservaRepository } from "./birbnb/models/repositories/reservaRepository.js";
+import { ServicioVeterinariaRepository } from "./vet/models/repositories/ServicioVeterinariaRepository.js";
+import { ServicioPaseadorRepository } from "./vet/models/repositories/servicioPaseadorRepository.js";
+import { ServicioCuidadorRepository } from "./vet/models/repositories/servicioCuidadorRepository.js";
 
-import { AlojamientoService } from "./birbnb/services/alojamientoService.js";
-import { AnfitrionService } from "./birbnb/services/anfitrionService.js";
-import { HuespedService } from "./birbnb/services/huespedService.js";
-import { ReservaService } from "./birbnb/services/reservaService.js";
+import { CuidadorRepository } from "./vet/models/repositories/CuidadorRepository.js";
+import { PaseadorRepository } from "./vet/models/repositories/PaseadorRepository.js";
+import { VeterinariaRepository } from "./vet/models/repositories/VeterinariaRepository.js";
+import { ClienteRepository } from "./vet/models/repositories/ClienteRepository.js";
+import { ReservaRepository } from "./vet/models/repositories/ReservaRepository.js";
 
-import { AlojamientoController } from "./birbnb/controllers/alojamientoController.js";
-import { AnfitrionController } from "./birbnb/controllers/anfitrionController.js";
-import { HuespedController } from "./birbnb/controllers/huespedController.js";
-import { ReservaController } from "./birbnb/controllers/reservaController.js";
+import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
+import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
+import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";
+import { CuidadorService } from "./vet/services/cuidadorService.js";
+import { PaseadorService } from "./vet/services/paseadorService.js";
+import { VeterinariaService } from "./vet/services/veterinariaService.js";
+import { ClienteService } from "./vet/services/clienteService.js";
+import { ReservaService } from "./vet/services/reservaService.js";
 
-import { MongoDBClient } from "./birbnb/config/database.js";
-import { errorHandler } from "./birbnb/middlewares/errorHandler.js";
+import { ServicioVeterinariaController } from "./vet/controllers/servicioVeterinariaController.js";
+import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorController.js";
+import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorController.js";
+import { CuidadorController } from "./vet/controllers/cuidadorController.js";   
+import { PaseadorController } from "./vet/controllers/paseadorController.js";
+import { VeterinariaController } from "./vet/controllers/veterinariaController.js";
+import { ClienteController } from "./vet/controllers/clienteController.js";
+import { ReservaController } from "./vet/controllers/reservaController.js";
 
-// Configuración de dependencias
-const paisRepo = new PaisRepository();
+import { MongoDBClient } from "./vet/config/database.js";
+import { errorHandler } from "./vet/middlewares/errorHandler.js";
+
+
+const clienteRepo = new ClienteRepository();
 const ciudadRepo = new CiudadRepository();
-const ciudadService = new CiudadService(ciudadRepo, paisRepo);
-const ciudadController = new CiudadController(ciudadService);
-
+const localidadRepo = new LocalidadRepository();
+const servicioVeterinariaRepo = new ServicioVeterinariaRepository();
+const servicioPaseadorRepo = new ServicioPaseadorRepository();
+const servicioCuidadorRepo = new ServicioCuidadorRepository();  
+const cuidadorRepo = new CuidadorRepository();
+const paseadorRepo = new PaseadorRepository();
+const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
+
+const clienteService = new ClienteService(clienteRepo);
+const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
+const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo);
+const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo);
+const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo);
+const cuidadorService = new CuidadorService(cuidadorRepo);
+const paseadorService = new PaseadorService(paseadorRepo);
+const veterinariaService = new VeterinariaService(veterinariaRepo);
+const reservaService = new ReservaService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo, servicioVeterinariaRepo);
+
+const clienteController = new ClienteController(clienteService, reservaService);
+const ciudadController = new CiudadController(ciudadService);
+const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
+const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
+const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
+const cuidadorController = new CuidadorController(cuidadorService);
+const paseadorController = new PaseadorController(paseadorService);
+const veterinariaController = new VeterinariaController(veterinariaService);
+const reservaController = new ReservaController(reservaService);
+
+
+/* const reservaRepo = new ReservaRepository();
 const anfitrionRepo = new AnfitrionRepository();
 const huespedRepo = new HuespedRepository();
 const alojamientoRepo = new AlojamientoRepository();
@@ -52,7 +92,7 @@ const alojamientoService = new AlojamientoService(alojamientoRepo, anfitrionRepo
 const reservaController = new ReservaController(reservaService);
 const anfitrionController = new AnfitrionController(anfitrionService, reservaService);
 const huespedController = new HuespedController(huespedService, reservaService);
-const alojamientoController = new AlojamientoController(alojamientoService);
+const alojamientoController = new AlojamientoController(alojamientoService);  */
 
 const app = express();
 app.use(cors({
@@ -65,10 +105,14 @@ MongoDBClient.connect();
 
 // Registro del controlador en el servidor
 server.setController(CiudadController, ciudadController);
+server.setController(ClienteController, clienteController);
+server.setController(ServicioVeterinariaController, servicioVeterinariaController);
+server.setController(ServicioPaseadorController, servicioPaseadorController);
+server.setController(ServicioCuidadorController, servicioCuidadorController);
+server.setController(CuidadorController, cuidadorController);
+server.setController(PaseadorController, paseadorController);
+server.setController(VeterinariaController, veterinariaController);
 server.setController(ReservaController, reservaController);
-server.setController(AnfitrionController, anfitrionController);
-server.setController(HuespedController, huespedController);
-server.setController(AlojamientoController, alojamientoController);
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

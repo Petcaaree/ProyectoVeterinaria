@@ -9,16 +9,19 @@ import { ServicioPaseador} from './ServicioPaseador.js';
 
 export class Reserva{
 
-    constructor(cliente, servicioReservado, mascota, rangoFechas, rangoHorario, notaAdicional, serviciOfrecido ) {
+    constructor(cliente, servicioReservado, mascota, rangoFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto) {
         this.cliente = cliente;
         this.serviciOfrecido = serviciOfrecido; // Tipo de servicio (Veterinaria, Cuidador, Paseador) 
         this.servicioReservado = servicioReservado; 
         this.mascota = mascota;  
         this.rangoFechas = rangoFechas; 
         this.estado = EstadoReserva.PENDIENTE; 
-        this.rangoHorario = rangoHorario;
+        this.horario = horario || null;
         this.notaAdicional = notaAdicional;
         this.cantidadDias = this.calcularDias(); // Para cuidadores, calculamos días
+        this.nombreDeContacto = nombreDeContacto 
+        this.telefonoContacto = telefonoContacto 
+        this.emailContacto = emailContacto
     }
 
     // Metodo para calcular fecha fin basado en cantidad de unidades

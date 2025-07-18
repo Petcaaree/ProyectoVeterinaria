@@ -1,7 +1,12 @@
 export class ClienteController {
-  constructor(clienteService, reservaService) {
+  /* constructor(clienteService, reservaService) {
     this.clienteService = clienteService
     this.reservaService = reservaService
+  } */
+
+    constructor(clienteService) {
+    this.clienteService = clienteService
+    
   }
 
   async findAll(req, res, next) {
@@ -72,7 +77,7 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
-  async updateReserva(req, res, next) {
+  /* async updateReserva(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
 
@@ -96,7 +101,7 @@ async marcarLeidaNotificacion(req, res, next) {
     } catch(error) {
       next(error)
     }
-  }
+  } */
 
   async getNotificaciones(req, res, next) {
     try {

@@ -2,7 +2,7 @@
 
 export class ServicioVeterinaria{
 
-    constructor(usuarioProveedor, nombreServicio,tipoServicio, precio, descripcion,  duracionMinutos, nombreClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas)  {
+    constructor(usuarioProveedor, nombreServicio,tipoServicio, precio, descripcion,  duracionMinutos, nombreClinica, direccionClinica, emailClinica, telefonoClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas)  {
         this.usuarioProveedor = usuarioProveedor; // Referencia al cuidador o veterinario
         this.nombreServicio = nombreServicio; // Nombre del servicio
         this.tipoServicio = tipoServicio; // Tipo de servicio (Control, Vacunación, Baño)
@@ -15,6 +15,9 @@ export class ServicioVeterinaria{
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.horariosDisponibles = horariosDisponibles ; // Horarios disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
+        this.direccionClinica = direccionClinica; // Dirección de la clínica veterinaria
+        this.emailClinica = emailClinica; // Email de la clínica veterinaria
+        this.telefonoClinica = telefonoClinica; // Teléfono de la clínica veterinaria
     }
 
     actualizarPrecio(nuevoPrecio) {

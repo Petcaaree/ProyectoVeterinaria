@@ -10,7 +10,6 @@ export class ServicioCuidador{
         this.nombreContacto = nombreContacto; // Nombre del contacto
         this.emailContacto = emailContacto; // Email del contacto
         this.telefonoContacto = telefonoContacto; // Teléfono del contacto
-        this.duracionMinutos = duracionMinutos; // Duración del servicio en minutos
         this.fechasNoDisponibles = []; // Fechas no disponibles para el servicio
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas

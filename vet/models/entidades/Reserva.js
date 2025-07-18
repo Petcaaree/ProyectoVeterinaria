@@ -1,6 +1,6 @@
-import { EstadoReserva } from '../enums/EstadoReserva.js';
+import { EstadoReserva } from './enums/EstadoReserva.js';
 import { Cuidador } from './Cuidador.js';
-import { TipoServicio } from './enums/TipoServicio.js';
+import { TipoServicioVeterinario } from './enums/TipoServicioVeterinario.js';
 import { Paseador } from './Paseador.js';
 import { Veterinaria } from './Veterinaria.js';
 import { ServicioVeterinaria } from './ServicioVeterinaria.js';

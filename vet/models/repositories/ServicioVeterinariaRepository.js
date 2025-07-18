@@ -1,4 +1,4 @@
-import { ServicioVeterinariaModel } from '../schemas/alojamientoSchema.js';
+import { ServicioVeterinariaModel } from '../schemas/servicioVeterinariaSchema.js';
 
 export class ServicioVeterinariaRepository {
     constructor() {

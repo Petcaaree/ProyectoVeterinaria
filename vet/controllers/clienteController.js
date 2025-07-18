@@ -119,7 +119,7 @@ async marcarLeidaNotificacion(req, res, next) {
     async findMascotasByCliente(req, res, next) {
         try {
         const id = req.params.id
-        const mascotas = await this.clienteService.findMascotasByCliente(id)
+        const mascotas = await this.clienteService.getMascotas(id)
     
         res.json(mascotas)
         } catch (error) {
@@ -142,11 +142,13 @@ async marcarLeidaNotificacion(req, res, next) {
 
     async deleteMascota(req, res, next) {
         try {
-        const { id, idMascota } = req.params
+        const id = req.params.id
+        const idMascota = req.params.idMascota
     
         await this.clienteService.eliminarMascota(id, idMascota)
 
         return res.status(204).send();
+
         } catch (error) {
         next(error)
         }

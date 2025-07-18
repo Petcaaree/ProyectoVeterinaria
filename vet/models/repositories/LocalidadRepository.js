@@ -1,6 +1,6 @@
-import { LocalidadModel } from "../schemas/localidadShema.js"
+import { LocalidadModel } from "../schemas/localidadSchema.js"
 
-export class PaisRepository {
+export class LocalidadRepository {
     constructor() {
         this.model = LocalidadModel
     }

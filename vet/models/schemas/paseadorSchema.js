@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose"
 import { Paseador } from "../entidades/Paseador.js";
 
 const paseadorSchema = new mongoose.Schema({

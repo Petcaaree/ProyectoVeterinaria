@@ -5,25 +5,25 @@ import express from "express";
 import cors from 'cors';
 import { Server } from "./server.js";
 
-import swaggerUi from "swagger-ui-express";
-import YAML from "yamljs";
+// import swaggerUi from "swagger-ui-express";
+// import YAML from "yamljs";
 
 import routes from "./vet/routes/routes.js";
 
-import { CiudadRepository } from "./vet/models/repositories/CiudadRepository.js";
-import { LocalidadRepository } from "./vet/models/repositories/LocalidadRepository.js";
+import { CiudadRepository } from "./vet/models/repositories/ciudadRepository.js";
+import { LocalidadRepository } from "./vet/models/repositories/localidadRepository.js";
 import { CiudadService } from "./vet/services/ciudadService.js";
 //import { CiudadController } from "./vet/controllers/ciudadController.js";
 
-import { ServicioVeterinariaRepository } from "./vet/models/repositories/ServicioVeterinariaRepository.js";
+import { ServicioVeterinariaRepository } from "./vet/models/repositories/servicioVeterinariaRepository.js";
 import { ServicioPaseadorRepository } from "./vet/models/repositories/servicioPaseadorRepository.js";
 import { ServicioCuidadorRepository } from "./vet/models/repositories/servicioCuidadorRepository.js";
 
-import { CuidadorRepository } from "./vet/models/repositories/CuidadorRepository.js";
-import { PaseadorRepository } from "./vet/models/repositories/PaseadorRepository.js";
-import { VeterinariaRepository } from "./vet/models/repositories/VeterinariaRepository.js";
-import { ClienteRepository } from "./vet/models/repositories/ClienteRepository.js";
-import { ReservaRepository } from "./vet/models/repositories/ReservaRepository.js";
+import { CuidadorRepository } from "./vet/models/repositories/cuidadorRepository.js";
+import { PaseadorRepository } from "./vet/models/repositories/paseadorRepository.js";
+import { VeterinariaRepository } from "./vet/models/repositories/veterinariaRepository.js";
+import { ClienteRepository } from "./vet/models/repositories/clienteRepository.js";
+import { ReservaRepository } from "./vet/models/repositories/reservaRepository.js";
 
 /* import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
@@ -58,7 +58,7 @@ const paseadorRepo = new PaseadorRepository();
 const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
 
-const clienteService = new ClienteService(clienteRepo);
+const clienteService = new ClienteService(clienteRepo, localidadRepo, ciudadRepo);
 
 
 
@@ -112,15 +112,16 @@ const server = new Server(app, port);
 MongoDBClient.connect();
 
 // Registro del controlador en el servidor
-server.setController(CiudadController, ciudadController);
 server.setController(ClienteController, clienteController);
+
+/* server.setController(CiudadController, ciudadController);
 server.setController(ServicioVeterinariaController, servicioVeterinariaController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(CuidadorController, cuidadorController);
 server.setController(PaseadorController, paseadorController);
 server.setController(VeterinariaController, veterinariaController);
-server.setController(ReservaController, reservaController);
+server.setController(ReservaController, reservaController); */
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {
@@ -128,9 +129,9 @@ routes.forEach(r => {
 })
 server.configureRoutes();
 
-const swaggerDocument = YAML.load("../docs/swagger.yaml")
+// const swaggerDocument = YAML.load("../docs/swagger.yaml")
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 app.use(errorHandler)
 
 server.launch();

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Schema } from "mongoose"
 import { Veterinaria } from "../entidades/Veterinaria.js";
 
 const veterinariaSchema = new mongoose.Schema({

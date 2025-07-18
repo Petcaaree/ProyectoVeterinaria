@@ -1,10 +1,17 @@
 import { Cliente } from "../models/entidades/Cliente.js"
+import { Localidad } from "../models/entidades/Localidad.js"
+import { Ciudad } from "../models/entidades/Ciudad.js"
+import { Direccion } from "../models/entidades/Direccion.js"
+import { Mascota } from "../models/entidades/Mascota.js"
+import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 
 
 export class ClienteService {
-    constructor(clienteRepository) {
+    constructor(clienteRepository, localidadRepository, ciudadRepository) {
         this.clienteRepository = clienteRepository
+        this.localidadRepository = localidadRepository
+        this.ciudadRepository = ciudadRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -58,7 +65,21 @@ export class ClienteService {
             throw new ConflictError(`Email ya registrado`)
         }
 
-        const nuevoCliente = new Cliente(nombreUsuario, email, telefono, direccion, contrasenia)
+        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
+
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        if(!ciudadExistente) {
+            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
+        }
+
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+
+        const nuevoCliente = new Cliente(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
 
         await this.clienteRepository.save(nuevoCliente)
 
@@ -246,8 +267,12 @@ export class ClienteService {
         if(!cliente) {
             throw new NotFoundError(`Cliente con id ${idUsuario} no encontrado`)
         }
-
-        cliente.agregarMascota(mascota)
+        const { nombre, tipo, raza, edad, peso, fotos } = mascota
+        if(!nombre || !tipo || !raza || !edad || !peso || !fotos) {
+            throw new ValidationError("Faltan datos obligatorios para crear la mascota")
+        }
+        const mascotaCreada = new Mascota(nombre, tipo, edad, raza, peso, fotos)
+        cliente.agregarMascota(mascotaCreada)
 
         await this.clienteRepository.save(cliente)
 
@@ -260,13 +285,16 @@ export class ClienteService {
             throw new NotFoundError(`Cliente con id ${idUsuario} no encontrado`)
         }
 
-        const mascota = cliente.mascotas.find(m => m.id == idMascota)
+        console.log(cliente.mascotas)
+
+        const mascota = cliente.mascotas.find(m => m._id.toString() == idMascota)
         if(!mascota) {
             throw new NotFoundError(`Mascota con id ${idMascota} no encontrada`)
         }
 
         cliente.eliminarMascota(mascota)
-        await this.clienteRepository.save(cliente)
+        const clienteConMascotaBorrada = await this.clienteRepository.save(cliente)
+        return this.toDTO(clienteConMascotaBorrada)
     }
 
     toDTO(cliente) {

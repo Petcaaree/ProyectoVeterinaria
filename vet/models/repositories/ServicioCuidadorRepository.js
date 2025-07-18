@@ -1,5 +1,5 @@
 import path from 'path';
-import { ServicioCuidadorModel } from '../schemas/alojamientoSchema.js';
+import { ServicioCuidadorModel } from '../schemas/servicioCuidadorSchema.js';
 
 export class ServicioCuidadorRepository {
     constructor() {

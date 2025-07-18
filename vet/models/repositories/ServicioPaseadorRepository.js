@@ -1,5 +1,5 @@
 import path from 'path';
-import { ServicioPaseadorModel } from '../schemas/alojamientoSchema.js';
+import { ServicioPaseadorModel } from '../schemas/servicioPaseadorSchema.js';
 
 export class ServicioPaseadorRepository {
     constructor() {

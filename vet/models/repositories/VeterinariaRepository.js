@@ -28,6 +28,10 @@ export class VeterinariaRepository {
 
     async findById(id) {
         return await this.model.findById(id)
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     }
 
     async findByName(nombre){

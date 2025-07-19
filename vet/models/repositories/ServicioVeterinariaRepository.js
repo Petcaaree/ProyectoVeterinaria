@@ -67,6 +67,7 @@ export class ServicioVeterinariaRepository {
               }
               
               if(filtro.precioMin != null) {
+                  if(!query.precio) query.precio = {}
                   query.precio.$gte = filtro.precioMin
               }
       
@@ -102,11 +103,12 @@ export class ServicioVeterinariaRepository {
               return resultadosFiltro1.filter(r => {
                   const ciudad = r.direccion?.ciudad
                   const localidad = ciudad?.localidad
+                  console.log(localidad?.nombre)
                   const nombreServicio = r.nombreServicio
       
                   const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
-                  const coincideLocalidad = filtro.localidad ? pais?.nombre === filtro.localidad : true
-                   const coincideNombreServicio = filtro.nombre ? nombreServicio === filtro.nombreServicio : true
+                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
+                  const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
    
       
                   return coincideCiudad && coincideLocalidad && coincideNombreServicio
@@ -123,7 +125,7 @@ export class ServicioVeterinariaRepository {
             })
     }
 
-    async findByAnfitrion(userVeterinariaId) {
+    async findByVeterinariaId(userVeterinariaId) {
         return await this.model.find({ usuarioProveedor: userVeterinariaId })
             .populate('usuarioProveedor')
             .populate({
@@ -132,8 +134,8 @@ export class ServicioVeterinariaRepository {
             })
     }
 
-    async findByName(nombre) {
-        return await this.model.findOne({nombre})
+    async findByName(nombreServicio) {
+        return await this.model.findOne({nombreServicio})
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.ciudad',

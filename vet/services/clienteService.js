@@ -305,6 +305,14 @@ export class ClienteService {
             telefono: cliente.telefono,
             email: cliente.email,
             notificaciones: cliente.notificaciones,
+            direccion: {
+                calle: cliente.direccion.calle,
+                altura: cliente.direccion.altura,
+                ciudad: {
+                    nombre: cliente.direccion.ciudad.nombre,
+                    pais: cliente.direccion.ciudad.localidad.nombre
+                }
+            },
             mascotas: cliente.mascotas
         }
     }

@@ -219,6 +219,14 @@ export class CuidadorService {
             apellido: cuidador.direccion,
             telefono: cuidador.telefono,
             email: cuidador.email,
+            direccion: {
+                calle: cuidador.direccion.calle,
+                altura: cuidador.direccion.altura,
+                ciudad: {
+                    nombre: cuidador.direccion.ciudad.nombre,
+                    pais: cuidador.direccion.ciudad.localidad.nombre
+                }
+            },
             notificaciones: cuidador.notificaciones,
         }
     }

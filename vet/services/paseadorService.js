@@ -219,6 +219,14 @@ export class PaseadorService {
             apellido: paseador.direccion,
             telefono: paseador.telefono,
             email: paseador.email,
+            direccion: {
+                calle: paseador.direccion.calle,
+                altura: paseador.direccion.altura,
+                ciudad: {
+                    nombre: paseador.direccion.ciudad.nombre,
+                    pais: paseador.direccion.ciudad.localidad.nombre
+                }
+            },
             notificaciones: paseador.notificaciones,
         }
     }

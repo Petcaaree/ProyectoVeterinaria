@@ -25,23 +25,25 @@ import { VeterinariaRepository } from "./vet/models/repositories/veterinariaRepo
 import { ClienteRepository } from "./vet/models/repositories/clienteRepository.js";
 import { ReservaRepository } from "./vet/models/repositories/reservaRepository.js";
 
-/* import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
+/* 
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
 import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";*/
 import { PaseadorService } from "./vet/services/paseadorService.js";
 import { VeterinariaService } from "./vet/services/veterinariaService.js"; 
 import { ClienteService } from "./vet/services/clienteService.js";
 import { CuidadorService } from "./vet/services/cuidadorService.js";
+import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
 
 //import { ReservaService } from "./vet/services/reservaService.js";
 
-/* import { ServicioVeterinariaController } from "./vet/controllers/servicioVeterinariaController.js";
+/* 
 import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorController.js";
 import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorController.js";*/
 import { PaseadorController } from "./vet/controllers/paseadorController.js";
 import { VeterinariaController } from "./vet/controllers/veterinariaController.js"; 
 import { CuidadorController } from "./vet/controllers/cuidadorController.js";   
 import { ClienteController } from "./vet/controllers/clienteController.js";
+import { ServicioVeterinariaController } from "./vet/controllers/servicioVeterinariaController.js";
 //import { ReservaController } from "./vet/controllers/reservaController.js";
 
 import { MongoDBClient } from "./vet/config/database.js";
@@ -63,6 +65,7 @@ const clienteService = new ClienteService(clienteRepo, localidadRepo, ciudadRepo
 const cuidadorService = new CuidadorService(cuidadorRepo, localidadRepo, ciudadRepo);
 const paseadorService = new PaseadorService(paseadorRepo, localidadRepo, ciudadRepo);
 const veterinariaService = new VeterinariaService(veterinariaRepo, localidadRepo, ciudadRepo);
+const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, localidadRepo, ciudadRepo);
 
 
 
@@ -70,12 +73,13 @@ const clienteController = new ClienteController(clienteService);
 const cuidadorController = new CuidadorController(cuidadorService);
 const paseadorController = new PaseadorController(paseadorService);
 const veterinariaController = new VeterinariaController(veterinariaService);
+const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
+
 
 
 /*
 
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
-const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo);
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo);
 const cuidadorService = new CuidadorService(cuidadorRepo);
@@ -123,9 +127,10 @@ server.setController(ClienteController, clienteController);
 server.setController(CuidadorController, cuidadorController);
 server.setController(PaseadorController, paseadorController);
 server.setController(VeterinariaController, veterinariaController);
+server.setController(ServicioVeterinariaController, servicioVeterinariaController);
 
 /* server.setController(CiudadController, ciudadController);
-server.setController(ServicioVeterinariaController, servicioVeterinariaController);
+
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(CuidadorController, cuidadorController);

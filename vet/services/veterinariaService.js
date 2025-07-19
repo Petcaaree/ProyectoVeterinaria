@@ -144,13 +144,15 @@ export class VeterinariaService {
           if(!veterinaria) {
               throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
           }
-          const notificacion = veterinaria.notificaciones.find(n => n.id == idNotificacion)
-          if(!notificacion) {
+          const indexNotificacion = veterinaria.notificaciones.findIndex(n => n.id == idNotificacion)
+          if(indexNotificacion === -1) {
               throw new NotFoundError(`Notificacion con id ${idNotificacion} no encontrada`)
           }
+
+          const notificacion = veterinaria.notificaciones[indexNotificacion]
           notificacion.leida = true
           notificacion.fechaLeida = new Date()
-          veterinaria.notificaciones[indexNotificacion] = notificacion
+            veterinaria.notificaciones[indexNotificacion] = notificacion
           const actualizado = await this.veterinariaRepository.save(veterinaria)
           return this.toDTO(actualizado)
       }
@@ -219,6 +221,14 @@ export class VeterinariaService {
             apellido: veterinaria.direccion,
             telefono: veterinaria.telefono,
             email: veterinaria.email,
+            direccion: {
+                calle: veterinaria.direccion.calle,
+                altura: veterinaria.direccion.altura,
+                ciudad: {
+                    nombre: veterinaria.direccion.ciudad.nombre,
+                    pais: veterinaria.direccion.ciudad.localidad.nombre
+                }
+            },
             notificaciones: veterinaria.notificaciones,
         }
     }

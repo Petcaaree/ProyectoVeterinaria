@@ -17,7 +17,7 @@ const servicioVeterinariaSchema = new mongoose.Schema({
   tipoServicio: {
     type: String,
     required: true,
-    enum: ["CONSULTA", "VACUNACION", "CIRUGIA", "OTRO"],
+    enum: ["Control", "Vacunacion", "Baño", "Desparacitacion", "Cirugia", "Radiografia", "Ecografia"],
   },
   precio: {
     type: Number,
@@ -31,12 +31,29 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     minlength: 1,
     maxlength: 1000,
   },
-  direccionClinica: {
-    type: String,
-    required: true,
-    trim: true,
-    minlength: 1,
-    maxlength: 100,
+  direccion: {
+    calle: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 1,   
+      maxlength: 100
+    },
+    altura: {
+      type: mongoose.Schema.Types.Mixed,
+      required: true,
+      validate: {
+        validator: function (v) {
+          return typeof v === 'string' || typeof v === 'number';
+        },
+        message: props => `${props.value} no es ni un string ni un número válido para altura`
+      }
+    },
+    ciudad: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Ciudad", 
+      required: true
+    }
   },
   emailClinica: {
     type: String,
@@ -51,7 +68,7 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     },
   },
   telefonoClinica: {
-    type: String,
+    type: Number,
     required: true,
     trim: true,
     minlength: 7,

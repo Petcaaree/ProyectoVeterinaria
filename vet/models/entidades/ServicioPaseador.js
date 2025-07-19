@@ -1,3 +1,4 @@
+import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 
 
 export class ServicioPaseador{
@@ -15,6 +16,7 @@ export class ServicioPaseador{
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.horariosDisponibles = horariosDisponibles ; // Horarios disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
+        this.estado = EstadoServicio.ACTIVO; // Estado del servicio (ACTIVO o DESACTIVADO)
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -39,10 +41,22 @@ export class ServicioPaseador{
     cancelarHorarioReserva(fechaHorarioTurno) {
         this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
             if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
-                if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    fechaHorariosNodispo.horariosNoDisponibles.eliminarHorarioNoDisponible(fechaHorarioTurno.horario); // Elimina el horario de la lista de no disponibles
-                }
+                // Llamar al método de la instancia FechaHorariosNoDisponibles
+                fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
             }
         });
+        
+        // Opcional: limpiar fechas que no tienen horarios
+        this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => 
+            fecha.horariosNoDisponibles.length > 0
+        );
+    }
+
+    cambioEstadoServicio(nuevoEstado) {
+        if (nuevoEstado === EstadoServicio.ACTIVO || nuevoEstado === EstadoServicio.DESACTIVADO) {
+            this.estado = nuevoEstado;
+        } else {
+            throw new Error("Estado inválido. Debe ser ACTIVO o DESACTIVADO.");
+        }
     }
 }

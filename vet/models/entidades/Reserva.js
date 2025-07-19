@@ -1,6 +1,5 @@
 import { EstadoReserva } from './enums/EstadoReserva.js';
 import { Cuidador } from './Cuidador.js';
-import { TipoServicioVeterinario } from './enums/TipoServicioVeterinario.js';
 import { Paseador } from './Paseador.js';
 import { Veterinaria } from './Veterinaria.js';
 import { ServicioVeterinaria } from './ServicioVeterinaria.js';
@@ -25,7 +24,7 @@ export class Reserva{
     }
 
     // Metodo para calcular fecha fin basado en cantidad de unidades
-    calcularFechaFin() {
+    /* calcularFechaFin() {
         if (this.usuarioProveedor instanceof Paseador) {
             // Para paseadores, sumamos horas
             const fin = new Date(this.fechaInicio);
@@ -42,15 +41,16 @@ export class Reserva{
             return fin;
         }
         return this.fechaFin;
-    }
+    } */
 
     // Metodo para calcular dias para cuidadores
     calcularDias() {
-        if (this.servicioReservado instanceof ServicioCuidador) {
+        if (this.serviciOfrecido === 'ServicioCuidador') {
             const diffTime = Math.abs(this.rangoFechas.fechaFin - this.rangoFechas.fechaInicio);
-            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 porque incluye ambos días
         }
-        return this.cantidadUnidades;
+        // Para veterinaria y paseador siempre es 1 día
+        return 1;
     }
 
   calcularPrecioTotal(precioUnitario, cantidadUnidades) {

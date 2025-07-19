@@ -1,3 +1,4 @@
+import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 
 
 export class ServicioVeterinaria{
@@ -18,6 +19,7 @@ export class ServicioVeterinaria{
         this.direccionClinica = direccionClinica; // Dirección de la clínica veterinaria
         this.emailClinica = emailClinica; // Email de la clínica veterinaria
         this.telefonoClinica = telefonoClinica; // Teléfono de la clínica veterinaria
+        this.estado = EstadoServicio.ACTIVO; // Estado del servicio (ACTIVO o DESACTIVADO)
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -43,11 +45,23 @@ export class ServicioVeterinaria{
     cancelarHorarioReserva(fechaHorarioTurno) {
         this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
             if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
-                if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    fechaHorariosNodispo.horariosNoDisponibles.eliminarHorarioNoDisponible(fechaHorarioTurno.horario); // Elimina el horario de la lista de no disponibles
-                }
+                // Llamar al método de la instancia FechaHorariosNoDisponibles
+                fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
             }
         });
+        
+        // Opcional: limpiar fechas que no tienen horarios
+        this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => 
+            fecha.horariosNoDisponibles.length > 0
+        );
+    }
+
+    cambioEstadoServicio(nuevoEstado) {
+        if (nuevoEstado === EstadoServicio.ACTIVO || nuevoEstado === EstadoServicio.DESACTIVADO) {
+            this.estado = nuevoEstado;
+        } else {
+            throw new Error("Estado inválido. Debe ser ACTIVO o DESACTIVADO.");
+        }
     }
     
 }

@@ -15,9 +15,9 @@ export class VeterinariaRepository {
             )
             return veterinariaExistente
         } else {
-            const newveterinaria = new this.model(veterinaria)
-            const veterinariaGuardado = await newveterinaria.save()
-            return veterinariaExistente
+            const newVeterinaria = new this.model(veterinaria)
+            const veterinariaGuardado = await newVeterinaria.save()
+            return veterinariaGuardado
         }
     }
 

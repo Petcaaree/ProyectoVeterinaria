@@ -1,4 +1,4 @@
-export class FechaHorariosNoDisponibles {
+export class FechaHorarioTurno {
   constructor(fecha, horario) {
     this.fecha = fecha; // Fecha en formato YYYY-MM-DD
     this.horario = horario; // Horario de inicio en formato HH:MM

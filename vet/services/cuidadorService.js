@@ -224,7 +224,7 @@ export class CuidadorService {
                 altura: cuidador.direccion.altura,
                 ciudad: {
                     nombre: cuidador.direccion.ciudad.nombre,
-                    pais: cuidador.direccion.ciudad.localidad.nombre
+                    localidad: cuidador.direccion.ciudad.localidad.nombre
                 }
             },
             notificaciones: cuidador.notificaciones,

@@ -12,12 +12,20 @@ export class VeterinariaRepository {
                 veterinaria.id,
                 datosActualizados,
                 { new: true, runValidators: true }
-            )
+            ).populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             return veterinariaExistente
         } else {
             const newVeterinaria = new this.model(veterinaria)
             const veterinariaGuardado = await newVeterinaria.save()
-            return veterinariaGuardado
+            
+            // Populate la veterinaria guardada antes de retornarla
+            return await this.model.populate(veterinariaGuardado, {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
         }
     }
 
@@ -40,6 +48,10 @@ export class VeterinariaRepository {
 
     async findByEmail(email) {
         return await this.model.findOne({ email })
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     } 
 
     
@@ -49,6 +61,10 @@ export class VeterinariaRepository {
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
         const veterinarias = await this.model.find()
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             .skip(skip)
             .limit(limitNum)
             .exec()

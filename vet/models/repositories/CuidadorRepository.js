@@ -12,12 +12,20 @@ export class CuidadorRepository {
                 cuidador.id,
                 datosActualizados,
                 { new: true, runValidators: true }
-            )
+            ).populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             return cuidadorExistente
         } else {
             const newCuidador = new this.model(cuidador)
             const cuidadorGuardado = await newCuidador.save()
-            return cuidadorGuardado
+            
+            // Populate el cuidador guardado antes de retornarlo
+            return await this.model.populate(cuidadorGuardado, {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
         }
     }
 
@@ -28,6 +36,10 @@ export class CuidadorRepository {
 
     async findById(id) {
         return await this.model.findById(id)
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     }
 
     async findByName(nombre){
@@ -36,11 +48,19 @@ export class CuidadorRepository {
 
     async findByEmail(email) {
         return await this.model.findOne({ email })
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     } 
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
         const cuidadores = await this.model.find()
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             .skip(skip)
             .limit(limitNum)
             .exec()

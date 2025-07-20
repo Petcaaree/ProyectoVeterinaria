@@ -298,6 +298,7 @@ export class ClienteService {
     }
 
     toDTO(cliente) {
+        console.log("localidad Cliente:", cliente.direccion.ciudad.localidad.nombre)
         return {
             id: cliente.id,
             nombre: cliente.nombreUsuario,
@@ -310,7 +311,7 @@ export class ClienteService {
                 altura: cliente.direccion.altura,
                 ciudad: {
                     nombre: cliente.direccion.ciudad.nombre,
-                    pais: cliente.direccion.ciudad.localidad.nombre
+                    localidad: cliente.direccion.ciudad.localidad.nombre
                 }
             },
             mascotas: cliente.mascotas

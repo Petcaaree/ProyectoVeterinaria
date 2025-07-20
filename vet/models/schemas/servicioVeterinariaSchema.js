@@ -95,22 +95,24 @@ const servicioVeterinariaSchema = new mongoose.Schema({
   },
   fechasNoDisponibles: [{
     fecha: {
-      type: Date,
+      type: mongoose.Schema.Types.Mixed, // Permite Date o String
       required: true
     },
-    horariosNoDisponibles: [{
-      horario: {
-        type: String,
-        required: true,
-        trim: true,
-        validate: {
-          validator: function (v) {
-            return v.split(":").length == 2;
-          },
-          message: "El horario debe tener formato HH:MM"
+    horariosNoDisponibles: {
+      type: mongoose.Schema.Types.Mixed, // Permite tanto array de strings como array de objetos
+      required: true,
+      validate: {
+        validator: function(v) {
+          if (!Array.isArray(v)) return false;
+          // Permitir array de strings o array de objetos {horario: string}
+          return v.every(item => 
+            typeof item === 'string' || 
+            (typeof item === 'object' && item.horario && typeof item.horario === 'string')
+          );
         },
+        message: "horariosNoDisponibles debe ser un array de strings o objetos con propiedad horario"
       }
-    }]
+    }
   }],
   diasDisponibles: {
     type: [String],
@@ -130,7 +132,14 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     required: true,
     validate: {
       validator: function (v) {
-        return v.every((horario) => horario.split(":").length == 2);
+        return v.every((horario) => {
+          // Asegurar que cada horario es string y tiene formato HH:MM
+          if (typeof horario !== 'string') return false;
+          const parts = horario.split(":");
+          return parts.length === 2 && 
+                 !isNaN(parts[0]) && !isNaN(parts[1]) &&
+                 parts[0].length <= 2 && parts[1].length === 2;
+        });
       },
       message: "Todos los horarios deben tener formato HH:MM",
     },
@@ -141,6 +150,85 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     enum: ["PERRO", "GATO", "AVE", "OTRO"],
   },
 });
+
+// Middleware para normalizar los datos al leer desde la DB
+servicioVeterinariaSchema.post('find', function(docs) {
+  if (docs && Array.isArray(docs)) {
+    docs.forEach(doc => {
+      if (doc.fechasNoDisponibles) {
+        doc.fechasNoDisponibles = doc.fechasNoDisponibles.map(fecha => ({
+          fecha: parseFechaToDate(fecha.fecha),
+          horariosNoDisponibles: normalizarHorarios(fecha.horariosNoDisponibles)
+        }));
+      }
+    });
+  }
+});
+
+servicioVeterinariaSchema.post('findOne', function(doc) {
+  if (doc && doc.fechasNoDisponibles) {
+    doc.fechasNoDisponibles = doc.fechasNoDisponibles.map(fecha => ({
+      fecha: parseFechaToDate(fecha.fecha),
+      horariosNoDisponibles: normalizarHorarios(fecha.horariosNoDisponibles)
+    }));
+  }
+});
+
+// Middleware para asegurar que los datos se guarden correctamente
+servicioVeterinariaSchema.pre('save', function(next) {
+  // Asegurar que fechasNoDisponibles tenga la estructura correcta
+  if (this.fechasNoDisponibles) {
+    this.fechasNoDisponibles = this.fechasNoDisponibles.map(fecha => {
+      if (!fecha.fecha || !fecha.horariosNoDisponibles) {
+        console.warn('Estructura incorrecta en fechasNoDisponibles, se asignará estructura vacía');
+        return {
+          fecha: new Date(),
+          horariosNoDisponibles: []
+        };
+      }
+      return {
+        fecha: parseFechaToDate(fecha.fecha),
+        horariosNoDisponibles: normalizarHorarios(fecha.horariosNoDisponibles)
+      };
+    });
+  }
+  
+  // Asegurar que horariosDisponibles sean strings
+  if (this.horariosDisponibles) {
+    this.horariosDisponibles = this.horariosDisponibles.map(h => 
+      typeof h === 'string' ? h : String(h)
+    );
+  }
+  
+  next();
+});
+
+// Función auxiliar para convertir fechas string a Date
+function parseFechaToDate(fecha) {
+  if (fecha instanceof Date) return fecha;
+  if (typeof fecha === 'string') {
+    // Manejar formato DD/MM/YYYY
+    if (fecha.includes('/')) {
+      const [dia, mes, anio] = fecha.split('/');
+      return new Date(`${anio}-${mes}-${dia}`);
+    }
+    return new Date(fecha);
+  }
+  return new Date();
+}
+
+// Función auxiliar para normalizar horarios
+function normalizarHorarios(horarios) {
+  if (!Array.isArray(horarios)) return [];
+  return horarios.map(h => {
+    if (typeof h === 'string') {
+      return { horario: h };
+    } else if (h && h.horario) {
+      return { horario: h.horario };
+    }
+    return { horario: '00:00' };
+  });
+}
 
 servicioVeterinariaSchema.loadClass(ServicioVeterinaria);
 

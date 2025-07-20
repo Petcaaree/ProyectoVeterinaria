@@ -14,7 +14,10 @@ export class ClienteRepository {
                 id,
                 datosActualizados,
                 { new: true, runValidators: true }
-            );
+            ).populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            });
 
             return clienteActualizado;
 
@@ -23,7 +26,11 @@ export class ClienteRepository {
             const nuevoCliente = new this.model(cliente);
             const clienteGuardado = await nuevoCliente.save();
 
-            return clienteGuardado;
+            // Populate el cliente guardado antes de retornarlo
+            return await this.model.populate(clienteGuardado, {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            });
         }
     }
 
@@ -34,6 +41,10 @@ export class ClienteRepository {
 
     async findById(id) {
         return await this.model.findById(id)
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     }
 
     async findByName(nombre){
@@ -42,11 +53,19 @@ export class ClienteRepository {
 
     async findByEmail(email) {
         return await this.model.findOne({ email })
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     } 
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
         const clientes = await this.model.find()
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             .skip(skip)
             .limit(limitNum)
             .exec()

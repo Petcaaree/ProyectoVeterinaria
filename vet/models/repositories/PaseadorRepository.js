@@ -12,12 +12,20 @@ export class PaseadorRepository {
                 paseador.id,
                 datosActualizados,
                 { new: true, runValidators: true }
-            )
+            ).populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             return paseadorExistente
         } else {
             const newPaseador = new this.model(paseador)
             const paseadorGuardado = await newPaseador.save()
-            return paseadorGuardado
+            
+            // Populate el paseador guardado antes de retornarlo
+            return await this.model.populate(paseadorGuardado, {
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
         }
     }
 
@@ -28,6 +36,10 @@ export class PaseadorRepository {
 
     async findById(id) {
         return await this.model.findById(id)
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     }
 
     async findByName(nombre){
@@ -36,11 +48,19 @@ export class PaseadorRepository {
 
     async findByEmail(email) {
         return await this.model.findOne({ email })
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
     } 
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
         const paseadores = await this.model.find()
+            .populate({
+                path: 'direccion.ciudad',
+                populate: { path: 'localidad' }
+            })
             .skip(skip)
             .limit(limitNum)
             .exec()

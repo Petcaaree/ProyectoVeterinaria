@@ -37,8 +37,6 @@ export class ServicioVeterinariaService {
         // Aplanar el array de servicios (cada veterinaria devuelve un array)
         const todosLosServicios = todosLosServiciosPorVeterinaria.flat()
 
-        console.log(todosLosServicios)
-
         const total = todosLosServicios.length
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServicios.map(s => this.toDTO(s))
@@ -69,20 +67,24 @@ export class ServicioVeterinariaService {
                 }
             }
         }
-
+        
         let todosLosServiciosFiltradosDeEstasVeterinarias = serviciosVeterinarias.filter(s => idsVeterinariasDistintas.includes(s.usuarioProveedor.id))
 
-        const total = todosLosServiciosFiltradosDeEstasVeterinarias.length;
+        // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
+        const totalServiciosDisponibles = todosLosServiciosFiltradosDeEstasVeterinarias.length;
+        const total_pages = Math.ceil(totalServiciosDisponibles / limitNum);
+        
+        // Aplicar paginación
         const startIndex = (pageNum - 1) * limitNum;
         const endIndex = startIndex + limitNum;
-        const total_pages = Math.ceil(total / limitNum);
+        const serviciosPaginados = todosLosServiciosFiltradosDeEstasVeterinarias.slice(startIndex, endIndex);
 
-        const data = todosLosServiciosFiltradosDeEstasVeterinarias.slice(startIndex, endIndex).map(a => this.toDTO(a));
+        const data = serviciosPaginados.map(a => this.toDTO(a));
 
         return {
             page: pageNum,
             per_page: limitNum,
-            total: total,
+            total: data.length ,  // Total real de servicios disponibles
             total_pages: total_pages,
             data: data
         };

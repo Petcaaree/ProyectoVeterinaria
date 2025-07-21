@@ -45,8 +45,9 @@ export class ServicioVeterinariaRepository {
 
 
     async findByPage(pageNum, limitNum){
+        console.log("entro a findByPage");
         const skip = (pageNum - 1) * limitNum
-        const alojamientos = await this.model.find()
+        const servicios = await this.model.find()
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
@@ -54,11 +55,11 @@ export class ServicioVeterinariaRepository {
                 path: 'direccion.ciudad',
                 populate: {path: 'localidad'}
             })
-        return alojamientos
+        return servicios;
     }
 
    async findByFilters(filtro) {
-              
+              console.log("Filtro recibido:", filtro);
               const query = {}
       
               if(filtro.precioMax != null) {

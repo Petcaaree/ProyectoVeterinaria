@@ -1,9 +1,9 @@
-import { FiltroVeterinaria } from "../models/entidades/FiltroVeterinaria.js";
+import { FiltroCuidador } from "../models/entidades/FiltroCuidador.js";
 import { ObjectId } from "mongodb";
 
-export class ServicioVeterinariaController {
-    constructor(servicioVeterinariaService) {
-        this.servicioVeterinariaService = servicioVeterinariaService;
+export class ServicioCuidadorController {
+    constructor(servicioCuidadorService) {
+        this.servicioCuidadorService = servicioCuidadorService;
     }
 
     async findAll(req, res, next){
@@ -11,22 +11,22 @@ export class ServicioVeterinariaController {
             const { page = 1, limit = 4} = req.query
             const paginacion = { page, limit}
 
-            const {nombre=null, localidad=null, precioMin=null, precioMax=null, tipoServicio=null, fecha=null, mascotasAceptadas=[]} = req.query
-            const filtros = { nombre, localidad, precioMin, precioMax, tipoServicio, fecha, mascotasAceptadas }
-            
+            const {nombre=null, localidad=null, precioMin=null, precioMax=null, fechaInicio=null, fechaFin=null, mascotasAceptadas=[]} = req.query
+            const filtros = { nombre, localidad, precioMin, precioMax, fechaInicio, fechaFin, mascotasAceptadas }
+
 
             const hasFilters = Object.values(filtros).some(value => value !== null && value !== undefined && value !== '' && (Array.isArray(value) ? value.length > 0 : true));
             
-            let servicioVeterinarias
+            let servicioCuidadores
             if(hasFilters) {
-                const filtro = new FiltroVeterinaria(nombre, localidad, precioMin, precioMax, tipoServicio, fecha, mascotasAceptadas)
-                servicioVeterinarias = await this.servicioVeterinariaService.findByFilters(filtro, {page, limit});
+                const filtro = new FiltroCuidador(nombre, localidad, precioMin, precioMax, fechaInicio, fechaFin, mascotasAceptadas)
+                servicioCuidadores = await this.servicioCuidadorService.findByFilters(filtro, {page, limit});
             } else {
                 console.log("No hay filtros, obteniendo todos los servicios");
-                servicioVeterinarias = await this.servicioVeterinariaService.findAll({ page, limit })
+                servicioCuidadores = await this.servicioCuidadorService.findAll({ page, limit })
             }
 
-            res.json(servicioVeterinarias);
+            res.json(servicioCuidadores);
         } catch (error) {
             next(error)
         }
@@ -35,45 +35,45 @@ export class ServicioVeterinariaController {
     async findById (req, res, next) {
         try{
             const id = req.params.id;
-            const servicioVeterinaria = await this.servicioVeterinariaService.findById(id);
+            const servicioCuidador = await this.servicioCuidadorService.findById(id);
 
-            res.json(servicioVeterinaria);
+            res.json(servicioCuidador);
         } catch (error) {
             next(error)
         }
     };
 
-    // Endpoint para buscar servicioVeterinarias por filtros
+    // Endpoint para buscar servicioCuidadores por filtros
     /* async findByFilter(req, res, next){
         try{
             const { page = 1, limit = 10} = req.query;
             const filtro = req.query;
 
-            const servicioVeterinarias = await this.servicioVeterinariaService.findByFilters(filtro, {page, limit});
+            const servicioCuidadores = await this.servicioCuidadorService.findByFilters(filtro, {page, limit});
            
-            res.json(servicioVeterinarias);
+            res.json(servicioCuidadores);
         } catch (error) {
             next(error)
         }
     }; */
 
-    async getByVeterinaria(req, res, next) {
+    async getByCuidador(req, res, next) {
         try {
             const id = req.params.id
             const { page, limit } = req.query;
 
-            const servicioVeterinarias = await this.servicioVeterinariaService.findByVeterinarias(id, { page, limit });
-            res.json(servicioVeterinarias);
+            const servicioCuidadores = await this.servicioCuidadorService.findByCuidadores(id, { page, limit });
+            res.json(servicioCuidadores);
         } catch (error) {
             next(error);
         }
     }
 
-    // Endpoint para crear un nuevo servicioVeterinaria
+    // Endpoint para crear un nuevo servicioCuidador
     async create (req, res,next) {
         try {
-            const servicioVeterinaria = req.body;
-            const nuevo = await this.servicioVeterinariaService.create(servicioVeterinaria);
+            const servicioCuidador = req.body;
+            const nuevo = await this.servicioCuidadorService.create(servicioCuidador);
 
             res.status(201).json(nuevo);
         } catch (error) {
@@ -81,10 +81,10 @@ export class ServicioVeterinariaController {
         }
     }
 
-    // Endpoint para eliminar un servicioVeterinaria
+    // Endpoint para eliminar un servicioCuidador
     async delete(req, res, next) {
         try {
-        await this.servicioVeterinariaService.delete(req.params.id);
+        await this.servicioCuidadorService.delete(req.params.id);
 
         return res.status(204).send();
         } catch (error) {
@@ -92,11 +92,11 @@ export class ServicioVeterinariaController {
         }
     }
 
-    async cambiarEstadoVeterinaria(req, res, next) {
+    async cambiarEstadoCuidador(req, res, next) {
         try {
             const { id, nuevoEstado } = req.params;
 
-            const actualizado = await this.servicioVeterinariaService.cambiarEstado(id, nuevoEstado);
+            const actualizado = await this.servicioCuidadorService.cambiarEstado(id, nuevoEstado);
 
             res.json(actualizado);
         } catch (error) {
@@ -117,7 +117,7 @@ export class ServicioVeterinariaController {
         }
 
             for(const a of array) {
-                await this.servicioVeterinariaService.create(a)
+                await this.servicioCuidadorService.create(a)
             }
 
             res.status(200).send({message: `Importación completa. ${array.length} documentos insertados.`})

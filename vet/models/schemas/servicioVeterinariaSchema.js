@@ -59,7 +59,6 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true,
     validate: {
       validator: function (v) {
         return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(v);
@@ -148,6 +147,12 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     type: [String],
     required: true,
     enum: ["PERRO", "GATO", "AVE", "OTRO"],
+  },
+  estado: {
+    type: String,
+    required: true,
+    enum: ["Activada", "Desactivada"],
+    default: "Activada"
   },
 });
 

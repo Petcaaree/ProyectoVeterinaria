@@ -27,23 +27,25 @@ import { ReservaRepository } from "./vet/models/repositories/reservaRepository.j
 
 /* 
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
-import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";*/
+*/
 import { PaseadorService } from "./vet/services/paseadorService.js";
 import { VeterinariaService } from "./vet/services/veterinariaService.js"; 
 import { ClienteService } from "./vet/services/clienteService.js";
 import { CuidadorService } from "./vet/services/cuidadorService.js";
 import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
+import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";
 
 //import { ReservaService } from "./vet/services/reservaService.js";
 
 /* 
 import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorController.js";
-import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorController.js";*/
+*/
 import { PaseadorController } from "./vet/controllers/paseadorController.js";
 import { VeterinariaController } from "./vet/controllers/veterinariaController.js"; 
 import { CuidadorController } from "./vet/controllers/cuidadorController.js";   
 import { ClienteController } from "./vet/controllers/clienteController.js";
 import { ServicioVeterinariaController } from "./vet/controllers/servicioVeterinariaController.js";
+import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorController.js";
 //import { ReservaController } from "./vet/controllers/reservaController.js";
 
 import { MongoDBClient } from "./vet/config/database.js";
@@ -66,52 +68,32 @@ const cuidadorService = new CuidadorService(cuidadorRepo, localidadRepo, ciudadR
 const paseadorService = new PaseadorService(paseadorRepo, localidadRepo, ciudadRepo);
 const veterinariaService = new VeterinariaService(veterinariaRepo, localidadRepo, ciudadRepo);
 const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, localidadRepo, ciudadRepo);
-
-
+const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, localidadRepo, ciudadRepo);
+const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, localidadRepo, ciudadRepo);
 
 const clienteController = new ClienteController(clienteService);
 const cuidadorController = new CuidadorController(cuidadorService);
 const paseadorController = new PaseadorController(paseadorService);
 const veterinariaController = new VeterinariaController(veterinariaService);
 const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
+const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
+const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
 
 
 
 /*
 
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
-const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo);
-const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo);
-const cuidadorService = new CuidadorService(cuidadorRepo);
-const paseadorService = new PaseadorService(paseadorRepo);
-const veterinariaService = new VeterinariaService(veterinariaRepo);
+
 const reservaService = new ReservaService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo, servicioVeterinariaRepo);
 
 const clienteController = new ClienteController(clienteService, reservaService);
 const ciudadController = new CiudadController(ciudadService);
-const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
-const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
-const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
-const cuidadorController = new CuidadorController(cuidadorService);
-const paseadorController = new PaseadorController(paseadorService);
-const veterinariaController = new VeterinariaController(veterinariaService);
+
 const reservaController = new ReservaController(reservaService); */
 
 
-/* const reservaRepo = new ReservaRepository();
-const anfitrionRepo = new AnfitrionRepository();
-const huespedRepo = new HuespedRepository();
-const alojamientoRepo = new AlojamientoRepository();
 
-const reservaService = new ReservaService(reservaRepo, alojamientoRepo, huespedRepo, anfitrionRepo);
-const anfitrionService = new AnfitrionService(anfitrionRepo);
-const huespedService = new HuespedService(huespedRepo);
-const alojamientoService = new AlojamientoService(alojamientoRepo, anfitrionRepo, ciudadRepo, paisRepo);
-
-const reservaController = new ReservaController(reservaService);
-const anfitrionController = new AnfitrionController(anfitrionService, reservaService);
-const huespedController = new HuespedController(huespedService, reservaService);
-const alojamientoController = new AlojamientoController(alojamientoService);  */
 
 const app = express();
 app.use(cors({
@@ -128,14 +110,12 @@ server.setController(CuidadorController, cuidadorController);
 server.setController(PaseadorController, paseadorController);
 server.setController(VeterinariaController, veterinariaController);
 server.setController(ServicioVeterinariaController, servicioVeterinariaController);
+server.setController(ServicioCuidadorController, servicioCuidadorController);
+server.setController(ServicioPaseadorController, servicioPaseadorController);
 
 /* server.setController(CiudadController, ciudadController);
 
-server.setController(ServicioPaseadorController, servicioPaseadorController);
-server.setController(ServicioCuidadorController, servicioCuidadorController);
-server.setController(CuidadorController, cuidadorController);
-server.setController(PaseadorController, paseadorController);
-server.setController(VeterinariaController, veterinariaController);
+
 server.setController(ReservaController, reservaController); */
 
 // Configuración de rutas y lanzamiento

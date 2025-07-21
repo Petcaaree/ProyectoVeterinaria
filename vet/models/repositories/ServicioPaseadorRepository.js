@@ -77,9 +77,6 @@ export class ServicioPaseadorRepository {
 
                // FALTARIA VER QUE POR CADA PASEO HAY UN CUPO DE ANIMALES
    
-           if(filtro.mascotasAceptadas && filtro.mascotasAceptadas.length > 0) {
-               query.mascotasAceptadas = { $all: filtro.mascotasAceptadas }
-           }
    
            if (filtro.fecha) {
                   const fechaDate = parseFechaDDMMYYYY(filtro.fecha);

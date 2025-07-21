@@ -81,6 +81,12 @@ const servicioCuidadorSchema = new mongoose.Schema({
     required: true,
     enum: ["PERRO", "GATO", "AVE", "OTRO"],
   },
+  estado: {
+    type: String,
+    required: true,
+    enum: ["Activada", "Desactivada"],
+    default: "Activada"
+  },
 });
 
 servicioCuidadorSchema.loadClass(ServicioCuidador);

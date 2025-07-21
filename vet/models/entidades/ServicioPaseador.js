@@ -3,7 +3,7 @@ import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 
 export class ServicioPaseador{
 
-    constructor(usuarioProveedor, nombreServicio, precio, descripcion, duracionMinutos,nombreContacto,emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles , mascotasAceptadas)  {
+    constructor(usuarioProveedor, nombreServicio, precio, descripcion, duracionMinutos,nombreContacto,emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles)  {
         this.usuarioProveedor = usuarioProveedor; // Referencia al cuidador o veterinario
         this.nombreServicio = nombreServicio; // Nombre del servicio
         this.precio = precio; // Precio del servicio
@@ -15,7 +15,6 @@ export class ServicioPaseador{
         this.fechasNoDisponibles = []; // Fechas no disponibles para el servicio
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.horariosDisponibles = horariosDisponibles ; // Horarios disponibles para el servicio
-        this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
         this.estado = EstadoServicio.ACTIVO; // Estado del servicio (ACTIVO o DESACTIVADO)
     }
 

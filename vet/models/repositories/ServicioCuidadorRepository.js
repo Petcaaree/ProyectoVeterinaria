@@ -68,6 +68,7 @@ export class ServicioCuidadorRepository {
               }
               
               if(filtro.precioMin != null) {
+                  if(!query.precio) query.precio = {}
                   query.precio.$gte = filtro.precioMin
               }
       
@@ -75,9 +76,7 @@ export class ServicioCuidadorRepository {
                   query.cantHuespedesMax = { $gte: filtro.antiguedad}
               } */
       
-              if(filtro.mascotasAceptadas && filtro.mascotasAceptadas.length > 0) {
-                  query.mascotasAceptadas = { $all: filtro.mascotasAceptadas }
-              }
+              
       
               if (filtro.fechaInicio && filtro.fechaFin) {
                   const fechaInicioDate = parseFechaDDMMYYYY(filtro.fechaInicio);

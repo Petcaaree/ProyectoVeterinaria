@@ -55,40 +55,56 @@ export class ServicioVeterinariaService {
     }
 
     async findByFilters(filtro,{page=1,limit=4}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
-
-        let veterinarias = await this.veterinariaRepository.findByPage(pageNum, limit)
-        const veterinariaIds = veterinarias.map(v => v.id)
-
-
-
-        let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByFilters(filtro);
-
-
-
-        let todosLosServiciosFiltradosDeEstasVeterinarias = serviciosVeterinarias.filter(s => veterinariaIds.includes(s.usuarioProveedor.id))
-
-        // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
-        const total = todosLosServiciosFiltradosDeEstasVeterinarias.length;
-        const total_pages = Math.ceil(total / limitNum);
+            const pageNum = Math.max(Number(page), 1)
+            const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+    
+            /* let veterinarias = await this.veterinariaRepository.findByPage(pageNum, limit)
+            const veterinariaIds = veterinarias.map(v => v.id) */
+    
+    
+    
+            let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByFilters(filtro);
+    
+            let veterinariaIds = [];
+            for (let i = 0; i < serviciosVeterinarias.length; i++) {
+                const servicio = serviciosVeterinarias[i];
+                if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
+                    // Asegurarse de que el ID del veterinaria esté en formato ObjectId
+                    if (!mongoose.Types.ObjectId.isValid(servicio.usuarioProveedor.id)) {
+                        throw new ValidationError(`El ID de veterinaria ${servicio.usuarioProveedor.id} no es válido`);
+                    }
+                    // Solo agregar si no está ya en el array
+                    if (!veterinariaIds.includes(servicio.usuarioProveedor.id)) {
+                        veterinariaIds.push(servicio.usuarioProveedor.id);
+                    }
+                }
+            }
+    
+    
+            const startIndex = (pageNum - 1) * limitNum;
+            const endIndex = startIndex + limitNum;
+            const veterinariasPaginasID = veterinariaIds.slice(startIndex, endIndex);
+            console.log("Veterinarias Paginas ID:", veterinariasPaginasID)
+            let todosLosServiciosFiltradosDeEstosVeterinarias = serviciosVeterinarias.filter(s => veterinariasPaginasID.includes(s.usuarioProveedor.id))
+    
+            // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
+            const total = todosLosServiciosFiltradosDeEstosVeterinarias.length;
+            const total_pages = Math.ceil(total / limitNum);
+            
+            // Aplicar paginación
+           
         
-        // Aplicar paginación
-       /*  const startIndex = (pageNum - 1) * limitNum;
-        const endIndex = startIndex + limitNum; 
-        const serviciosPaginados = todosLosServiciosFiltradosDeEstasVeterinarias.slice(startIndex, endIndex);
-        */
-        const data = todosLosServiciosFiltradosDeEstasVeterinarias.map(a => this.toDTO(a));
-
-        return {
-            page: pageNum,
-            per_page: limitNum,
-            totalServicios: total,
-            totalVeterinarias: veterinarias.length ,  // Total real de servicios disponibles
-            total_pages: total_pages,
-            data: data
-        };
-    }
+            const data = todosLosServiciosFiltradosDeEstosVeterinarias.map(a => this.toDTO(a));
+    
+            return {
+                page: pageNum,
+                per_page: limitNum,
+                totalServicios: total,
+                totalVeterinarias: veterinariasPaginasID.length ,  // Total real de servicios disponibles
+                total_pages: total_pages,
+                data: data
+            };
+        }
 
     async findById(id) {
         const servicioVeterinaria = await this.servicioVeterinariaRepository.findById(id)

@@ -55,40 +55,56 @@ export class ServicioCuidadorService {
     }
 
     async findByFilters(filtro,{page=1,limit=4}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
-
-        let cuidadors = await this.cuidadorRepository.findByPage(pageNum, limit)
-        const cuidadorIds = cuidadors.map(v => v.id)
-
-
-
-        let serviciosCuidadors = await this.servicioCuidadorRepository.findByFilters(filtro);
-
-
-
-        let todosLosServiciosFiltradosDeEstasCuidadors = serviciosCuidadors.filter(s => cuidadorIds.includes(s.usuarioProveedor.id))
-
-        // Calcular totales basándose en los servicios después del filtro por cuidadors distintas
-        const total = todosLosServiciosFiltradosDeEstasCuidadors.length;
-        const total_pages = Math.ceil(total / limitNum);
+                const pageNum = Math.max(Number(page), 1)
+                const limitNum = Math.min(Math.max(Number(limit), 1), 100)
         
-        // Aplicar paginación
-       /*  const startIndex = (pageNum - 1) * limitNum;
-        const endIndex = startIndex + limitNum; 
-        const serviciosPaginados = todosLosServiciosFiltradosDeEstasCuidadors.slice(startIndex, endIndex);
-        */
-        const data = todosLosServiciosFiltradosDeEstasCuidadors.map(a => this.toDTO(a));
-
-        return {
-            page: pageNum,
-            per_page: limitNum,
-            totalServicios: total,
-            totalCuidadors: cuidadors.length ,  // Total real de servicios disponibles
-            total_pages: total_pages,
-            data: data
-        };
-    }
+                /* let cuidadores = await this.cuidadorRepository.findByPage(pageNum, limit)
+                const cuidadorIds = cuidadores.map(v => v.id) */
+        
+        
+        
+                let serviciosCuidadores = await this.servicioCuidadorRepository.findByFilters(filtro);
+        
+                let cuidadorIds = [];
+                for (let i = 0; i < serviciosCuidadores.length; i++) {
+                    const servicio = serviciosCuidadores[i];
+                    if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
+                        // Asegurarse de que el ID del cuidador esté en formato ObjectId
+                        if (!mongoose.Types.ObjectId.isValid(servicio.usuarioProveedor.id)) {
+                            throw new ValidationError(`El ID de cuidador ${servicio.usuarioProveedor.id} no es válido`);
+                        }
+                        // Solo agregar si no está ya en el array
+                        if (!cuidadorIds.includes(servicio.usuarioProveedor.id)) {
+                            cuidadorIds.push(servicio.usuarioProveedor.id);
+                        }
+                    }
+                }
+        
+        
+                const startIndex = (pageNum - 1) * limitNum;
+                const endIndex = startIndex + limitNum;
+                const cuidadoresPaginasID = cuidadorIds.slice(startIndex, endIndex);
+                console.log("Cuidadores Paginas ID:", cuidadoresPaginasID)
+                let todosLosServiciosFiltradosDeEstosCuidadores = serviciosCuidadores.filter(s => cuidadoresPaginasID.includes(s.usuarioProveedor.id))
+        
+                // Calcular totales basándose en los servicios después del filtro por cuidadores distintas
+                const total = todosLosServiciosFiltradosDeEstosCuidadores.length;
+                const total_pages = Math.ceil(total / limitNum);
+                
+                // Aplicar paginación
+               
+            
+                const data = todosLosServiciosFiltradosDeEstosCuidadores.map(a => this.toDTO(a));
+        
+                return {
+                    page: pageNum,
+                    per_page: limitNum,
+                    totalServicios: total,
+                    totalCuidadores: cuidadoresPaginasID.length ,  // Total real de servicios disponibles
+                    total_pages: total_pages,
+                    data: data
+                };
+            }
 
     async findById(id) {
         const servicioCuidador = await this.servicioCuidadorRepository.findById(id)
@@ -121,9 +137,9 @@ export class ServicioCuidadorService {
     }
 
     async create(servicioCuidador) {
-        const { idCuidador, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, nombreClinica, direccion, emailClinica, telefonoClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioCuidador
+        const { idCuidador, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, nombreContacto, direccion, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioCuidador
 
-        if(!idCuidador || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !nombreClinica || !direccion || !emailClinica || !telefonoClinica || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
+        if(!idCuidador || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !nombreContacto || !direccion || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -144,7 +160,7 @@ export class ServicioCuidadorService {
         }
 
         // Validar que direccion tenga la estructura esperada
-        if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+        /* if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
 
@@ -160,23 +176,20 @@ export class ServicioCuidadorService {
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) */
 
-        const nuevoServicioCuidador = new ServicioCuidador(
-            existenteCuidador,           // usuarioProveedor
-            nombreServicio,                 // nombreServicio
-            tipoServicio,                  // tipoServicio
-            precio,                        // precio
-            descripcion,                   // descripcion
-            duracionMinutos,               // duracionMinutos
-            nombreClinica,                 // nombreClinica
-            objectDireccion,               // direccion
-            emailClinica,                  // emailClinica
-            telefonoClinica,               // telefonoClinica
-            diasDisponibles,               // diasDisponibles
-            horariosDisponibles,           // horariosDisponibles
-            mascotasAceptadas              // mascotasAceptadas
-        )
+
+            const nuevoServicioCuidador = new ServicioCuidador(
+                existenteCuidador,           // usuarioProveedor
+                nombreServicio,                 // nombreServicio
+                precio,                        // precio
+                descripcion,                   // descripcion
+                nombreContacto,                 // nombreContacto
+                emailContacto,                  // emailContacto
+                telefonoContacto,               // telefonoContacto
+                diasDisponibles,               // diasDisponibles
+                mascotasAceptadas              // mascotasAceptadas
+            )
 
         await this.servicioCuidadorRepository.save(nuevoServicioCuidador)
 
@@ -220,16 +233,12 @@ export class ServicioCuidadorService {
                 email: servicoCuidador.usuarioProveedor.email,
             },
             nombreServicio: servicoCuidador.nombreServicio,
-            tipoServicio: servicoCuidador.tipoServicio,
             precio: servicoCuidador.precio,
             descripcion: servicoCuidador.descripcion,
-            duracionMinutos: servicoCuidador.duracionMinutos,
-            nombreClinica: servicoCuidador.nombreClinica,
-            direccion: servicoCuidador.direccion,
-            emailClinica: servicoCuidador.emailClinica,
-            telefonoClinica: servicoCuidador.telefonoClinica,
+            nombreContacto: servicoCuidador.nombreContacto,
+            emailContacto: servicoCuidador.emailContacto,
+            telefonoContacto: servicoCuidador.telefonoContacto,
             diasDisponibles: servicoCuidador.diasDisponibles,
-            horariosDisponibles: servicoCuidador.horariosDisponibles,
             mascotasAceptadas: servicoCuidador.mascotasAceptadas,
             fechasNoDisponibles: servicoCuidador.fechasNoDisponibles,
             estado: servicoCuidador.estado

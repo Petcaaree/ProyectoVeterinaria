@@ -61,6 +61,7 @@ export class ServicioVeterinariaRepository {
    async findByFilters(filtro) {
               console.log("Filtro recibido:", filtro);
               const query = {}
+
       
               if(filtro.precioMax != null) {
                   query.precio = {}

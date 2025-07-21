@@ -7,7 +7,6 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 
 
 export class PaseadorService {
-
     constructor(paseadorRepository, localidadRepository, ciudadRepository) {
         this.paseadorRepository = paseadorRepository
         this.localidadRepository = localidadRepository

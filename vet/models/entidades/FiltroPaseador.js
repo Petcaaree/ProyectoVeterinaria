@@ -1,14 +1,11 @@
-import { TipoServicio } from "./enums/TipoServicio";
 
 export class FiltroPaseador {
-    constructor(nombre = null, precioMin = null, precioMax = null, antiguedad = null ,localidad=null, fecha = null , mascotasAceptadas=[]) {
+    constructor(nombre = null,localidad=null, precioMin = null, precioMax = null, fecha = null) {
         this.nombre = nombre;
         this.localidad = localidad;
         this.precioMin = precioMin;
         this.precioMax = precioMax;
-        this.antiguedad = antiguedad; // Antigüedad en años
         this.fecha = fecha; // Fecha del servicio
-        this.mascotasAceptadas = mascotasAceptadas;
     }
 
     validarLocalidad(proveedorUsuario, localidad) {

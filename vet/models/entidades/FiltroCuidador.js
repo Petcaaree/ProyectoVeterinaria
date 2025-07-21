@@ -1,4 +1,3 @@
-import { TipoServicio } from "./enums/TipoServicio";
 
 export class FiltroCuidador {
     constructor(nombre = null ,localidad=null, precioMin = null, precioMax = null, fechaInicio=null, fechaFin=null , mascotasAceptadas=[]) {

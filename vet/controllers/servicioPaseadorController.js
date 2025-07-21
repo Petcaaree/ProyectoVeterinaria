@@ -48,7 +48,7 @@ export class ServicioPaseadorController {
             const id = req.params.id
             const { page, limit } = req.query;
 
-            const servicioPaseadores = await this.servicioPaseadorService.findByPaseadores(id, { page, limit });
+            const servicioPaseadores = await this.servicioPaseadorService.findByPaseador(id, { page, limit });
             res.json(servicioPaseadores);
         } catch (error) {
             next(error);
@@ -82,7 +82,7 @@ export class ServicioPaseadorController {
         try {
             const { id, nuevoEstado } = req.params;
 
-            const actualizado = await this.servicioPaseadorService.cambiarEstado(id, nuevoEstado);
+            const actualizado = await this.servicioPaseadorService.cambiarEstadoServicioPaseador(id, nuevoEstado);
 
             res.json(actualizado);
         } catch (error) {

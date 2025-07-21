@@ -1,10 +1,11 @@
-import {servicioPaseador} from '../models/servicioPaseador.js';
 import { Localidad } from "../models/entidades/Localidad.js"
 import { Ciudad } from "../models/entidades/Ciudad.js"
 import { Direccion } from "../models/entidades/Direccion.js"
 import { Paseador } from '../models/entidades/Paseador.js';
 import { Notificacion } from '../models/entidades/Notificacion.js';
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import {ServicioPaseador} from "../models/entidades/ServicioPaseador.js"
+import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
 import mongoose from "mongoose"
 
 export class ServicioPaseadorService {
@@ -20,71 +21,43 @@ export class ServicioPaseadorService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        // Buscar paseadores distintos
-        let paseadores = await this.paseadorRepositoryfindByPage(pageNum, limit)
+        // 1. Obtener TODOS los servicios de paseador
+        let todosLosServicios = await this.servicioPaseadorRepository.findAll()
 
-        console.log("Paseadores encontrados:", paseadores.length)
-        
-        
-        // Extraer los IDs de las paseadores
-        const paseadoresIds = paseadores.map(v => v.id)
-        
-        // Buscar todos los servicios de estos paseadoeres
-        const todosLosServiciosPorPaseador = await Promise.all(
-            paseadoresIds.map(async (paseadoresId) => {
-                return await this.servicioPaseadorRepository.findByPaseadorId(paseadorId);
+        // 2. Extraer las primeras N paseadores distintas (según limit)
+        let idsPaseadoresDistintos = [];
+        for (let i = 0; i < todosLosServicios.length && idsPaseadoresDistintos.length < limitNum; i++) {
+            const servicio = todosLosServicios[i];
+            if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
+                if (!idsPaseadoresDistintos.includes(servicio.usuarioProveedor.id)) {
+                    idsPaseadoresDistintos.push(servicio.usuarioProveedor.id);
+                }
+            }
+        }
+
+        console.log("IDs de paseadores distintos:", idsPaseadoresDistintos)
+
+        // 3. Buscar TODOS los servicios de estos paseadores específicos
+                const todosLosServiciosPorPaseador = await Promise.all(
+                idsPaseadoresDistintos.map(async (paseadorId) => {
+                const servicios = await this.servicioPaseadorRepository.findByPaseadorId(paseadorId);
+                return servicios || []; // Ensure it always returns an array
             })
-        );
+            );
 
-        // Aplanar el array de servicios (cada paseador devuelve un array)
-        const todosLosServicios = todosLosServiciosPorPaseador.flat()
+        // 4. Aplanar el array de servicios (cada paseador devuelve un array)
+        const serviciosDePaseadoresSeleccionados = todosLosServiciosPorPaseador.flat()
 
-        const total = todosLosServicios.length
+        const total = serviciosDePaseadoresSeleccionados.length
         const total_pages = Math.ceil(total / limitNum)
-        const data = todosLosServicios.map(s => this.toDTO(s))
+        console.log("datos", serviciosDePaseadoresSeleccionados)
+        const data = serviciosDePaseadoresSeleccionados.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
             totalServicios: total,
-            totalPaseadores: paseadores.length,
-            total_pages: total_pages,
-            data: data
-        };
-    }
-
-    async findAll({page = 1, limit = 4}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
-
-        // Buscar paseadores distintas
-        let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
-
-        console.log("Paseadores encontradas:", paseadores.length)
-        
-        
-        // Extraer los IDs de las paseadores
-        const paseadorIds = paseadores.map(v => v.id)
-        
-        // Buscar todos los servicios de estas paseadores
-        const todosLosServiciosPorPaseador = await Promise.all(
-            paseadorIds.map(async (paseadorId) => {
-                return await this.servicioPaseadorRepository.findByPaseadorId(paseadorId);
-            })
-        );
-
-        // Aplanar el array de servicios (cada paseador devuelve un array)
-        const todosLosServicios = todosLosServiciosPorPaseador.flat()
-
-        const total = todosLosServicios.length
-        const total_pages = Math.ceil(total / limitNum)
-        const data = todosLosServicios.map(s => this.toDTO(s))
-
-        return {
-            page: pageNum,
-            per_page: limitNum,
-            totalServicios: total,
-            totalPaseadores: paseadores.length,
+            totalPaseadores: idsPaseadoresDistintos.length,  
             total_pages: total_pages,
             data: data
         };
@@ -94,28 +67,49 @@ export class ServicioPaseadorService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
-        const paseadorIds = paseadores.map(v => v.id)
+        /* let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
+        const paseadorIds = paseadores.map(v => v.id) */
+
+
 
         let serviciosPaseadores = await this.servicioPaseadorRepository.findByFilters(filtro);
 
-        let todosLosServiciosFiltradosDeEstasPaseadores = serviciosPaseadores.filter(s => paseadorIds.includes(s.usuarioProveedor.id))
+        let paseadorIds = [];
+        for (let i = 0; i < serviciosPaseadores.length; i++) {
+            const servicio = serviciosPaseadores[i];
+            if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
+                // Asegurarse de que el ID del paseador esté en formato ObjectId
+                if (!mongoose.Types.ObjectId.isValid(servicio.usuarioProveedor.id)) {
+                    throw new ValidationError(`El ID de paseador ${servicio.usuarioProveedor.id} no es válido`);
+                }
+                // Solo agregar si no está ya en el array
+                if (!paseadorIds.includes(servicio.usuarioProveedor.id)) {
+                    paseadorIds.push(servicio.usuarioProveedor.id);
+                }
+            }
+        }
 
-        // Calcular totales basándose en los servicios después del filtro por paseadores distintas
-        const totalServiciosDisponibles = todosLosServiciosFiltradosDeEstasPaseadores.length;
-        const total_pages = Math.ceil(totalServiciosDisponibles / limitNum);
+
+        const startIndex = (pageNum - 1) * limitNum;
+        const endIndex = startIndex + limitNum;
+        const paseadoresPaginasID = paseadorIds.slice(startIndex, endIndex);
+        console.log("Paseadores Paginas ID:", paseadoresPaginasID)
+        let todosLosServiciosFiltradosDeEstosPaseadores = serviciosPaseadores.filter(s => paseadoresPaginasID.includes(s.usuarioProveedor.id))
+
+        // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
+        const total = todosLosServiciosFiltradosDeEstosPaseadores.length;
+        const total_pages = Math.ceil(total / limitNum);
         
         // Aplicar paginación
-       /*  const startIndex = (pageNum - 1) * limitNum;
-        const endIndex = startIndex + limitNum; 
-        const serviciosPaginados = todosLosServiciosFiltradosDeEstasPaseadores.slice(startIndex, endIndex);
-        */
-        const data = todosLosServiciosFiltradosDeEstasPaseadores.map(a => this.toDTO(a));
+       
+    
+        const data = todosLosServiciosFiltradosDeEstosPaseadores.map(a => this.toDTO(a));
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalPaseadores: data.length ,  // Total real de servicios disponibles
+            totalServicios: total,
+            totalPaseadores: paseadoresPaginasID.length ,  // Total real de servicios disponibles
             total_pages: total_pages,
             data: data
         };
@@ -152,9 +146,9 @@ export class ServicioPaseadorService {
     }
 
    async create(servicioPaseador) {
-        const { idPaseador, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, nombreClinica, direccion, emailClinica, telefonoClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioPaseador
+        const { idPaseador, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles } = servicioPaseador
 
-        if(!idPaseador || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !nombreClinica || !direccion || !emailClinica || !telefonoClinica || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
+        if(!idPaseador || !nombreServicio  || !precio || !descripcion || !duracionMinutos || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles ) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -175,7 +169,7 @@ export class ServicioPaseadorService {
         }
 
         // Validar que direccion tenga la estructura esperada
-        if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+        /* if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
 
@@ -191,22 +185,19 @@ export class ServicioPaseadorService {
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) */
 
         const nuevoServicioPaseador = new ServicioPaseador(
             existentePaseador,           // usuarioProveedor
             nombreServicio,                 // nombreServicio
-            tipoServicio,                  // tipoServicio
             precio,                        // precio
             descripcion,                   // descripcion
             duracionMinutos,               // duracionMinutos
-            nombreClinica,                 // nombreClinica
-            objectDireccion,               // direccion
-            emailClinica,                  // emailClinica
-            telefonoClinica,               // telefonoClinica
+            nombreContacto,                 // nombreContacto
+            emailContacto,                  // emailContacto
+            telefonoContacto,               // telefonoContacto
             diasDisponibles,               // diasDisponibles
             horariosDisponibles,           // horariosDisponibles
-            mascotasAceptadas              // mascotasAceptadas
         )
 
         await this.servicioPaseadorRepository.save(nuevoServicioPaseador)
@@ -234,11 +225,12 @@ async delete(id) {
             }
             servicioPaseador.estado = EstadoServicio.ACTIVO
         } else if(nuevoEstado === "Desactivada") {
-            if(servicioPaseador.estado === EstadoServicio.DESACTIVADO) {
+            if(servicioPaseador.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Paseador con id ${id} ya está desactivada`);
             }
-            servicioPaseador.estado = EstadoServicio.DESACTIVADO
+            servicioPaseador.estado = EstadoServicio.DESACTIVADA
         }
+        console.log("Estado del servicio paseador actualizado:", servicioPaseador.estado)
         await this.servicioPaseadorRepository.save(servicioPaseador)
         return this.toDTO(servicioPaseador)
     }
@@ -255,7 +247,6 @@ async delete(id) {
             descripcion: servicoPaseador.descripcion,
             duracionMinutos: servicoPaseador.duracionMinutos,
             nombreContacto: servicoPaseador.nombreContacto,
-            direccion: servicoPaseador.direccion,
             emailContacto: servicoPaseador.emailContacto,
             telefonoContacto: servicoPaseador.telefonoContacto,
             diasDisponibles: servicoPaseador.diasDisponibles,

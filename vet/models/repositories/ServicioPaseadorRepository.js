@@ -19,21 +19,13 @@ export class ServicioPaseadorRepository {
                 { new: true , runValidators: true }
             )
             return await this.model.populate(servicioPaseadorExistente, [
-                { path: 'usuarioProveedor'},
-                { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
-                }
+                { path: 'usuarioProveedor'}
             ])
         } else {
             const nuevoServicioPaseador = new this.model(servicioPaseador)
             const servicioPaseadorGuardado = await nuevoServicioPaseador.save()
             return await this.model.populate(servicioPaseadorGuardado, [
-                { path: 'usuarioProveedor'},
-                { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
-                }
+                { path: 'usuarioProveedor'}
             ])
         }
 
@@ -51,25 +43,23 @@ export class ServicioPaseadorRepository {
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
-            })
         return alojamientos
     }
 
    async findByFilters(filtro) {
-           
+                         console.log("Filtro recibido:", filtro);
+
            const query = {}
    
            if(filtro.precioMax != null) {
-               query.precio = {}
-               query.precio.$lte = filtro.precioMax
-           }
-           
-           if(filtro.precioMin != null) {
-               query.precio.$gte = filtro.precioMin
-           }
+                  query.precio = {}
+                  query.precio.$lte = filtro.precioMax
+              }
+              
+              if(filtro.precioMin != null) {
+                  if(!query.precio) query.precio = {}
+                  query.precio.$gte = filtro.precioMin
+              }
    
            /* if(filtro.antiguedad != null) {
                query.cantHuespedesMax = { $gte: filtro.antiguedad}
@@ -94,10 +84,7 @@ export class ServicioPaseadorRepository {
    
            const resultadosFiltro1 = await this.model.find(query)
                .populate('usuarioProveedor')
-               .populate({
-                   path: 'direccion.ciudad',
-                   populate: {path: 'localidad'}
-               })
+               
    
            return resultadosFiltro1.filter(r => {
                const ciudad = r.direccion?.ciudad
@@ -117,37 +104,25 @@ export class ServicioPaseadorRepository {
     async findById(id) {
         return await this.model.findById(id)
             .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
-            })
+            
     }
 
-    async findByAnfitrion(userPaseadorId) {
+    async findByPaseadorId(userPaseadorId) {
         return await this.model.find({ usuarioProveedor: userPaseadorId })
             .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
-            })
+            
     }
 
     async findByName(nombre) {
         return await this.model.findOne({nombre})
             .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
-            })
+            
     }
 
     async findAll() {
         return await this.model.find()
             .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
-            })
+            
     }
 }
 

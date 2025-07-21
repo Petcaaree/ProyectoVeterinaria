@@ -28,7 +28,7 @@ export default function servicioPaseadorRoutes(getController) {
         getController(ServicioPaseadorController).getByPaseador(req, res, next)
     })
 
-    router.put("/petcare/paseador/:id/notificaciones/:nuevoEstado", (req, res, next) =>
+    router.put("/petcare/paseador/:id/servicioPaseo/:nuevoEstado", (req, res, next) =>
         getController(ServicioPaseadorController).cambiarEstadoPaseador(req, res, next)
     )
 

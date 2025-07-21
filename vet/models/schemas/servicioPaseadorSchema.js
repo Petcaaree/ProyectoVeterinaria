@@ -37,7 +37,6 @@ const servicioPaseadorSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true,
     validate: {
       validator: function (v) {
         return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(v);
@@ -121,7 +120,7 @@ const servicioPaseadorSchema = new mongoose.Schema({
   },
 });
 
-servicioVeterinariaSchema.post('find', function(docs) {
+servicioPaseadorSchema.post('find', function(docs) {
   if (docs && Array.isArray(docs)) {
     docs.forEach(doc => {
       if (doc.fechasNoDisponibles) {
@@ -134,7 +133,7 @@ servicioVeterinariaSchema.post('find', function(docs) {
   }
 });
 
-servicioVeterinariaSchema.post('findOne', function(doc) {
+servicioPaseadorSchema.post('findOne', function(doc) {
   if (doc && doc.fechasNoDisponibles) {
     doc.fechasNoDisponibles = doc.fechasNoDisponibles.map(fecha => ({
       fecha: parseFechaToDate(fecha.fecha),
@@ -144,7 +143,7 @@ servicioVeterinariaSchema.post('findOne', function(doc) {
 });
 
 // Middleware para asegurar que los datos se guarden correctamente
-servicioVeterinariaSchema.pre('save', function(next) {
+servicioPaseadorSchema.pre('save', function(next) {
   // Asegurar que fechasNoDisponibles tenga la estructura correcta
   if (this.fechasNoDisponibles) {
     this.fechasNoDisponibles = this.fechasNoDisponibles.map(fecha => {

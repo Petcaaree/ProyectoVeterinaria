@@ -47,7 +47,7 @@ export class ServicioPaseadorRepository {
     }
 
    async findByFilters(filtro) {
-                         console.log("Filtro recibido:", filtro);
+            // console.log("Filtro recibido:", filtro);
 
            const query = {}
    
@@ -68,37 +68,90 @@ export class ServicioPaseadorRepository {
                // FALTARIA VER QUE POR CADA PASEO HAY UN CUPO DE ANIMALES
    
    
-           if (filtro.fecha) {
-                  const fechaDate = parseFechaDDMMYYYY(filtro.fecha);
+           let fechaFiltro = null;
+              if (filtro.fecha) {
+                  fechaFiltro = filtro.fecha
+              }
+
+              const resultadosFiltro1 = await this.model.find(query)
+                  .populate('usuarioProveedor')
                   
-                  // Excluir servicios que tienen esta fecha en fechasNoDisponibles
-                  query.fechasNoDisponibles = {
-                      $not: {
-                          $elemMatch: {
-                              fecha: fechaDate.toISOString().split('T')[0] // Formato YYYY-MM-DD
+              
+              const resultadosFinal = resultadosFiltro1.filter(r => {
+                  const ciudad = r.direccion?.ciudad
+                  const localidad = ciudad?.localidad
+                  const nombreServicio = r.nombreServicio
+      
+                  const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
+                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
+                  const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
+
+                  // Filtrar por fecha: verificar si TODOS los horarios disponibles están ocupados
+                  let disponibleEnFecha = true;
+                  
+                  if (fechaFiltro) {
+                      // Si fechasNoDisponibles está vacío o no existe, el servicio está disponible
+                      if (!r.fechasNoDisponibles || !Array.isArray(r.fechasNoDisponibles) || r.fechasNoDisponibles.length === 0) {
+                          disponibleEnFecha = true;
+                      } else {
+                          // Buscar la fecha específica
+                          const fechaNoDisponible = r.fechasNoDisponibles.find(f => {
+                              if (f && f.fecha) {
+                                  // Convertir fechaFiltro a Date si es string
+                                  let fechaBuscada = fechaFiltro;
+                                  if (typeof fechaFiltro === 'string') {
+                                      const [dia, mes, anio] = fechaFiltro.split('/');
+                                      fechaBuscada = new Date(`${anio}-${mes}-${dia}`);
+                                  }
+                                  
+                                  // Convertir fecha del documento si es string
+                                  let fechaDoc = f.fecha;
+                                  if (typeof f.fecha === 'string') {
+                                      if (f.fecha.includes('/')) {
+                                          const [dia, mes, anio] = f.fecha.split('/');
+                                          fechaDoc = new Date(`${anio}-${mes}-${dia}`);
+                                      } else {
+                                          fechaDoc = new Date(f.fecha);
+                                      }
+                                  }
+                                  
+                                  const fechaDocStr = fechaDoc.toDateString();
+                                  const fechaBuscadaStr = fechaBuscada.toDateString();
+                                  
+                                  return fechaDocStr === fechaBuscadaStr;
+                              }
+                              return false;
+                          });
+                          
+                          if (fechaNoDisponible) {
+                              // Si encontramos la fecha, verificar horarios ocupados
+                              let horariosOcupados = [];
+                              if (fechaNoDisponible.horariosNoDisponibles) {
+                                  horariosOcupados = fechaNoDisponible.horariosNoDisponibles.map(h => {
+                                      // Manejar tanto strings como objetos {horario: "XX:XX"}
+                                      return typeof h === 'string' ? h : h.horario;
+                                  }).filter(h => h); // Filtrar valores undefined/null
+                              }
+                              
+                              if (r.horariosDisponibles && Array.isArray(r.horariosDisponibles) && horariosOcupados.length > 0) {
+                                  const todosOcupados = r.horariosDisponibles.every(horario => 
+                                      horariosOcupados.includes(horario)
+                                  );
+                                  disponibleEnFecha = !todosOcupados;
+                              } else {
+                                  // Si no hay horarios ocupados, está disponible
+                                  disponibleEnFecha = true;
+                              }
+                          } else {
+                              // Si no encontramos la fecha en fechasNoDisponibles, está disponible
+                              disponibleEnFecha = true;
                           }
                       }
-                  };
-              }
-   
-   
-           const resultadosFiltro1 = await this.model.find(query)
-               .populate('usuarioProveedor')
-               
-   
-           return resultadosFiltro1.filter(r => {
-               const ciudad = r.direccion?.ciudad
-               const localidad = ciudad?.localidad
-               const nombreServicio = r.nombreServicio
-   
-               const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
-               const coincideLocalidad = filtro.localidad ? pais?.nombre === filtro.localidad : true
-                const coincideNombreServicio = filtro.nombre ? nombreServicio === filtro.nombreServicio : true
+                  }
 
-   
-               return coincideCiudad && coincideLocalidad && coincideNombreServicio
-           })
-   
+                  return coincideCiudad && coincideLocalidad && coincideNombreServicio && disponibleEnFecha
+              })
+              return resultadosFinal
        }
 
     async findById(id) {

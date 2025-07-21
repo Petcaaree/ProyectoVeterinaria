@@ -62,7 +62,7 @@ export class ServicioCuidadorController {
             const id = req.params.id
             const { page, limit } = req.query;
 
-            const servicioCuidadores = await this.servicioCuidadorService.findByCuidadores(id, { page, limit });
+            const servicioCuidadores = await this.servicioCuidadorService.findByCuidador(id, { page, limit });
             res.json(servicioCuidadores);
         } catch (error) {
             next(error);
@@ -96,7 +96,7 @@ export class ServicioCuidadorController {
         try {
             const { id, nuevoEstado } = req.params;
 
-            const actualizado = await this.servicioCuidadorService.cambiarEstado(id, nuevoEstado);
+            const actualizado = await this.servicioCuidadorService.cambiarEstadoServicioCuidador(id, nuevoEstado);
 
             res.json(actualizado);
         } catch (error) {

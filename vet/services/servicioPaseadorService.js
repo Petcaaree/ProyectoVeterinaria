@@ -21,43 +21,45 @@ export class ServicioPaseadorService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        // 1. Obtener TODOS los servicios de paseador
-        let todosLosServicios = await this.servicioPaseadorRepository.findAll()
+        // Buscar paseadores distintos
+        let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
 
-        // 2. Extraer las primeras N paseadores distintas (según limit)
-        let idsPaseadoresDistintos = [];
-        for (let i = 0; i < todosLosServicios.length && idsPaseadoresDistintos.length < limitNum; i++) {
-            const servicio = todosLosServicios[i];
-            if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
-                if (!idsPaseadoresDistintos.includes(servicio.usuarioProveedor.id)) {
-                    idsPaseadoresDistintos.push(servicio.usuarioProveedor.id);
-                }
+        // console.log("Paseadores encontrados:", paseadores.length)
+
+        // Extraer los IDs de los paseadores
+        const paseadorIds = paseadores.map(v => v.id)
+
+        // Buscar todos los servicios de estos paseadores
+        const todosLosServiciosPorPaseador = await Promise.all(
+            paseadorIds.map(async (paseadorId) => {
+                return await this.servicioPaseadorRepository.findByPaseadorId(paseadorId);
+            })
+        );
+
+        // Filtrar solo los paseadores que tienen servicios
+        const paseadoresConServicios = [];
+        const serviciosValidos = [];
+
+        for (let i = 0; i < paseadorIds.length; i++) {
+            const serviciosDePaseador = todosLosServiciosPorPaseador[i];
+            if (serviciosDePaseador && serviciosDePaseador.length > 0) {
+                paseadoresConServicios.push(paseadorIds[i]);
+                serviciosValidos.push(...serviciosDePaseador);
             }
         }
 
-        console.log("IDs de paseadores distintos:", idsPaseadoresDistintos)
+        // Aplanar el array de servicios (solo de paseadores con servicios)
+        const todosLosServicios = serviciosValidos
 
-        // 3. Buscar TODOS los servicios de estos paseadores específicos
-                const todosLosServiciosPorPaseador = await Promise.all(
-                idsPaseadoresDistintos.map(async (paseadorId) => {
-                const servicios = await this.servicioPaseadorRepository.findByPaseadorId(paseadorId);
-                return servicios || []; // Ensure it always returns an array
-            })
-            );
-
-        // 4. Aplanar el array de servicios (cada paseador devuelve un array)
-        const serviciosDePaseadoresSeleccionados = todosLosServiciosPorPaseador.flat()
-
-        const total = serviciosDePaseadoresSeleccionados.length
+        const total = await this.paseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
-        console.log("datos", serviciosDePaseadoresSeleccionados)
-        const data = serviciosDePaseadoresSeleccionados.map(s => this.toDTO(s))
+        const data = todosLosServicios.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: total,
-            totalPaseadores: idsPaseadoresDistintos.length,  
+            totalServicios: todosLosServicios.length,
+            totalPaseadores: paseadoresConServicios.length,
             total_pages: total_pages,
             data: data
         };
@@ -70,9 +72,10 @@ export class ServicioPaseadorService {
         /* let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
         const paseadorIds = paseadores.map(v => v.id) */
 
-
-
         let serviciosPaseadores = await this.servicioPaseadorRepository.findByFilters(filtro);
+
+        // Verificar que serviciosPaseadores sea un array válido
+        
 
         let paseadorIds = [];
         for (let i = 0; i < serviciosPaseadores.length; i++) {
@@ -89,16 +92,16 @@ export class ServicioPaseadorService {
             }
         }
 
-
+        //console.log("Paseadores IDs encontrados:", paseadorIds)
         const startIndex = (pageNum - 1) * limitNum;
         const endIndex = startIndex + limitNum;
         const paseadoresPaginasID = paseadorIds.slice(startIndex, endIndex);
-        console.log("Paseadores Paginas ID:", paseadoresPaginasID)
+       // console.log("Paseadores Paginas ID despues:", paseadoresPaginasID)
         let todosLosServiciosFiltradosDeEstosPaseadores = serviciosPaseadores.filter(s => paseadoresPaginasID.includes(s.usuarioProveedor.id))
 
         // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
         const total = todosLosServiciosFiltradosDeEstosPaseadores.length;
-        const total_pages = Math.ceil(total / limitNum);
+        const total_pages = Math.ceil(paseadoresPaginasID.length / limitNum);
         
         // Aplicar paginación
        
@@ -230,10 +233,10 @@ async delete(id) {
             }
             servicioPaseador.estado = EstadoServicio.DESACTIVADA
         }
-        console.log("Estado del servicio paseador actualizado:", servicioPaseador.estado)
         await this.servicioPaseadorRepository.save(servicioPaseador)
         return this.toDTO(servicioPaseador)
     }
+
 
     toDTO(servicoPaseador) {
         return {

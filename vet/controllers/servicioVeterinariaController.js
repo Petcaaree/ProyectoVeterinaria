@@ -96,7 +96,7 @@ export class ServicioVeterinariaController {
         try {
             const { id, nuevoEstado } = req.params;
 
-            const actualizado = await this.servicioVeterinariaService.cambiarEstado(id, nuevoEstado);
+            const actualizado = await this.servicioVeterinariaService.cambiarEstadoServicioVeterinaria(id, nuevoEstado);
 
             res.json(actualizado);
         } catch (error) {

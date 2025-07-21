@@ -28,9 +28,11 @@ export default function servicioVeterinariaRoutes(getController) {
         getController(ServicioVeterinariaController).getByVeterinaria(req, res, next)
     })
 
-    router.put("/petcare/veterinaria/:id/notificaciones/:nuevoEstado", (req, res, next) =>
+    router.put("/petcare/veterinaria/:id/servicioVet/:nuevoEstado", (req, res, next) =>
         getController(ServicioVeterinariaController).cambiarEstadoVeterinaria(req, res, next)
     )
+
+    
 
     return router
 }

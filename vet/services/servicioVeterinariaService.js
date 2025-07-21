@@ -5,6 +5,8 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { ServicioVeterinaria } from "../models/entidades/ServicioVeterinaria.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
+
 import mongoose from "mongoose"
 
 
@@ -24,8 +26,7 @@ export class ServicioVeterinariaService {
         // Buscar veterinarias distintas
         let veterinarias = await this.veterinariaRepository.findByPage(pageNum, limit)
 
-        console.log("Veterinarias encontradas:", veterinarias.length)
-        
+        // console.log("Veterinarias encontradas:", veterinarias.length)
         
         // Extraer los IDs de las veterinarias
         const veterinariaIds = veterinarias.map(v => v.id)
@@ -37,18 +38,30 @@ export class ServicioVeterinariaService {
             })
         );
 
-        // Aplanar el array de servicios (cada veterinaria devuelve un array)
-        const todosLosServicios = todosLosServiciosPorVeterinaria.flat()
+        // Filtrar solo las veterinarias que tienen servicios
+        const veterinariasConServicios = [];
+        const serviciosValidos = [];
 
-        const total = todosLosServicios.length
+        for (let i = 0; i < veterinariaIds.length; i++) {
+            const serviciosDeVeterinaria = todosLosServiciosPorVeterinaria[i];
+            if (serviciosDeVeterinaria && serviciosDeVeterinaria.length > 0) {
+                veterinariasConServicios.push(veterinariaIds[i]);
+                serviciosValidos.push(...serviciosDeVeterinaria);
+            }
+        }
+
+        // Aplanar el array de servicios (solo de veterinarias con servicios)
+        const todosLosServicios = serviciosValidos
+
+        const total = await this.veterinariaRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServicios.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: total,
-            totalVeterinarias: veterinarias.length,
+            totalServicios: todosLosServicios.length,
+            totalVeterinarias: veterinariasConServicios.length,
             total_pages: total_pages,
             data: data
         };
@@ -80,16 +93,16 @@ export class ServicioVeterinariaService {
                 }
             }
     
-    
+            //console.log("Veterinarias Paginas ID antes:", veterinariaIds)
             const startIndex = (pageNum - 1) * limitNum;
             const endIndex = startIndex + limitNum;
             const veterinariasPaginasID = veterinariaIds.slice(startIndex, endIndex);
-            console.log("Veterinarias Paginas ID:", veterinariasPaginasID)
+            //console.log("Veterinarias Paginas ID:", veterinariasPaginasID)
             let todosLosServiciosFiltradosDeEstosVeterinarias = serviciosVeterinarias.filter(s => veterinariasPaginasID.includes(s.usuarioProveedor.id))
     
             // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
             const total = todosLosServiciosFiltradosDeEstosVeterinarias.length;
-            const total_pages = Math.ceil(total / limitNum);
+            const total_pages = Math.ceil(veterinariaIds.length / limitNum);
             
             // Aplicar paginación
            
@@ -207,7 +220,7 @@ export class ServicioVeterinariaService {
         return borrado;
     }
 
-    async cambiarEstadoServicioVet(id, nuevoEstado) {
+    async cambiarEstadoServicioVeterinaria(id, nuevoEstado) {
         const servicioVeterinaria = await this.servicioVeterinariaRepository.findById(id)
         if(!servicioVeterinaria) {
             throw new NotFoundError(`Servicio Veterinaria con id ${id} no encontrado`);
@@ -219,10 +232,10 @@ export class ServicioVeterinariaService {
             }
             servicioVeterinaria.estado = EstadoServicio.ACTIVO
         } else if(nuevoEstado === "Desactivada") {
-            if(servicioVeterinaria.estado === EstadoServicio.DESACTIVADO) {
+            if(servicioVeterinaria.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Veterinaria con id ${id} ya está desactivada`);
             }
-            servicioVeterinaria.estado = EstadoServicio.DESACTIVADO
+            servicioVeterinaria.estado = EstadoServicio.DESACTIVADA
         }
         await this.servicioVeterinariaRepository.save(servicioVeterinaria)
         return this.toDTO(servicioVeterinaria)

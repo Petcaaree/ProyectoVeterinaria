@@ -5,6 +5,8 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { ServicioCuidador } from "../models/entidades/ServicioCuidador.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
+
 import mongoose from "mongoose"
 
 
@@ -21,40 +23,53 @@ export class ServicioCuidadorService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        // Buscar cuidadors distintas
-        let cuidadors = await this.cuidadorRepository.findByPage(pageNum, limit)
+        // Buscar cuidadores distintos
+        let cuidadores = await this.cuidadorRepository.findByPage(pageNum, limit)
 
-        console.log("Cuidadors encontradas:", cuidadors.length)
-        
-        
-        // Extraer los IDs de las cuidadors
-        const cuidadorIds = cuidadors.map(v => v.id)
-        
-        // Buscar todos los servicios de estas cuidadors
+        // console.log("Cuidadores encontrados:", cuidadores.length)
+
+
+        // Extraer los IDs de los cuidadores
+        const cuidadorIds = cuidadores.map(v => v.id)
+
+        // Buscar todos los servicios de estos cuidadores
         const todosLosServiciosPorCuidador = await Promise.all(
             cuidadorIds.map(async (cuidadorId) => {
                 return await this.servicioCuidadorRepository.findByCuidadorId(cuidadorId);
             })
         );
 
-        // Aplanar el array de servicios (cada cuidador devuelve un array)
-        const todosLosServicios = todosLosServiciosPorCuidador.flat()
+        // Filtrar solo los cuidadores que tienen servicios
+        const cuidadoresConServicios = [];
+        const serviciosValidos = [];
 
-        const total = todosLosServicios.length
+        for (let i = 0; i < cuidadorIds.length; i++) {
+            const serviciosDeCuidador = todosLosServiciosPorCuidador[i];
+            if (serviciosDeCuidador && serviciosDeCuidador.length > 0) {
+                cuidadoresConServicios.push(cuidadorIds[i]);
+                serviciosValidos.push(...serviciosDeCuidador);
+            }
+        }
+
+        // Aplanar el array de servicios (solo de cuidadores con servicios)
+        const todosLosServicios = serviciosValidos
+
+        const total = await this.cuidadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServicios.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: total,
-            totalCuidadors: cuidadors.length,
+            totalServicios: todosLosServicios.length,
+            totalCuidadores: cuidadoresConServicios.length,
             total_pages: total_pages,
             data: data
         };
     }
 
     async findByFilters(filtro,{page=1,limit=4}) {
+        console.log("Filtro recibido:", filtro);
                 const pageNum = Math.max(Number(page), 1)
                 const limitNum = Math.min(Math.max(Number(limit), 1), 100)
         
@@ -80,16 +95,16 @@ export class ServicioCuidadorService {
                     }
                 }
         
-        
+                
                 const startIndex = (pageNum - 1) * limitNum;
                 const endIndex = startIndex + limitNum;
                 const cuidadoresPaginasID = cuidadorIds.slice(startIndex, endIndex);
-                console.log("Cuidadores Paginas ID:", cuidadoresPaginasID)
+                // console.log("Cuidadores Paginas ID:", cuidadoresPaginasID)
                 let todosLosServiciosFiltradosDeEstosCuidadores = serviciosCuidadores.filter(s => cuidadoresPaginasID.includes(s.usuarioProveedor.id))
         
                 // Calcular totales basándose en los servicios después del filtro por cuidadores distintas
                 const total = todosLosServiciosFiltradosDeEstosCuidadores.length;
-                const total_pages = Math.ceil(total / limitNum);
+                const total_pages = Math.ceil(cuidadorIds.length / limitNum);
                 
                 // Aplicar paginación
                
@@ -137,9 +152,9 @@ export class ServicioCuidadorService {
     }
 
     async create(servicioCuidador) {
-        const { idCuidador, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, nombreContacto, direccion, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioCuidador
+        const { idCuidador, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas } = servicioCuidador
 
-        if(!idCuidador || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !nombreContacto || !direccion || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
+        if(!idCuidador || !nombreServicio  || !precio || !descripcion  || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !mascotasAceptadas) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -204,7 +219,7 @@ export class ServicioCuidadorService {
         return borrado;
     }
 
-    async cambiarEstadoServicioVet(id, nuevoEstado) {
+    async cambiarEstadoServicioCuidador(id, nuevoEstado) {
         const servicioCuidador = await this.servicioCuidadorRepository.findById(id)
         if(!servicioCuidador) {
             throw new NotFoundError(`Servicio Cuidador con id ${id} no encontrado`);
@@ -216,10 +231,10 @@ export class ServicioCuidadorService {
             }
             servicioCuidador.estado = EstadoServicio.ACTIVO
         } else if(nuevoEstado === "Desactivada") {
-            if(servicioCuidador.estado === EstadoServicio.DESACTIVADO) {
+            if(servicioCuidador.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Cuidador con id ${id} ya está desactivada`);
             }
-            servicioCuidador.estado = EstadoServicio.DESACTIVADO
+            servicioCuidador.estado = EstadoServicio.DESACTIVADA
         }
         await this.servicioCuidadorRepository.save(servicioCuidador)
         return this.toDTO(servicioCuidador)

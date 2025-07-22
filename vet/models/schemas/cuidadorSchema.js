@@ -82,9 +82,9 @@ const cuidadorSchema = new mongoose.Schema({
                 message: props => `${props.value} no es ni un string ni un número válido para altura`
             }
         },
-        ciudad: {
+        localidad: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Ciudad", 
+            ref: "Localidad", 
             required: true
         }
     },

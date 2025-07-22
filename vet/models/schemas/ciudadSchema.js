@@ -8,12 +8,6 @@ const ciudadSchema = new mongoose.Schema({
         trim: true,
         minlength: 1,   
         maxlength: 100
-    },
-
-    localidad: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Localidad",
-        required: true
     }
 })
 

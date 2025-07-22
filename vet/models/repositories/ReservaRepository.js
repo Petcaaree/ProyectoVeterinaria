@@ -35,8 +35,8 @@ export class ReservaRepository {
             reservaGuardada.servicioReservado = await reservaGuardada.servicioReservado.populate([
             { path: 'usuarioProveedor' },
             {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             }
             ]);
         }
@@ -85,8 +85,8 @@ export class ReservaRepository {
             reservaDoc.servicioReservado = await reservaDoc.servicioReservado.populate([
             { path: 'usuarioProveedor' },
             {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             }
             ]);
             
@@ -111,8 +111,8 @@ export class ReservaRepository {
             populate: [
             { path: 'usuarioProveedor' },
             {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             }
             ]
         });
@@ -151,8 +151,8 @@ export class ReservaRepository {
             populate: [
             { path: 'usuarioProveedor' },
             {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             }
             ]
         });
@@ -182,8 +182,8 @@ export class ReservaRepository {
             populate: [
                 { path: 'usuarioProveedor' },
                 {
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
             ]
         });
@@ -215,8 +215,8 @@ export class ReservaRepository {
                 populate: [
                     { path: 'usuarioProveedor' },
                     {
-                        path: 'direccion.ciudad',
-                        populate: { path: 'localidad' }
+                        path: 'direccion.localidad',
+                        populate: { path: 'ciudad' }
                     }
                 ]
             });
@@ -247,8 +247,8 @@ export class ReservaRepository {
             populate: [
                 { path: 'usuarioProveedor' },
                 {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
                 }
             ]
             });

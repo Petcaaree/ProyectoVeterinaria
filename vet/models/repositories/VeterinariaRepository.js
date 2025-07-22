@@ -13,8 +13,8 @@ export class VeterinariaRepository {
                 datosActualizados,
                 { new: true, runValidators: true }
             ).populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
             return veterinariaExistente
         } else {
@@ -23,8 +23,8 @@ export class VeterinariaRepository {
             
             // Populate la veterinaria guardada antes de retornarla
             return await this.model.populate(veterinariaGuardado, {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
         }
     }
@@ -37,8 +37,8 @@ export class VeterinariaRepository {
     async findById(id) {
         return await this.model.findById(id)
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
     }
 
@@ -49,8 +49,16 @@ export class VeterinariaRepository {
     async findByEmail(email) {
         return await this.model.findOne({ email })
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
+            })
+    }
+
+    async findByNombreUsuario(nombreUsuario) {
+        return await this.model.findOne({ nombreUsuario })
+            .populate({
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
     } 
 
@@ -62,8 +70,8 @@ export class VeterinariaRepository {
         const skip = (pageNum - 1) * limitNum
         const veterinarias = await this.model.find()
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
             .skip(skip)
             .limit(limitNum)

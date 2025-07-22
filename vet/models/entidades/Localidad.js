@@ -1,7 +1,8 @@
 export class Localidad {
 
-  constructor(nombre) {
+  constructor(nombre, ciudad) {
     this.nombre = nombre;
+    this.ciudad = ciudad;
   }
 
 }

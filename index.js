@@ -62,13 +62,13 @@ const paseadorRepo = new PaseadorRepository();
 const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
 
-const clienteService = new ClienteService(clienteRepo, localidadRepo, ciudadRepo);
-const cuidadorService = new CuidadorService(cuidadorRepo, localidadRepo, ciudadRepo);
-const paseadorService = new PaseadorService(paseadorRepo, localidadRepo, ciudadRepo);
-const veterinariaService = new VeterinariaService(veterinariaRepo, localidadRepo, ciudadRepo);
-const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, localidadRepo, ciudadRepo);
-const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, localidadRepo, ciudadRepo);
-const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, localidadRepo, ciudadRepo);
+const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo);
+const cuidadorService = new CuidadorService(cuidadorRepo, ciudadRepo, localidadRepo);
+const paseadorService = new PaseadorService(paseadorRepo, ciudadRepo, localidadRepo);
+const veterinariaService = new VeterinariaService(veterinariaRepo, ciudadRepo, localidadRepo);
+const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, ciudadRepo, localidadRepo);
+const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo);
+const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
 
 const clienteController = new ClienteController(clienteService);
@@ -99,8 +99,18 @@ const app = express();
 app.use(cors({
     origin: "https://birbnb.vercel.app"
 }))
+
 const port = process.env.PORT || 3000;
 const server = new Server(app, port);
+
+// Middleware de logging para todas las peticiones - ANTES de las rutas
+app.use((req, res, next) => {
+    console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
+    if (Object.keys(req.query).length > 0) {
+        console.log("📋 Query params:", req.query);
+    }
+    next();
+});
 
 MongoDBClient.connect();
 

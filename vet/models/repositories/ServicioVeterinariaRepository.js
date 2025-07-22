@@ -5,6 +5,7 @@ export class ServicioVeterinariaRepository {
         this.model = ServicioVeterinariaModel
     }
 
+
     async countAll() {
         return await this.model.countDocuments()
     }
@@ -20,8 +21,8 @@ export class ServicioVeterinariaRepository {
             return await this.model.populate(servicioVeterinariaExistente, [
                 { path: 'usuarioProveedor'},
                 { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
             ])
         } else {
@@ -30,8 +31,8 @@ export class ServicioVeterinariaRepository {
             return await this.model.populate(servicioVeterinariaGuardado, [
                 { path: 'usuarioProveedor'},
                 { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
             ])
         }
@@ -52,8 +53,8 @@ export class ServicioVeterinariaRepository {
             .limit(limitNum)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
         return servicios;
     }
@@ -90,16 +91,14 @@ export class ServicioVeterinariaRepository {
               const resultadosFiltro1 = await this.model.find(query)
                   .populate('usuarioProveedor')
                   .populate({
-                      path: 'direccion.ciudad',
-                      populate: {path: 'localidad'}
+                      path: 'direccion.localidad',
+                      populate: {path: 'ciudad'}
                   })
               
               const resultadosFinal = resultadosFiltro1.filter(r => {
-                  const ciudad = r.direccion?.ciudad
-                  const localidad = ciudad?.localidad
+                  const localidad = r.direccion?.localidad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
                   const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
 
@@ -166,7 +165,7 @@ export class ServicioVeterinariaRepository {
                       }
                   }
 
-                  return coincideCiudad && coincideLocalidad && coincideNombreServicio && disponibleEnFecha
+                  return  coincideLocalidad && coincideNombreServicio && disponibleEnFecha
               })
               
               return resultadosFinal
@@ -176,8 +175,8 @@ export class ServicioVeterinariaRepository {
         return await this.model.findById(id)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
     }
 
@@ -185,8 +184,8 @@ export class ServicioVeterinariaRepository {
         return await this.model.find({ usuarioProveedor: userVeterinariaId })
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
     }
 
@@ -194,8 +193,8 @@ export class ServicioVeterinariaRepository {
         return await this.model.findOne({nombreServicio})
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
     }
 
@@ -203,8 +202,8 @@ export class ServicioVeterinariaRepository {
         return await this.model.find()
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
     }
 }

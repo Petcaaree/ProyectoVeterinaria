@@ -15,8 +15,8 @@ export class ClienteRepository {
                 datosActualizados,
                 { new: true, runValidators: true }
             ).populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             });
 
             return clienteActualizado;
@@ -28,8 +28,8 @@ export class ClienteRepository {
 
             // Populate el cliente guardado antes de retornarlo
             return await this.model.populate(clienteGuardado, {
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             });
         }
     }
@@ -42,8 +42,8 @@ export class ClienteRepository {
     async findById(id) {
         return await this.model.findById(id)
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
     }
 
@@ -54,8 +54,16 @@ export class ClienteRepository {
     async findByEmail(email) {
         return await this.model.findOne({ email })
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
+            })
+    }
+
+    async findByNombreUsuario(nombreUsuario) {
+        return await this.model.findOne({ nombreUsuario })
+            .populate({
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
     } 
 
@@ -63,8 +71,8 @@ export class ClienteRepository {
         const skip = (pageNum - 1) * limitNum
         const clientes = await this.model.find()
             .populate({
-                path: 'direccion.ciudad',
-                populate: { path: 'localidad' }
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
             })
             .skip(skip)
             .limit(limitNum)

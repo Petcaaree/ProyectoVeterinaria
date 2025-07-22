@@ -33,11 +33,14 @@ export class ClienteController {
 
   async create(req, res, next) {
     try {
+      console.log("Request body recibido:", JSON.stringify(req.body, null, 2));
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
 
       res.status(201).json(nuevo);
     } catch (error) {
+      console.error("Error en clienteController.create:", error);
+      console.error("Stack trace:", error.stack);
       next(error);
     }
   }

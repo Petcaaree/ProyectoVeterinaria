@@ -8,10 +8,10 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 
 export class VeterinariaService {
 
-    constructor(veterinariaRepository, localidadRepository, ciudadRepository) {
+    constructor(veterinariaRepository, ciudadRepository, localidadRepository) {
         this.veterinariaRepository = veterinariaRepository
-        this.localidadRepository = localidadRepository
         this.ciudadRepository = ciudadRepository
+        this.localidadRepository = localidadRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -65,25 +65,32 @@ export class VeterinariaService {
             throw new ConflictError(`Email ya registrado`)
         }
 
-        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
-        if(!localidadExistente) {
-            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
-            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        const nombreUsuarioExistente = await this.veterinariaRepository.findByNombreUsuario(nombreUsuario)
+        if(nombreUsuarioExistente) {
+            throw new ConflictError(`Nombre de usuario ${nombreUsuario} ya registrado`)
         }
 
-        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        
+
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.localidad.ciudad.nombre)
         if(!ciudadExistente) {
-            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = new Ciudad(direccion.localidad.ciudad.nombre)
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        let localidadExistente = await this.localidadRepository.findByName(direccion.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.localidad.nombre, ciudadExistente)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
+
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
         const nuevoVeterinaria = new Veterinaria(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
 
-        await this.veterinariaRepository.save(nuevoVeterinaria)
+        const veterinariaGuardada = await this.veterinariaRepository.save(nuevoVeterinaria)
 
-        return this.toDTO(nuevoVeterinaria)
+        return this.toDTO(veterinariaGuardada)
     }
 
     async delete(id) {
@@ -217,19 +224,18 @@ export class VeterinariaService {
     toDTO(veterinaria) {
         return {
             id: veterinaria.id,
-            nombre: veterinaria.nombreUsuario,
-            apellido: veterinaria.direccion,
+            nombreUsuario: veterinaria.nombreUsuario,
             telefono: veterinaria.telefono,
             email: veterinaria.email,
+            notificaciones: veterinaria.notificaciones,
             direccion: {
                 calle: veterinaria.direccion.calle,
                 altura: veterinaria.direccion.altura,
-                ciudad: {
-                    nombre: veterinaria.direccion.ciudad.nombre,
-                    pais: veterinaria.direccion.ciudad.localidad.nombre
+                localidad: {
+                    nombre: veterinaria.direccion.localidad.nombre,
+                    ciudad: veterinaria.direccion.localidad.ciudad.nombre // Esto debería funcionar si está poblado
                 }
-            },
-            notificaciones: veterinaria.notificaciones,
+            }
         }
     }
 

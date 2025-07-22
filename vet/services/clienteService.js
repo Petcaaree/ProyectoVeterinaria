@@ -8,10 +8,10 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 
 
 export class ClienteService {
-    constructor(clienteRepository, localidadRepository, ciudadRepository) {
+    constructor(clienteRepository, ciudadRepository, localidadRepository) {
         this.clienteRepository = clienteRepository
-        this.localidadRepository = localidadRepository
         this.ciudadRepository = ciudadRepository
+        this.localidadRepository = localidadRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -53,7 +53,9 @@ export class ClienteService {
     }
 
     async create(cliente) {
+        
         const { nombreUsuario, email, contrasenia, telefono, direccion } = cliente
+     
 
         if(!nombreUsuario || !email || !contrasenia || !telefono || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
@@ -65,25 +67,34 @@ export class ClienteService {
             throw new ConflictError(`Email ya registrado`)
         }
 
-        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
-        if(!localidadExistente) {
-            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
-            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        const nombreUsuarioExistente = await this.clienteRepository.findByNombreUsuario(nombreUsuario)
+        if(nombreUsuarioExistente) {
+            throw new ConflictError(`Nombre de usuario ${nombreUsuario} ya registrado`)
         }
+        
 
-        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.localidad.ciudad.nombre)
         if(!ciudadExistente) {
-            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = new Ciudad(direccion.localidad.ciudad.nombre)
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        let localidadExistente = await this.localidadRepository.findByName(direccion.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.localidad.nombre, ciudadExistente)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        } else if (localidadExistente.ciudad.id !== ciudadExistente.id) {
+            localidadExistente.ciudad = ciudadExistente
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
 
-        const nuevoCliente = new Cliente(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        await this.clienteRepository.save(nuevoCliente)
+        const nuevoCliente = new Cliente(nombreUsuario, email, objectDireccion, telefono, contrasenia)
 
-        return this.toDTO(nuevoCliente)
+        const clienteGuardado = await this.clienteRepository.save(nuevoCliente)
+
+        return this.toDTO(clienteGuardado)
     }
 
     async delete(id) {
@@ -298,20 +309,18 @@ export class ClienteService {
     }
 
     toDTO(cliente) {
-        console.log("localidad Cliente:", cliente.direccion.ciudad.localidad.nombre)
         return {
             id: cliente.id,
-            nombre: cliente.nombreUsuario,
-            apellido: cliente.direccion,
+            nombreUsuario: cliente.nombreUsuario,
             telefono: cliente.telefono,
             email: cliente.email,
             notificaciones: cliente.notificaciones,
             direccion: {
                 calle: cliente.direccion.calle,
                 altura: cliente.direccion.altura,
-                ciudad: {
-                    nombre: cliente.direccion.ciudad.nombre,
-                    localidad: cliente.direccion.ciudad.localidad.nombre
+                localidad: {
+                    nombre: cliente.direccion.localidad.nombre,
+                    ciudad: cliente.direccion.localidad.ciudad.nombre // Esto debería funcionar si está poblado
                 }
             },
             mascotas: cliente.mascotas

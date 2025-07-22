@@ -12,11 +12,11 @@ import mongoose from "mongoose"
 
 export class ServicioVeterinariaService {
 
-    constructor(servicioVeterinariaRepository,veterinariaRepository, localidadRepository, ciudadRepository) {
+    constructor(servicioVeterinariaRepository,veterinariaRepository, ciudadRepository, localidadRepository) {
         this.servicioVeterinariaRepository = servicioVeterinariaRepository
         this.veterinariaRepository = veterinariaRepository
-        this.localidadRepository = localidadRepository
         this.ciudadRepository = ciudadRepository
+        this.localidadRepository = localidadRepository
     }
 
     async findAll({page = 1, limit = 4}) {
@@ -70,6 +70,8 @@ export class ServicioVeterinariaService {
     async findByFilters(filtro,{page=1,limit=4}) {
             const pageNum = Math.max(Number(page), 1)
             const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+
+            console.log("Filtro recibido:", filtro);
     
             /* let veterinarias = await this.veterinariaRepository.findByPage(pageNum, limit)
             const veterinariaIds = veterinarias.map(v => v.id) */
@@ -172,24 +174,44 @@ export class ServicioVeterinariaService {
             throw new NotFoundError(`Veterinaria con id ${idVeterinaria} no encontrada`)
         }
 
+        const compararDirecciones = (dir1, dir2) => {
+            if (!dir1 || !dir2) return false;
+            
+            return dir1.calle === dir2.calle &&
+                   dir1.altura === dir2.altura &&
+                   dir1.localidad?.nombre === dir2.localidad?.nombre &&
+                   dir1.localidad?.ciudad?.nombre === dir2.localidad?.ciudad?.nombre;
+        };
+        
+        // Verificar que la direccion sea la misma que la del veterinaria
+        if (existenteVeterinaria.direccion && !compararDirecciones(existenteVeterinaria.direccion, direccion)) {
+            throw new ValidationError("La dirección del servicio debe coincidir con la del veterinaria");
+        }
+        if (existenteVeterinaria.direccion && !compararDirecciones(existenteVeterinaria.direccion, direccion)) {
+             throw new ValidationError("La dirección del servicio debe coincidir con la del paseador");
+        }
+
         // Validar que direccion tenga la estructura esperada
-        if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+        if(!direccion.calle || !direccion.altura || !direccion.localidad || !direccion.localidad.nombre || !direccion.localidad.ciudad || !direccion.localidad.ciudad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
 
-        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
-        if(!localidadExistente) {
-            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
-            localidadExistente = await this.localidadRepository.save(localidadExistente)
-        }
-
-        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.localidad.ciudad.nombre)
         if(!ciudadExistente) {
-            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = new Ciudad(direccion.localidad.ciudad.nombre)
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        let localidadExistente = await this.localidadRepository.findByName(direccion.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.localidad.nombre, ciudadExistente)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
+
+        
+
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
+
 
         const nuevoServicioVeterinaria = new ServicioVeterinaria(
             existenteVeterinaria,           // usuarioProveedor
@@ -207,9 +229,9 @@ export class ServicioVeterinariaService {
             mascotasAceptadas              // mascotasAceptadas
         )
 
-        await this.servicioVeterinariaRepository.save(nuevoServicioVeterinaria)
+        const servicioGuardado = await this.servicioVeterinariaRepository.save(nuevoServicioVeterinaria)
 
-        return this.toDTO(nuevoServicioVeterinaria)
+        return this.toDTO(servicioGuardado)
     }
 
     async delete(id) {

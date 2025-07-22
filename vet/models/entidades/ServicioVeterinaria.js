@@ -64,8 +64,11 @@ export class ServicioVeterinaria{
                 const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
                 const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
                 
-                if (fechaBuscada === fechaAlmacenada) {
+                if (fechaBuscada === fechaAlmacenada && !fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
+                } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
+                    // Si el horario ya existe, no hacer nada
+                    throw new Error(`Horario ${fechaHorarioTurno.horario} ya está reservado para la fecha ${fechaHorarioTurno.fecha}.`);
                 }
             });
         } else {

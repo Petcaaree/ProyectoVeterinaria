@@ -7,10 +7,10 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 
 
 export class PaseadorService {
-    constructor(paseadorRepository, localidadRepository, ciudadRepository) {
+    constructor(paseadorRepository, ciudadRepository, localidadRepository) {
         this.paseadorRepository = paseadorRepository
-        this.localidadRepository = localidadRepository
         this.ciudadRepository = ciudadRepository
+        this.localidadRepository = localidadRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -64,25 +64,34 @@ export class PaseadorService {
             throw new ConflictError(`Email ya registrado`)
         }
 
-        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
-        if(!localidadExistente) {
-            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
-            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        const nombreUsuarioExistente = await this.paseadorRepository.findByNombreUsuario(nombreUsuario)
+        if(nombreUsuarioExistente) {
+            throw new ConflictError(`Nombre de usuario ${nombreUsuario} ya registrado`)
         }
 
-        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        
+
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.localidad.ciudad.nombre)
         if(!ciudadExistente) {
-            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = new Ciudad(direccion.localidad.ciudad.nombre)
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente)
+        let localidadExistente = await this.localidadRepository.findByName(direccion.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.localidad.nombre, ciudadExistente)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
+
+        
+
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
         const nuevoPaseador = new Paseador(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
 
-        await this.paseadorRepository.save(nuevoPaseador)
+        const paseadorGuardado = await this.paseadorRepository.save(nuevoPaseador)
 
-        return this.toDTO(nuevoPaseador)
+        return this.toDTO(paseadorGuardado)
     }
 
     async delete(id) {
@@ -214,19 +223,18 @@ export class PaseadorService {
     toDTO(paseador) {
         return {
             id: paseador.id,
-            nombre: paseador.nombreUsuario,
-            apellido: paseador.direccion,
+            nombreUsuario: paseador.nombreUsuario,
             telefono: paseador.telefono,
             email: paseador.email,
+            notificaciones: paseador.notificaciones,
             direccion: {
                 calle: paseador.direccion.calle,
                 altura: paseador.direccion.altura,
-                ciudad: {
-                    nombre: paseador.direccion.ciudad.nombre,
-                    pais: paseador.direccion.ciudad.localidad.nombre
+                localidad: {
+                    nombre: paseador.direccion.localidad.nombre,
+                    ciudad: paseador.direccion.localidad.ciudad.nombre // Esto debería funcionar si está poblado
                 }
-            },
-            notificaciones: paseador.notificaciones,
+            }
         }
     }
 

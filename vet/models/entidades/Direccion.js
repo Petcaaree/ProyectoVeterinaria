@@ -1,7 +1,7 @@
 export class Direccion {
-    constructor(calle, altura, ciudad) {
+    constructor(calle, altura, localidad) {
       this.calle = calle;
       this.altura = altura;
-      this.ciudad = ciudad;
+      this.localidad = localidad;
     }
   }

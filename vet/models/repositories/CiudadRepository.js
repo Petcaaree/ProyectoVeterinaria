@@ -13,29 +13,29 @@ export class CiudadRepository {
                 datosActualizados,
                 { new: true , runValidators: true}
             )
-            return ciudadExistente.populate('localidad')
+            return ciudadExistente
         } else {
             const nuevaCiudad = new this.model(ciudad)
             const ciudadGuardada = await nuevaCiudad.save()
-            return ciudadGuardada.populate('localidad')
+            return ciudadGuardada
         }
     }
 
     async findById(id) {
-        return await this.model.findById(id).populate('localidad')
+        return await this.model.findById(id)
     }
     
     async findByName(nombre) {
-        return await this.model.findOne({nombre}).populate('localidad')
+        return await this.model.findOne({nombre})
     }
 
     async findByPais(idLocalidad) {
-        return await this.model.find({localidad : idLocalidad}).populate('localidad')
+        return await this.model.find({localidad : idLocalidad})
     }
 
     async findByPage(pageNum, limitNum) {
         const skip = (pageNum - 1) * limitNum
-        let ciuadades = await this.model.find().skip(skip).limit(limitNum).populate('localidad')
+        let ciuadades = await this.model.find().skip(skip).limit(limitNum)
         return ciuadades
     }
 

@@ -10,11 +10,11 @@ import mongoose from "mongoose"
 
 export class ServicioPaseadorService {
 
-    constructor(servicioPaseadorRepository,paseadorRepository,localidadRepository,ciudadRepository) {
+    constructor(servicioPaseadorRepository,paseadorRepository,ciudadRepository,localidadRepository) {
         this.servicioPaseadorRepository = servicioPaseadorRepository;
         this.paseadorRepository = paseadorRepository;
-        this.localidadRepository = localidadRepository;
         this.ciudadRepository = ciudadRepository;
+        this.localidadRepository = localidadRepository;
     }
 
     async findAll({page = 1, limit = 4}) {
@@ -178,8 +178,8 @@ export class ServicioPaseadorService {
             
             return dir1.calle === dir2.calle &&
                    dir1.altura === dir2.altura &&
-                   dir1.ciudad?.nombre === dir2.ciudad?.nombre &&
-                   dir1.ciudad?.localidad?.nombre === dir2.ciudad?.localidad?.nombre;
+                   dir1.localidad?.nombre === dir2.localidad?.nombre &&
+                   dir1.localidad?.ciudad?.nombre === dir2.localidad?.ciudad?.nombre;
         };
         
         // Verificar que la direccion sea la misma que la del paseador
@@ -189,23 +189,25 @@ export class ServicioPaseadorService {
         
 
         // Validar que direccion tenga la estructura esperada
-         if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+         if(!direccion.calle || !direccion.altura || !direccion.localidad || !direccion.localidad.nombre || !direccion.localidad.ciudad || !direccion.localidad.ciudad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
 
-        let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
-        if(!localidadExistente) {
-            localidadExistente = new Localidad(direccion.ciudad.localidad.nombre)
-            localidadExistente = await this.localidadRepository.save(localidadExistente)
-        }
-
-        let ciudadExistente = await this.ciudadRepository.findByName(direccion.ciudad.nombre)
+        let ciudadExistente = await this.ciudadRepository.findByName(direccion.localidad.ciudad.nombre)
         if(!ciudadExistente) {
-            ciudadExistente = new Ciudad(direccion.ciudad.nombre, localidadExistente)
+            ciudadExistente = new Ciudad(direccion.localidad.ciudad.nombre)
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) 
+        let localidadExistente = await this.localidadRepository.findByName(direccion.localidad.nombre)
+        if(!localidadExistente) {
+            localidadExistente = new Localidad(direccion.localidad.nombre, ciudadExistente)
+            localidadExistente = await this.localidadRepository.save(localidadExistente)
+        }
+
+        
+
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
         const nuevoServicioPaseador = new ServicioPaseador(
             existentePaseador,           // usuarioProveedor
@@ -221,9 +223,9 @@ export class ServicioPaseadorService {
             objectDireccion                 // direccion
         )
 
-        await this.servicioPaseadorRepository.save(nuevoServicioPaseador)
+        const servicioGuardado = await this.servicioPaseadorRepository.save(nuevoServicioPaseador)
 
-        return this.toDTO(nuevoServicioPaseador)
+        return this.toDTO(servicioGuardado)
     }
 
 async delete(id) {

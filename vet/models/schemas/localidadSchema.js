@@ -9,7 +9,11 @@ const localidadSchema = new mongoose.Schema({
         minlength: 1,
         maxlength: 100
     },
-
+    ciudad: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ciudad",
+        required: true
+    }
 })
 
 localidadSchema.loadClass(Localidad)

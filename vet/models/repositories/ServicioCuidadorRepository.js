@@ -21,8 +21,8 @@ export class ServicioCuidadorRepository {
             return await this.model.populate(servicioCuidadorExistente, [
                 { path: 'usuarioProveedor'},
                 { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
                 
             ])
@@ -32,8 +32,8 @@ export class ServicioCuidadorRepository {
             return await this.model.populate(servicioCuidadorGuardado, [
                 { path: 'usuarioProveedor'},
                 { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
             ])
         }
@@ -53,8 +53,8 @@ export class ServicioCuidadorRepository {
             .limit(limitNum)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
         return servicioCuidador
@@ -102,22 +102,20 @@ export class ServicioCuidadorRepository {
               const resultadosFiltro1 = await this.model.find(query)
                   .populate('usuarioProveedor')
                   .populate({
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                     });
 
 
               return resultadosFiltro1.filter(r => {
-                  const ciudad = r.direccion?.ciudad
-                  const localidad = ciudad?.localidad
+                  const localidad = r.direccion?.localidad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
-                  const coincideLocalidad = filtro.localidad ? pais?.nombre === filtro.localidad : true
-                   const coincideNombreServicio = filtro.nombre ? nombreServicio === filtro.nombreServicio : true
-   
+                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
+                  const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
+
       
-                  return coincideCiudad && coincideLocalidad && coincideNombreServicio
+                  return coincideLocalidad && coincideNombreServicio
               })
       
           }
@@ -126,8 +124,8 @@ export class ServicioCuidadorRepository {
         return await this.model.findById(id)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
@@ -136,8 +134,8 @@ export class ServicioCuidadorRepository {
         return await this.model.find({ usuarioProveedor: cuidadorID })
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
@@ -146,8 +144,8 @@ export class ServicioCuidadorRepository {
         return await this.model.findOne({nombre})
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
@@ -156,8 +154,8 @@ export class ServicioCuidadorRepository {
         return await this.model.find()
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }

@@ -28,8 +28,8 @@ export class ServicioPaseadorRepository {
             return await this.model.populate(servicioPaseadorGuardado, [
                 { path: 'usuarioProveedor'},
                 { 
-                    path: 'direccion.ciudad',
-                    populate: { path: 'localidad' }
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
                 }
 
             ])
@@ -50,8 +50,8 @@ export class ServicioPaseadorRepository {
             .limit(limitNum)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
         return alojamientos
     }
@@ -86,16 +86,14 @@ export class ServicioPaseadorRepository {
               const resultadosFiltro1 = await this.model.find(query)
                   .populate('usuarioProveedor')
                   .populate({
-                        path: 'direccion.ciudad',
-                        populate: {path: 'localidad'}
+                        path: 'direccion.localidad',
+                        populate: {path: 'ciudad'}
                     })
 
               const resultadosFinal = resultadosFiltro1.filter(r => {
-                  const ciudad = r.direccion?.ciudad
-                  const localidad = ciudad?.localidad
+                  const localidad = r.direccion?.localidad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideCiudad = filtro.ciudad ? ciudad?.nombre === filtro.ciudad : true
                   const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
 
@@ -162,7 +160,7 @@ export class ServicioPaseadorRepository {
                       }
                   }
 
-                  return coincideCiudad && coincideLocalidad && coincideNombreServicio && disponibleEnFecha
+                  return  coincideLocalidad && coincideNombreServicio && disponibleEnFecha
               })
               return resultadosFinal
        }
@@ -171,8 +169,8 @@ export class ServicioPaseadorRepository {
         const documento = await this.model.findById(id)
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             });
         
         console.log("=== Documento desde MongoDB ===");
@@ -191,8 +189,8 @@ export class ServicioPaseadorRepository {
         return await this.model.find({ usuarioProveedor: userPaseadorId })
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
@@ -201,8 +199,8 @@ export class ServicioPaseadorRepository {
         return await this.model.findOne({nombre})
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
@@ -211,16 +209,14 @@ export class ServicioPaseadorRepository {
         return await this.model.find()
             .populate('usuarioProveedor')
             .populate({
-                path: 'direccion.ciudad',
-                populate: {path: 'localidad'}
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
             })
             
     }
 
     serializarServicioPaseador(servicioPaseador) {
-        console.log("=== Serializando ServicioPaseador ===");
-        console.log("ServicioPaseador original:", servicioPaseador);
-        console.log("Direccion original:", servicioPaseador.direccion);
+        
         
         const objetoSerializado = { ...servicioPaseador }
         
@@ -229,12 +225,10 @@ export class ServicioPaseadorRepository {
             objetoSerializado.direccion = {
                 calle: servicioPaseador.direccion.calle,
                 altura: servicioPaseador.direccion.altura,
-                ciudad: servicioPaseador.direccion.ciudad
+                localidad: servicioPaseador.direccion.localidad
             }
-            console.log("Direccion serializada:", objetoSerializado.direccion);
         }
         
-        console.log("=== Fin serialización ===");
         return objetoSerializado
     }
 }

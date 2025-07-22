@@ -237,10 +237,16 @@ async delete(id) {
     }
 
     async cambiarEstadoServicioPaseador(id, nuevoEstado) {
+        console.log("🔄 Iniciando cambio de estado servicio paseador");
+        console.log("ID:", id);
+        console.log("Nuevo estado solicitado:", nuevoEstado);
+        
         const servicioPaseador = await this.servicioPaseadorRepository.findById(id)
         if(!servicioPaseador) {
             throw new NotFoundError(`Servicio Paseador con id ${id} no encontrado`);
         }
+
+        console.log("Estado actual del servicio:", servicioPaseador.estado);
 
         if(nuevoEstado === "Activada" ) {
             if(servicioPaseador.estado === EstadoServicio.ACTIVO) {
@@ -253,8 +259,18 @@ async delete(id) {
             }
             servicioPaseador.estado = EstadoServicio.DESACTIVADA
         }
-        await this.servicioPaseadorRepository.save(servicioPaseador)
-        return this.toDTO(servicioPaseador)
+        
+        console.log("Estado después del cambio:", servicioPaseador.estado);
+        console.log("Llamando a save...");
+        
+        const servicioActualizado = await this.servicioPaseadorRepository.save(servicioPaseador)
+        
+        console.log("Servicio actualizado devuelto por save:", {
+            id: servicioActualizado.id,
+            estado: servicioActualizado.estado
+        });
+        
+        return this.toDTO(servicioActualizado)
     }
 
 

@@ -52,6 +52,8 @@ export class ServicioVeterinaria{
         }
         
         // Buscar si ya existe una fecha igual en el array
+        
+
         let fechaExistente = this.fechasNoDisponibles.find(fechaHorariosNodispo => {
             const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];

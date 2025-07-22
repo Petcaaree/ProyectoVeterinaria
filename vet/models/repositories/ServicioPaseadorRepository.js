@@ -12,18 +12,28 @@ export class ServicioPaseadorRepository {
 
     async save(servicioPaseador) {
         if(servicioPaseador.id) {
-            const { id, ...datosActualizados } = this.serializarServicioPaseador(servicioPaseador)
+            
+            const { id, ...datosActualizados } = servicioPaseador
+            
+            
+            
             const servicioPaseadorExistente = await this.model.findByIdAndUpdate(
                 id,
                 datosActualizados,
                 { new: true , runValidators: true }
             )
+            
+            
+            
             return await this.model.populate(servicioPaseadorExistente, [
-                { path: 'usuarioProveedor'}
+                { path: 'usuarioProveedor'},
+                { 
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
+                }
             ])
         } else {
-            const datosSerializados = this.serializarServicioPaseador(servicioPaseador)
-            const nuevoServicioPaseador = new this.model(datosSerializados)
+            const nuevoServicioPaseador = new this.model(servicioPaseador)
             const servicioPaseadorGuardado = await nuevoServicioPaseador.save()
             return await this.model.populate(servicioPaseadorGuardado, [
                 { path: 'usuarioProveedor'},
@@ -31,7 +41,6 @@ export class ServicioPaseadorRepository {
                     path: 'direccion.localidad',
                     populate: { path: 'ciudad' }
                 }
-
             ])
         }
 
@@ -173,14 +182,6 @@ export class ServicioPaseadorRepository {
                 populate: {path: 'ciudad'}
             });
         
-        console.log("=== Documento desde MongoDB ===");
-        console.log("ID:", id);
-        console.log("Documento completo:", documento);
-        console.log("¿Tiene direccion?", documento && documento.direccion ? "SÍ" : "NO");
-        if (documento && documento.direccion) {
-            console.log("Direccion del documento:", documento.direccion);
-        }
-        console.log("=== Fin documento ===");
         
         return documento;
     }
@@ -213,23 +214,6 @@ export class ServicioPaseadorRepository {
                 populate: {path: 'ciudad'}
             })
             
-    }
-
-    serializarServicioPaseador(servicioPaseador) {
-        
-        
-        const objetoSerializado = { ...servicioPaseador }
-        
-        // Convertir la dirección de objeto Direccion a objeto plano
-        if (servicioPaseador.direccion) {
-            objetoSerializado.direccion = {
-                calle: servicioPaseador.direccion.calle,
-                altura: servicioPaseador.direccion.altura,
-                localidad: servicioPaseador.direccion.localidad
-            }
-        }
-        
-        return objetoSerializado
     }
 }
 

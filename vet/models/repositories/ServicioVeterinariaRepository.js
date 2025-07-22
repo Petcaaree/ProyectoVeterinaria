@@ -46,7 +46,6 @@ export class ServicioVeterinariaRepository {
 
 
     async findByPage(pageNum, limitNum){
-        console.log("entro a findByPage");
         const skip = (pageNum - 1) * limitNum
         const servicios = await this.model.find()
             .skip(skip)
@@ -60,7 +59,6 @@ export class ServicioVeterinariaRepository {
     }
 
    async findByFilters(filtro) {
-              console.log("Filtro recibido:", filtro);
               const query = {}
 
       

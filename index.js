@@ -100,10 +100,7 @@ app.use(cors({
     origin: "https://birbnb.vercel.app"
 }))
 
-const port = process.env.PORT || 3000;
-const server = new Server(app, port);
-
-// Middleware de logging para todas las peticiones - ANTES de las rutas
+// Middleware de logging para todas las peticiones
 app.use((req, res, next) => {
     console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
     if (Object.keys(req.query).length > 0) {
@@ -111,6 +108,9 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+const port = process.env.PORT || 3000;
+const server = new Server(app, port);
 
 MongoDBClient.connect();
 

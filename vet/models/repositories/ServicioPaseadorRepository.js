@@ -12,7 +12,7 @@ export class ServicioPaseadorRepository {
 
     async save(servicioPaseador) {
         if(servicioPaseador.id) {
-            const { id, ...datosActualizados } = servicioPaseador
+            const { id, ...datosActualizados } = this.serializarServicioPaseador(servicioPaseador)
             const servicioPaseadorExistente = await this.model.findByIdAndUpdate(
                 id,
                 datosActualizados,
@@ -22,10 +22,16 @@ export class ServicioPaseadorRepository {
                 { path: 'usuarioProveedor'}
             ])
         } else {
-            const nuevoServicioPaseador = new this.model(servicioPaseador)
+            const datosSerializados = this.serializarServicioPaseador(servicioPaseador)
+            const nuevoServicioPaseador = new this.model(datosSerializados)
             const servicioPaseadorGuardado = await nuevoServicioPaseador.save()
             return await this.model.populate(servicioPaseadorGuardado, [
-                { path: 'usuarioProveedor'}
+                { path: 'usuarioProveedor'},
+                { 
+                    path: 'direccion.ciudad',
+                    populate: { path: 'localidad' }
+                }
+
             ])
         }
 
@@ -43,6 +49,10 @@ export class ServicioPaseadorRepository {
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
         return alojamientos
     }
 
@@ -75,8 +85,11 @@ export class ServicioPaseadorRepository {
 
               const resultadosFiltro1 = await this.model.find(query)
                   .populate('usuarioProveedor')
-                  
-              
+                  .populate({
+                        path: 'direccion.ciudad',
+                        populate: {path: 'localidad'}
+                    })
+
               const resultadosFinal = resultadosFiltro1.filter(r => {
                   const ciudad = r.direccion?.ciudad
                   const localidad = ciudad?.localidad
@@ -155,27 +168,74 @@ export class ServicioPaseadorRepository {
        }
 
     async findById(id) {
-        return await this.model.findById(id)
+        const documento = await this.model.findById(id)
             .populate('usuarioProveedor')
-            
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            });
+        
+        console.log("=== Documento desde MongoDB ===");
+        console.log("ID:", id);
+        console.log("Documento completo:", documento);
+        console.log("¿Tiene direccion?", documento && documento.direccion ? "SÍ" : "NO");
+        if (documento && documento.direccion) {
+            console.log("Direccion del documento:", documento.direccion);
+        }
+        console.log("=== Fin documento ===");
+        
+        return documento;
     }
 
     async findByPaseadorId(userPaseadorId) {
         return await this.model.find({ usuarioProveedor: userPaseadorId })
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 
     async findByName(nombre) {
         return await this.model.findOne({nombre})
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 
     async findAll() {
         return await this.model.find()
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
+    }
+
+    serializarServicioPaseador(servicioPaseador) {
+        console.log("=== Serializando ServicioPaseador ===");
+        console.log("ServicioPaseador original:", servicioPaseador);
+        console.log("Direccion original:", servicioPaseador.direccion);
+        
+        const objetoSerializado = { ...servicioPaseador }
+        
+        // Convertir la dirección de objeto Direccion a objeto plano
+        if (servicioPaseador.direccion) {
+            objetoSerializado.direccion = {
+                calle: servicioPaseador.direccion.calle,
+                altura: servicioPaseador.direccion.altura,
+                ciudad: servicioPaseador.direccion.ciudad
+            }
+            console.log("Direccion serializada:", objetoSerializado.direccion);
+        }
+        
+        console.log("=== Fin serialización ===");
+        return objetoSerializado
     }
 }
 

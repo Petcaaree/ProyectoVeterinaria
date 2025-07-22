@@ -1,8 +1,9 @@
 import { EstadoServicio } from "./enums/enumEstadoServicio.js";
+import { RangoFechas } from "./RangoFechas.js";
 
 export class ServicioCuidador{
 
-    constructor(usuarioProveedor, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas)  {
+    constructor(usuarioProveedor, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas, direccion)  {
         this.usuarioProveedor = usuarioProveedor; // Referencia al cuidador o veterinario
         this.nombreServicio = nombreServicio; // Nombre del servicio
         this.precio = precio; // Precio del servicio
@@ -14,6 +15,7 @@ export class ServicioCuidador{
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
         this.estado = EstadoServicio.ACTIVO; // Estado del servicio (ACTIVO o DESACTIVADO)
+        this.direccion = direccion; // Dirección del servicio
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -23,6 +25,24 @@ export class ServicioCuidador{
     actualizarDuracion(nuevaDuracion) {
         this.duracion = nuevaDuracion;
     }
+
+    agregarFechasReserva(rangoFecha) {
+    if (!(rangoFecha instanceof RangoFechas)) {
+      throw new Error("Se esperaba una instancia de RangoFechas");
+    }
+    this.fechasNoDisponibles.push(rangoFecha)
+  }
+
+  eliminarFechasReserva(rangoFecha) {
+    const index = this.fechasNoDisponibles.findIndex(r => 
+      r.fechaInicio.getTime() === rangoFecha.fechaInicio.getTime() && 
+      r.fechaFin.getTime() === rangoFecha.fechaFin.getTime()
+    );
+
+    if (index !== -1) {
+      this.fechasNoDisponibles.splice(index, 1);
+    }
+  }
 
     estasDisponibleEn(rangoFecha) {
         return this.fechasNoDisponibles.every(f => {

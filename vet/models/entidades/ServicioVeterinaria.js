@@ -1,5 +1,6 @@
 import { EstadoServicio } from "./enums/enumEstadoServicio.js";
-
+import { FechaHorarioTurno } from "./FechaHorarioTurno.js";
+import { FechaHorariosNoDisponibles } from "./FechaHorariosNoDisponibles.js";
 
 export class ServicioVeterinaria{
 
@@ -32,7 +33,11 @@ export class ServicioVeterinaria{
 
     estaDisponibleParaFechaYHorario(fechaHorarioTurno) {
         this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
-            if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
+            // Comparar solo la fecha (año-mes-día) ignorando hora
+            const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+            const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
+            
+            if (fechaBuscada === fechaAlmacenada) {
                 if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     return false; // La fecha y horario están en la lista de no disponibles
                 }
@@ -41,9 +46,42 @@ export class ServicioVeterinaria{
         return true; // Si no se encontró ninguna coincidencia, está disponible
     }
 
+    agregarFechasReserva(fechaHorarioTurno) {
+        if (!(fechaHorarioTurno instanceof FechaHorarioTurno)) {
+            throw new Error("Se esperaba una instancia de FechaHorarioTurno");
+        }
+        
+        // Buscar si ya existe una fecha igual en el array
+        let fechaExistente = this.fechasNoDisponibles.find(fechaHorariosNodispo => {
+            const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+            const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
+            return fechaBuscada === fechaAlmacenada;
+        });
+        
+        if (fechaExistente) {
+            // Si la fecha existe, buscar esa fecha en el array y agregar el horario
+            this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
+                const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+                const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
+                
+                if (fechaBuscada === fechaAlmacenada) {
+                    fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
+                }
+            });
+        } else {
+            // Si la fecha no existe, crear una nueva instancia de FechaHorariosNoDisponibles
+            const nuevaFechaNoDisponible = new FechaHorariosNoDisponibles(fechaHorarioTurno.fecha);
+            nuevaFechaNoDisponible.agregarHorarioNoDisponible(fechaHorarioTurno.horario);
+            this.fechasNoDisponibles.push(nuevaFechaNoDisponible);
+        }
+    }
+
     cancelarHorarioReserva(fechaHorarioTurno) {
         this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
-            if (fechaHorarioTurno.fecha === fechaHorariosNodispo.fecha) {
+            const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+            const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
+            
+            if (fechaBuscada === fechaAlmacenada) {
                 // Llamar al método de la instancia FechaHorariosNoDisponibles
                 fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
             }

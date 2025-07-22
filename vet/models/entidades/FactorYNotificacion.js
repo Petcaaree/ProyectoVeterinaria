@@ -7,12 +7,13 @@ export class FactoryNotificacion {
   static crearSegunReserva(reserva) {
     const usuarioProveedor = reserva.usuarioProveedor;
     const cliente = reserva.cliente;
-    if (usuarioProvedor instanceof Cuidador ){
-        const mensaje = `Reserva de cuidado realizada por ${cliente.nombreUsuario} del dia ${reserva.fechaInicio.toDateString()} hasta el dia:  ${reserva.fechaFin.toDateString()} `;
-    } else if (usuarioProvedor instanceof Paseador) {
-        const mensaje = `Reserva de paseo realizada por ${cliente.nombreUsuario},el dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+    let mensaje;
+    if (usuarioProveedor instanceof Cuidador ){
+         mensaje = `Reserva de cuidado realizada por ${cliente.nombreUsuario} del dia ${reserva.fechaInicio.toDateString()} hasta el dia:  ${reserva.fechaFin.toDateString()} `;
+    } else if (usuarioProveedor instanceof Paseador) {
+         mensaje = `Reserva de paseo realizada por ${cliente.nombreUsuario},el dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
     } else {
-        const mensaje = `Reserva de ${reserva.servicio.tipoServicio} realizada por ${cliente.nombreUsuario} el dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+         mensaje = `Reserva de ${reserva.servicioReservado.tipoServicio} realizada por ${cliente.nombreUsuario} el dia ${reserva.rangoFechas.fechaInicio} a las  ${reserva.horario}`;
     }
     return new Notificacion(mensaje);
   }

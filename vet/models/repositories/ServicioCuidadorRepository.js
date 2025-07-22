@@ -20,6 +20,10 @@ export class ServicioCuidadorRepository {
             )
             return await this.model.populate(servicioCuidadorExistente, [
                 { path: 'usuarioProveedor'},
+                { 
+                    path: 'direccion.ciudad',
+                    populate: { path: 'localidad' }
+                }
                 
             ])
         } else {
@@ -27,7 +31,10 @@ export class ServicioCuidadorRepository {
             const servicioCuidadorGuardado = await nuevoServicioCuidador.save()
             return await this.model.populate(servicioCuidadorGuardado, [
                 { path: 'usuarioProveedor'},
-                
+                { 
+                    path: 'direccion.ciudad',
+                    populate: { path: 'localidad' }
+                }
             ])
         }
 
@@ -45,6 +52,10 @@ export class ServicioCuidadorRepository {
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
         return servicioCuidador
     }
@@ -90,8 +101,12 @@ export class ServicioCuidadorRepository {
       
               const resultadosFiltro1 = await this.model.find(query)
                   .populate('usuarioProveedor')
-                  
-      
+                  .populate({
+                    path: 'direccion.ciudad',
+                    populate: { path: 'localidad' }
+                    });
+
+
               return resultadosFiltro1.filter(r => {
                   const ciudad = r.direccion?.ciudad
                   const localidad = ciudad?.localidad
@@ -110,24 +125,40 @@ export class ServicioCuidadorRepository {
     async findById(id) {
         return await this.model.findById(id)
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 
     async findByCuidadorId(cuidadorID) {
         return await this.model.find({ usuarioProveedor: cuidadorID })
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 
     async findByName(nombre) {
         return await this.model.findOne({nombre})
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 
     async findAll() {
         return await this.model.find()
             .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.ciudad',
+                populate: {path: 'localidad'}
+            })
             
     }
 }

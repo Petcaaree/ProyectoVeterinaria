@@ -149,9 +149,9 @@ export class ServicioPaseadorService {
     }
 
    async create(servicioPaseador) {
-        const { idPaseador, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles } = servicioPaseador
+        const { idPaseador, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, direccion } = servicioPaseador
 
-        if(!idPaseador || !nombreServicio  || !precio || !descripcion || !duracionMinutos || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles ) {
+        if(!idPaseador || !nombreServicio  || !precio || !descripcion || !duracionMinutos || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -171,8 +171,25 @@ export class ServicioPaseadorService {
             throw new NotFoundError(`Paseador con id ${idPaseador} no encontrada`)
         }
 
+        
+        // Función auxiliar para comparar direcciones
+        const compararDirecciones = (dir1, dir2) => {
+            if (!dir1 || !dir2) return false;
+            
+            return dir1.calle === dir2.calle &&
+                   dir1.altura === dir2.altura &&
+                   dir1.ciudad?.nombre === dir2.ciudad?.nombre &&
+                   dir1.ciudad?.localidad?.nombre === dir2.ciudad?.localidad?.nombre;
+        };
+        
+        // Verificar que la direccion sea la misma que la del paseador
+        if (existentePaseador.direccion && !compararDirecciones(existentePaseador.direccion, direccion)) {
+             throw new ValidationError("La dirección del servicio debe coincidir con la del paseador");
+        }
+        
+
         // Validar que direccion tenga la estructura esperada
-        /* if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+         if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
 
@@ -188,7 +205,7 @@ export class ServicioPaseadorService {
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) */
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) 
 
         const nuevoServicioPaseador = new ServicioPaseador(
             existentePaseador,           // usuarioProveedor
@@ -201,6 +218,7 @@ export class ServicioPaseadorService {
             telefonoContacto,               // telefonoContacto
             diasDisponibles,               // diasDisponibles
             horariosDisponibles,           // horariosDisponibles
+            objectDireccion                 // direccion
         )
 
         await this.servicioPaseadorRepository.save(nuevoServicioPaseador)
@@ -246,8 +264,9 @@ async delete(id) {
                 email: servicoPaseador.usuarioProveedor.email,
             },
             nombreServicio: servicoPaseador.nombreServicio,
+            direccion: servicoPaseador.direccion ,
             precio: servicoPaseador.precio,
-            descripcion: servicoPaseador.descripcion,
+            descripcion: servicoPaseador.descripcion,   
             duracionMinutos: servicoPaseador.duracionMinutos,
             nombreContacto: servicoPaseador.nombreContacto,
             emailContacto: servicoPaseador.emailContacto,

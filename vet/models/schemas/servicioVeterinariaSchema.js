@@ -94,22 +94,17 @@ const servicioVeterinariaSchema = new mongoose.Schema({
   },
   fechasNoDisponibles: [{
     fecha: {
-      type: mongoose.Schema.Types.Mixed, // Permite Date o String
+      type: Date,
       required: true
     },
     horariosNoDisponibles: {
-      type: mongoose.Schema.Types.Mixed, // Permite tanto array de strings como array de objetos
+      type: [String], // Solo array de strings
       required: true,
       validate: {
         validator: function(v) {
-          if (!Array.isArray(v)) return false;
-          // Permitir array de strings o array de objetos {horario: string}
-          return v.every(item => 
-            typeof item === 'string' || 
-            (typeof item === 'object' && item.horario && typeof item.horario === 'string')
-          );
+          return Array.isArray(v) && v.every(item => typeof item === 'string');
         },
-        message: "horariosNoDisponibles debe ser un array de strings o objetos con propiedad horario"
+        message: "horariosNoDisponibles debe ser un array de strings"
       }
     }
   }],
@@ -227,11 +222,11 @@ function normalizarHorarios(horarios) {
   if (!Array.isArray(horarios)) return [];
   return horarios.map(h => {
     if (typeof h === 'string') {
-      return { horario: h };
+      return h; // Devolver directamente el string
     } else if (h && h.horario) {
-      return { horario: h.horario };
+      return h.horario; // Extraer solo el string del objeto
     }
-    return { horario: '00:00' };
+    return '00:00'; // Valor por defecto
   });
 }
 

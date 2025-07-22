@@ -152,9 +152,9 @@ export class ServicioCuidadorService {
     }
 
     async create(servicioCuidador) {
-        const { idCuidador, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas } = servicioCuidador
+        const { idCuidador, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas, direccion } = servicioCuidador
 
-        if(!idCuidador || !nombreServicio  || !precio || !descripcion  || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !mascotasAceptadas) {
+        if(!idCuidador || !nombreServicio  || !precio || !descripcion  || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !mascotasAceptadas || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -174,10 +174,27 @@ export class ServicioCuidadorService {
             throw new NotFoundError(`Cuidador con id ${idCuidador} no encontrada`)
         }
 
+        // Verificar que la direccion sea la misma que la del cuidador
+        const compararDirecciones = (dir1, dir2) => {
+            if (!dir1 || !dir2) return false;
+            
+            return dir1.calle === dir2.calle &&
+                   dir1.altura === dir2.altura &&
+                   dir1.ciudad?.nombre === dir2.ciudad?.nombre &&
+                   dir1.ciudad?.localidad?.nombre === dir2.ciudad?.localidad?.nombre;
+        };
+
+        // Verificar que la direccion sea la misma que la del cuidador
+        if (existenteCuidador.direccion && !compararDirecciones(existenteCuidador.direccion, direccion)) {
+             throw new ValidationError("La dirección del servicio debe coincidir con la del cuidador");
+        }
+        
+
         // Validar que direccion tenga la estructura esperada
-        /* if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
+         if(!direccion.calle || !direccion.altura || !direccion.ciudad || !direccion.ciudad.nombre || !direccion.ciudad.localidad || !direccion.ciudad.localidad.nombre) {
             throw new ValidationError("La direccion debe tener calle, altura, ciudad y localidad completas")
         }
+
 
         let localidadExistente = await this.localidadRepository.findByName(direccion.ciudad.localidad.nombre)
         if(!localidadExistente) {
@@ -191,7 +208,7 @@ export class ServicioCuidadorService {
             ciudadExistente = await this.ciudadRepository.save(ciudadExistente)
         }
 
-        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) */
+        const objectDireccion = new Direccion(direccion.calle, direccion.altura, ciudadExistente) 
 
 
             const nuevoServicioCuidador = new ServicioCuidador(
@@ -203,7 +220,8 @@ export class ServicioCuidadorService {
                 emailContacto,                  // emailContacto
                 telefonoContacto,               // telefonoContacto
                 diasDisponibles,               // diasDisponibles
-                mascotasAceptadas              // mascotasAceptadas
+                mascotasAceptadas,
+                objectDireccion                  // direccion
             )
 
         await this.servicioCuidadorRepository.save(nuevoServicioCuidador)
@@ -248,6 +266,7 @@ export class ServicioCuidadorService {
                 email: servicoCuidador.usuarioProveedor.email,
             },
             nombreServicio: servicoCuidador.nombreServicio,
+            direccion: servicoCuidador.direccion ,
             precio: servicoCuidador.precio,
             descripcion: servicoCuidador.descripcion,
             nombreContacto: servicoCuidador.nombreContacto,

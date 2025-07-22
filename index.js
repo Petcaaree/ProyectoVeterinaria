@@ -34,9 +34,7 @@ import { CuidadorService } from "./vet/services/cuidadorService.js";
 import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaService.js";
 import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
-
-
-//import { ReservaService } from "./vet/services/reservaService.js";
+import { ReservaService } from "./vet/services/reservaService.js";
 
 /* 
 */
@@ -47,8 +45,7 @@ import { ClienteController } from "./vet/controllers/clienteController.js";
 import { ServicioVeterinariaController } from "./vet/controllers/servicioVeterinariaController.js";
 import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorController.js";
 import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorController.js";
-
-//import { ReservaController } from "./vet/controllers/reservaController.js";
+import { ReservaController } from "./vet/controllers/reservaController.js";
 
 import { MongoDBClient } from "./vet/config/database.js";
 import { errorHandler } from "./vet/middlewares/errorHandler.js";
@@ -72,6 +69,7 @@ const veterinariaService = new VeterinariaService(veterinariaRepo, localidadRepo
 const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, localidadRepo, ciudadRepo);
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, localidadRepo, ciudadRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, localidadRepo, ciudadRepo);
+const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
 
 const clienteController = new ClienteController(clienteService);
 const cuidadorController = new CuidadorController(cuidadorService);
@@ -80,6 +78,7 @@ const veterinariaController = new VeterinariaController(veterinariaService);
 const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
 const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
+const reservaController = new ReservaController(reservaService);
 
 
 
@@ -87,12 +86,11 @@ const servicioPaseadorController = new ServicioPaseadorController(servicioPasead
 
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
 
-const reservaService = new ReservaService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo, servicioVeterinariaRepo);
 
 const clienteController = new ClienteController(clienteService, reservaService);
 const ciudadController = new CiudadController(ciudadService);
 
-const reservaController = new ReservaController(reservaService); */
+ */
 
 
 
@@ -114,6 +112,7 @@ server.setController(VeterinariaController, veterinariaController);
 server.setController(ServicioVeterinariaController, servicioVeterinariaController);
 server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
+server.setController(ReservaController, reservaController);
 
 /* server.setController(CiudadController, ciudadController);
 

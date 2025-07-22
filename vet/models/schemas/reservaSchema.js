@@ -41,13 +41,23 @@ const reservaSchema = new mongoose.Schema({
   horario: {
     type: String,
     required: false, // Opcional porque los cuidadores no usan horarios
-    trim: true,
+    default: null,
     validate: {
       validator: function (v) {
+        // Si el horario es null, undefined o string vacío, es válido (para cuidadores)
+        if (!v || v === null || v === undefined || v.trim() === '') {
+          return true;
+        }
         // Si el horario está presente, debe tener formato HH:MM
-        return !v || v.split(":").length == 2;
+        const parts = v.split(":");
+        if (parts.length !== 2) return false;
+        
+        const hour = parseInt(parts[0]);
+        const minute = parseInt(parts[1]);
+        
+        return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
       },
-      message: "El horario debe tener formato HH:MM"
+      message: "El horario debe tener formato HH:MM válido o ser null para servicios de cuidador"
     },
   },
   notaAdicional: {
@@ -87,6 +97,31 @@ const reservaSchema = new mongoose.Schema({
       message: (props) => `${props.value} no es un email valido!`,
     },
   },
+});
+
+// Middleware de validación personalizada
+reservaSchema.pre('save', function(next) {
+  // Si es servicio de veterinaria o paseador, el horario es obligatorio
+  if ((this.serviciOfrecido === 'ServicioVeterinaria' || this.serviciOfrecido === 'ServicioPaseador') && !this.horario) {
+    const error = new Error('El horario es obligatorio para servicios de veterinaria y paseador');
+    error.name = 'ValidationError';
+    return next(error);
+  }
+  next();
+});
+
+// Virtual populate para mascota
+reservaSchema.virtual('mascotaCompleta', {
+  ref: 'Cliente',
+  localField: 'cliente',
+  foreignField: '_id',
+  justOne: true,
+  transform: function(doc, id) {
+    if (doc && doc.mascotas) {
+      return doc.mascotas.find(m => m._id.toString() === this.mascota.toString());
+    }
+    return null;
+  }
 });
 
 reservaSchema.loadClass(Reserva);

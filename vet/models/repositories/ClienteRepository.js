@@ -87,6 +87,16 @@ export class ClienteRepository {
         return cliente.mascotas;
     }
 
+    async findMascotaByCliente(clienteId, mascotaId) {
+        const cliente = await this.model.findById(clienteId)
+            .exec();
+
+        if (!cliente) return null;
+
+        const mascota = cliente.mascotas.id(mascotaId);
+        return mascota || null;
+    }
+
     async countAll() {
         return await this.model.countDocuments()
     }

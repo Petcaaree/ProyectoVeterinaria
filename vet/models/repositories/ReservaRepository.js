@@ -24,14 +24,13 @@ export class ReservaRepository {
             reservaGuardada = await nuevaReserva.save();
         }
 
-        // Primero: populate cliente, mascota y servicioReservado (con refPath)
+        // Primero: populate cliente y servicioReservado (con refPath)
         reservaGuardada = await this.model.populate(reservaGuardada, [
-            { path: 'mascota' },
             { path: 'cliente' },
             { path: 'servicioReservado' }
         ]);
 
-        // Segundo: populate anidado sobre servicioReservado
+        // Segundo: populate anidado sobre servicioReservado (ANTES de convertir a objeto)
         if (reservaGuardada.servicioReservado) {
             reservaGuardada.servicioReservado = await reservaGuardada.servicioReservado.populate([
             { path: 'usuarioProveedor' },
@@ -40,6 +39,17 @@ export class ReservaRepository {
                 populate: { path: 'localidad' }
             }
             ]);
+        }
+
+        // Buscar la mascota dentro del cliente y convertir a objeto plano
+        if (reservaGuardada.cliente && reservaGuardada.cliente.mascotas) {
+            const mascota = reservaGuardada.cliente.mascotas.find(m => m._id.toString() === reservaGuardada.mascota.toString());
+            if (mascota) {
+                // Convertir a objeto plano y asignar la mascota
+                const reservaObj = reservaGuardada.toObject();
+                reservaObj.mascota = mascota;
+                reservaGuardada = reservaObj;
+            }
         }
 
         return reservaGuardada;
@@ -52,21 +62,36 @@ export class ReservaRepository {
 
     async findById(id) {
         let reserva = await this.model.findById(id)
-            .populate('mascota')
             .populate('cliente')
             .populate('servicioReservado'); // refPath lo resuelve automáticamente
 
         if (!reserva) return null;
 
+        // Buscar la mascota dentro del cliente
+        if (reserva.cliente && reserva.cliente.mascotas) {
+            const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+            if (mascota) {
+                // Convertir a objeto plano y asignar la mascota
+                const reservaObj = reserva.toObject();
+                reservaObj.mascota = mascota;
+                reserva = reservaObj;
+            }
+        }
+
         // Segundo nivel de populate sobre servicioReservado
         if (reserva.servicioReservado) {
-            reserva.servicioReservado = await reserva.servicioReservado.populate([
+            // Necesitamos trabajar con el documento original para el populate
+            const reservaDoc = await this.model.findById(id).populate('servicioReservado');
+            reservaDoc.servicioReservado = await reservaDoc.servicioReservado.populate([
             { path: 'usuarioProveedor' },
             {
                 path: 'direccion.ciudad',
                 populate: { path: 'localidad' }
             }
             ]);
+            
+            // Asignar el servicioReservado populado al objeto resultado
+            reserva.servicioReservado = reservaDoc.servicioReservado;
         }
 
         return reserva;
@@ -80,7 +105,6 @@ export class ReservaRepository {
         const reservas = await this.model.find({
             servicioReservado: { $in: serviciosReservadosIds }
         })
-        .populate('mascota')
         .populate('cliente')
         .populate({
             path: 'servicioReservado',
@@ -93,7 +117,19 @@ export class ReservaRepository {
             ]
         });
 
-        return reservas;
+        // Para cada reserva, buscar la mascota dentro del cliente
+        return reservas.map(reserva => {
+            // Convertir el documento de Mongoose a objeto JS plano
+            const reservaObj = reserva.toObject();
+            
+            if (reserva.cliente && reserva.cliente.mascotas) {
+                const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+                if (mascota) {
+                    reservaObj.mascota = mascota;
+                }
+            }
+            return reservaObj;
+        });
     }
 
     async findByUsuarioProveedorByPage(pageNum, limitNum, serviciosReservadosIds) {
@@ -109,7 +145,6 @@ export class ReservaRepository {
         })
         .skip(skip)
         .limit(limitNum)
-        .populate('mascota')
         .populate('cliente')
         .populate({
             path: 'servicioReservado',
@@ -122,14 +157,25 @@ export class ReservaRepository {
             ]
         });
 
-        return reservas;
+        // Para cada reserva, buscar la mascota dentro del cliente
+        return reservas.map(reserva => {
+            // Convertir el documento de Mongoose a objeto JS plano
+            const reservaObj = reserva.toObject();
+            
+            if (reserva.cliente && reserva.cliente.mascotas) {
+                const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+                if (mascota) {
+                    reservaObj.mascota = mascota;
+                }
+            }
+            return reservaObj;
+        });
     }
 
 
     // ESTE LO HICE POR LAS DUDAS
     async findByServicioReservado(servicioReservado) {
     const reservas = await this.model.find({ servicioReservado })
-        .populate('mascota')
         .populate('cliente')
         .populate({
             path: 'servicioReservado',
@@ -142,7 +188,19 @@ export class ReservaRepository {
             ]
         });
 
-    return reservas;
+    // Para cada reserva, buscar la mascota dentro del cliente
+    return reservas.map(reserva => {
+        // Convertir el documento de Mongoose a objeto JS plano
+        const reservaObj = reserva.toObject();
+        
+        if (reserva.cliente && reserva.cliente.mascotas) {
+            const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+            if (mascota) {
+                reservaObj.mascota = mascota;
+            }
+        }
+        return reservaObj;
+    });
 }
 
     async findByCliente(pageNum, limitNum, cliente) {
@@ -151,7 +209,6 @@ export class ReservaRepository {
         let reservas = await this.model.find({ cliente })
             .skip(skip)
             .limit(limitNum)
-            .populate('mascota')
             .populate('cliente')
             .populate({
                 path: 'servicioReservado',
@@ -164,14 +221,26 @@ export class ReservaRepository {
                 ]
             });
 
+        // Para cada reserva, buscar la mascota dentro del cliente
+        reservas = reservas.map(reserva => {
+            // Convertir el documento de Mongoose a objeto JS plano
+            const reservaObj = reserva.toObject();
+            
+            if (reserva.cliente && reserva.cliente.mascotas) {
+                const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+                if (mascota) {
+                    reservaObj.mascota = mascota;
+                }
+            }
+            return reservaObj;
+        });
+
         return reservas;
         }
 
-    asyn 
 
     async findAll() {
-        return await this.model.find()
-            .populate('mascota')
+        let reservas = await this.model.find()
             .populate('cliente')
             .populate({
             path: 'servicioReservado',
@@ -183,6 +252,22 @@ export class ReservaRepository {
                 }
             ]
             });
+
+        // Para cada reserva, buscar la mascota dentro del cliente
+        reservas = reservas.map(reserva => {
+            // Convertir el documento de Mongoose a objeto JS plano
+            const reservaObj = reserva.toObject();
+            
+            if (reserva.cliente && reserva.cliente.mascotas) {
+                const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
+                if (mascota) {
+                    reservaObj.mascota = mascota;
+                }
+            }
+            return reservaObj;
+        });
+
+        return reservas;
     }
 
 

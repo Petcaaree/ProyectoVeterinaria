@@ -1,14 +1,14 @@
 import { EstadoReserva } from './enums/EstadoReserva.js';
-import { Cuidador } from './Cuidador.js';
-import { Paseador } from './Paseador.js';
-import { Veterinaria } from './Veterinaria.js';
+import { FactoryNotificacion } from './FactorYNotificacion.js';
+
+
 import { ServicioVeterinaria } from './ServicioVeterinaria.js';
 import { ServicioCuidador } from './ServicioCuidador.js';
 import { ServicioPaseador} from './ServicioPaseador.js';
 
 export class Reserva{
 
-    constructor(cliente, servicioReservado, mascota, rangoFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto) {
+    constructor(cliente, servicioReservado, mascota, rangoFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto, fechaAlta) {
         this.cliente = cliente;
         this.serviciOfrecido = serviciOfrecido; // Tipo de servicio (Veterinaria, Cuidador, Paseador) 
         this.servicioReservado = servicioReservado; 
@@ -21,6 +21,7 @@ export class Reserva{
         this.nombreDeContacto = nombreDeContacto 
         this.telefonoContacto = telefonoContacto 
         this.emailContacto = emailContacto
+        this.fechaAlta = fechaAlta
     }
 
     // Metodo para calcular fecha fin basado en cantidad de unidades

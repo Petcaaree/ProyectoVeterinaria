@@ -118,6 +118,30 @@ const servicioPaseadorSchema = new mongoose.Schema({
     enum: ["Activada", "Desactivada"],
     default: "Activada"
   },
+  direccion: {
+      calle: {
+        type: String,
+        required: true,
+        trim: true,
+        minlength: 1,   
+        maxlength: 100
+      },
+      altura: {
+        type: mongoose.Schema.Types.Mixed,
+        required: true,
+        validate: {
+          validator: function (v) {
+            return typeof v === 'string' || typeof v === 'number';
+          },
+          message: props => `${props.value} no es ni un string ni un número válido para altura`
+        }
+      },
+      ciudad: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ciudad", 
+        required: true
+      }
+    },
 });
 
 servicioPaseadorSchema.post('find', function(docs) {

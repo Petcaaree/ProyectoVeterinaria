@@ -40,11 +40,13 @@ export class ClienteRepository {
     }
 
     async findById(id) {
-        return await this.model.findById(id)
+        const cliente = await this.model.findById(id)
             .populate({
                 path: 'direccion.localidad',
                 populate: { path: 'ciudad' }
             })
+            
+        return cliente;
     }
 
     async findByName(nombre){

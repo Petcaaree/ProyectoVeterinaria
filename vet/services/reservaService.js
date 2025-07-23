@@ -137,6 +137,7 @@ export class ReservaService {
         if(!cliente) {
             throw new NotFoundError("Cliente no existente")
         }
+        
         const mascota = await this.clienteRepository.findMascotaByCliente(clienteId, IdMascota)
 
 
@@ -149,6 +150,9 @@ export class ReservaService {
              servicio = await this.servicioPaseadorRepository.findById(servicioReservadoId)
         }
 
+        if (servicio.mascotasAceptadas && !servicio.mascotasAceptadas.includes(mascota.tipo)) {
+            throw new ValidationError("La mascota no es aceptada por el servicio");
+        }
 
         if(!servicio) {
             throw new NotFoundError("Servicio no existente")
@@ -179,6 +183,7 @@ export class ReservaService {
                 parsearFecha(rangoFechas.fechaInicio, "DD/MM/YYYY"),
                 horario
             )
+            console.log("Fecha y horario no disponible:", servicio.fechasNoDisponibles  );
             if (!servicio.estaDisponibleParaFechaYHorario(objectFechaHorarioTurno)) {
                 throw new ValidationError("El servicio no está disponible en el horario indicado")
             } else {
@@ -196,6 +201,7 @@ export class ReservaService {
         } else {
              nuevaReserva = new Reserva(cliente, servicio, mascota, objectFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto, fechaActual);
         }
+        
         const proveedorActualizado = nuevaReserva.notificar()
         if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
             await this.servicioCuidadorRepository.save(servicio)

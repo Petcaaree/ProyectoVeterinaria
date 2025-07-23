@@ -1,6 +1,8 @@
 import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 import { FechaHorarioTurno } from "./FechaHorarioTurno.js";
 import { FechaHorariosNoDisponibles } from "./FechaHorariosNoDisponibles.js";
+import { NotFoundError, ValidationError } from "../../errors/AppError.js";
+
 
 export class ServicioVeterinaria{
 
@@ -70,7 +72,7 @@ export class ServicioVeterinaria{
                     fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
                 } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     // Si el horario ya existe, no hacer nada
-                    throw new Error(`Horario ${fechaHorarioTurno.horario} ya está reservado para la fecha ${fechaHorarioTurno.fecha}.`);
+                    throw new ValidationError("Horario ya está reservado para la fecha especificada.    ");
                 }
             });
         } else {

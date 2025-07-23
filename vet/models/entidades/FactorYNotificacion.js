@@ -8,12 +8,14 @@ export class FactoryNotificacion {
     const usuarioProveedor = reserva.usuarioProveedor;
     const cliente = reserva.cliente;
     let mensaje;
-    if (usuarioProveedor instanceof Cuidador ){
-         mensaje = `Reserva de cuidado realizada por ${cliente.nombreUsuario} del dia ${reserva.fechaInicio.toDateString()} hasta el dia:  ${reserva.fechaFin.toDateString()} `;
-    } else if (usuarioProveedor instanceof Paseador) {
-         mensaje = `Reserva de paseo realizada por ${cliente.nombreUsuario},el dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+    if ( reserva.serviciOfrecido === "ServicioCuidador" ){
+         mensaje = `Reserva de cuidado realizada por ${cliente.nombreUsuario} del dia ${reserva.rangoFechas.fechaInicio.toDateString()} hasta el dia: ${reserva.rangoFechas.fechaFin.toDateString()}`;
+    } else if (reserva.serviciOfrecido === "ServicioPaseador" ){
+         mensaje = `Reserva de paseo realizada por ${cliente.nombreUsuario} el dia ${reserva.rangoFechas.fechaInicio.toDateString()} a las ${reserva.horario}`;
     } else {
-         mensaje = `Reserva de ${reserva.servicioReservado.tipoServicio} realizada por ${cliente.nombreUsuario} el dia ${reserva.rangoFechas.fechaInicio} a las  ${reserva.horario}`;
+         // Para servicios veterinarios
+         const tipoServicio = reserva.servicioReservado.tipoServicio || 'servicio veterinario';
+         mensaje = `Reserva de ${tipoServicio} realizada por ${cliente.nombreUsuario} el dia ${reserva.rangoFechas.fechaInicio.toDateString()} a las ${reserva.horario}`;
     }
     return new Notificacion(mensaje);
   }
@@ -24,13 +26,13 @@ export class FactoryNotificacion {
   }
 
   static crearCancelacion(reserva) {
-   
+    let mensaje;
     if (reserva.servicioReservado.usuarioProveedor instanceof Cuidador ){
-        const mensaje = `Reserva cancelada del dia ${reserva.fechaInicio.toDateString()} al dia ${reserva.fechaFin.toDateString()} `;
+        mensaje = `Reserva cancelada del dia ${reserva.rangoFechas.fechaInicio.toDateString()} al dia ${reserva.rangoFechas.fechaFin.toDateString()}`;
     } else if (reserva.servicioReservado.usuarioProveedor instanceof Paseador) {
-        const mensaje = `Reserva cancelada del dia ${reserva.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+        mensaje = `Reserva cancelada del dia ${reserva.rangoFechas.fechaInicio.toDateString()} a las ${reserva.horario}`;
     } else {
-        const mensaje = `Reserva de ${reserva.servicioReservado.tipoServicio} cancelada del dia ${reserva.rangoFechas.fechaInicio.toDateString()} desde las  ${reserva.rangoHorario.horaIncio.toDateString()} hasta las ${reserva.rangoHorario.horaFin.toDateString()}`;
+        mensaje = `Reserva de ${reserva.servicioReservado.tipoServicio} cancelada del dia ${reserva.rangoFechas.fechaInicio.toDateString()} a las ${reserva.horario}`;
     }
     return new Notificacion(mensaje);
   }

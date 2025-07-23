@@ -64,26 +64,21 @@ const servicioPaseadorSchema = new mongoose.Schema({
     },
   },
   fechasNoDisponibles: [{
-      fecha: {
-        type: mongoose.Schema.Types.Mixed, // Permite Date o String
-        required: true
-      },
-      horariosNoDisponibles: {
-        type: mongoose.Schema.Types.Mixed, // Permite tanto array de strings como array de objetos
-        required: true,
-        validate: {
-          validator: function(v) {
-            if (!Array.isArray(v)) return false;
-            // Permitir array de strings o array de objetos {horario: string}
-            return v.every(item => 
-              typeof item === 'string' || 
-              (typeof item === 'object' && item.horario && typeof item.horario === 'string')
-            );
-          },
-          message: "horariosNoDisponibles debe ser un array de strings o objetos con propiedad horario"
-        }
+    fecha: {
+      type: Date,
+      required: true
+    },
+    horariosNoDisponibles: {
+      type: [String], // Solo array de strings
+      required: true,
+      validate: {
+        validator: function(v) {
+          return Array.isArray(v) && v.every(item => typeof item === 'string');
+        },
+        message: "horariosNoDisponibles debe ser un array de strings"
       }
-    }],
+    }
+  }],
   diasDisponibles: {
     type: [String],
     required: true,

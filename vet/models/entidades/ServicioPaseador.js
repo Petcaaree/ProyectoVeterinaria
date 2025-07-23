@@ -1,6 +1,9 @@
 import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 import { FechaHorarioTurno } from "./FechaHorarioTurno.js";
 import { FechaHorariosNoDisponibles } from "./FechaHorariosNoDisponibles.js";
+import { NotFoundError, ValidationError } from "../../errors/AppError.js";
+import { error } from "console";
+
 
 
 export class ServicioPaseador{
@@ -50,6 +53,8 @@ export class ServicioPaseador{
         }
         
         // Buscar si ya existe una fecha igual en el array
+        
+        console.log("Fechas no disponibles:", this.fechasNoDisponibles);    
         let fechaExistente = this.fechasNoDisponibles.find(fechaHorariosNodispo => {
             const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
@@ -61,12 +66,16 @@ export class ServicioPaseador{
             this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
                 const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
                 const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
-                
+                console.log("Fecha buscada:", fechaBuscada);
+                console.log("Fecha almacenada:", fechaAlmacenada);
+                console.log("Horarios no disponibles:", fechaHorariosNodispo.horariosNoDisponibles);
+                console.log("Horario a agregar:", fechaHorarioTurno.horario);
                 if (fechaBuscada === fechaAlmacenada && !fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
                 } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     // Si el horario ya existe, no hacer nada
-                    throw new Error(`Horario ${fechaHorarioTurno.horario} ya está reservado para la fecha ${fechaHorarioTurno.fecha}.`);
+                    console.log("Horario ya está reservado para la fecha especificada.");
+                    throw new error("Horario ya está reservado para la fecha especificada.    ");
                 }
             });
         } else {
@@ -93,6 +102,7 @@ export class ServicioPaseador{
             fecha.horariosNoDisponibles.length > 0
         );
     }
+
 
     cambioEstadoServicio(nuevoEstado) {
         if (nuevoEstado === EstadoServicio.ACTIVO || nuevoEstado === EstadoServicio.DESACTIVADO) {

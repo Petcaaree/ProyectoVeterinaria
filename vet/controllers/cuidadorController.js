@@ -1,13 +1,13 @@
 export class CuidadorController {
-  /* constructor(cuidadorService, reservaService) {
+   constructor(cuidadorService, reservaService) {
     this.cuidadorService = cuidadorService
     this.reservaService = reservaService
-  } */
+  } 
 
-    constructor(cuidadorService) {
+    /* constructor(cuidadorService) {
     this.cuidadorService = cuidadorService
     
-  }
+  } */
 
   async findAll(req, res, next) {
     try {
@@ -77,7 +77,7 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
-  /* async updateReserva(req, res, next) {
+   async updateReserva(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
 
@@ -101,7 +101,7 @@ async marcarLeidaNotificacion(req, res, next) {
     } catch(error) {
       next(error)
     }
-  } */
+  } 
 
   async getNotificaciones(req, res, next) {
     try {

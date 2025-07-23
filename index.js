@@ -71,10 +71,10 @@ const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
 
-const clienteController = new ClienteController(clienteService);
-const cuidadorController = new CuidadorController(cuidadorService);
-const paseadorController = new PaseadorController(paseadorService);
-const veterinariaController = new VeterinariaController(veterinariaService);
+const clienteController = new ClienteController(clienteService, reservaService);
+const cuidadorController = new CuidadorController(cuidadorService, reservaService);
+const paseadorController = new PaseadorController(paseadorService, reservaService);
+const veterinariaController = new VeterinariaController(veterinariaService, reservaService);
 const servicioVeterinariaController = new ServicioVeterinariaController(servicioVeterinariaService);
 const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);

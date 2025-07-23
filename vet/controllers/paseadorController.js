@@ -1,13 +1,13 @@
 export class PaseadorController {
-  /* constructor(paseadorService, reservaService) {
+   constructor(paseadorService, reservaService) {
     this.paseadorService = paseadorService
     this.reservaService = reservaService
-  } */
+  } 
 
-    constructor(paseadorService) {
+   /*  constructor(paseadorService) {
     this.paseadorService = paseadorService
     
-  }
+  } */
 
   async findAll(req, res, next) {
     try {
@@ -77,7 +77,7 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
-  /* async updateReserva(req, res, next) {
+   async updateReserva(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
 
@@ -101,7 +101,7 @@ async marcarLeidaNotificacion(req, res, next) {
     } catch(error) {
       next(error)
     }
-  } */
+  } 
 
   async getNotificaciones(req, res, next) {
     try {

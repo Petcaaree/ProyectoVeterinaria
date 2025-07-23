@@ -1,10 +1,13 @@
 import { EstadoReserva } from './enums/EstadoReserva.js';
 import { FactoryNotificacion } from './FactorYNotificacion.js';
-
+import { Cliente } from './Cliente.js';
+import { Paseador } from './Paseador.js';
+import { Veterinaria } from './Veterinaria.js';
 
 import { ServicioVeterinaria } from './ServicioVeterinaria.js';
 import { ServicioCuidador } from './ServicioCuidador.js';
 import { ServicioPaseador} from './ServicioPaseador.js';
+import { Cuidador } from './Cuidador.js';
 
 export class Reserva{
 
@@ -71,20 +74,58 @@ export class Reserva{
     return this.servicioReservado.usuarioProveedor;
   }
 
-  notificarCambioEstado(nuevoEstado, motivo=null) {
+  notificarCambioEstado(nuevoEstado, motivo=null, tipoUsuario) {
     this.estado = nuevoEstado
 
     let notificacion = null
     if(nuevoEstado === EstadoReserva.CANCELADA) {
-
-      notificacion = FactoryNotificacion.crearCancelacion(this, motivo)
-      this.servicioReservado.usuarioProveedor.recibirNotificacion(notificacion)
-      return this.servicioReservado.usuarioProveedor
+      if (tipoUsuario === 'proveedor'){
+        notificacion = FactoryNotificacion.crearCancelacionAlCliente(this)
+        
+        // Solo agregar la notificación sin reconstruir la instancia
+        if (!this.cliente.notificaciones) {
+          this.cliente.notificaciones = [];
+        }
+        this.cliente.notificaciones.push(notificacion);
+        
+        // Asegurar que tiene el ID correcto para el repository
+        if (this.cliente._id && !this.cliente.id) {
+          this.cliente.id = this.cliente._id.toString();
+        }
+        
+        return this.cliente
+      } else{
+        notificacion = FactoryNotificacion.crearCancelacionAlProveedor(this)
+        
+        // Solo agregar la notificación sin reconstruir la instancia
+        if (!this.servicioReservado.usuarioProveedor.notificaciones) {
+          this.servicioReservado.usuarioProveedor.notificaciones = [];
+        }
+        this.servicioReservado.usuarioProveedor.notificaciones.push(notificacion);
+        
+        // Asegurar que tiene el ID correcto para el repository
+        if (this.servicioReservado.usuarioProveedor._id && !this.servicioReservado.usuarioProveedor.id) {
+          this.servicioReservado.usuarioProveedor.id = this.servicioReservado.usuarioProveedor._id.toString();
+        }
+        
+        return this.servicioReservado.usuarioProveedor
+      }
 
     } else if(nuevoEstado === EstadoReserva.CONFIRMADA) {
 
-      notificacion =  FactoryNotificacion.crearConfirmacion(this)
-      this.cliente.recibirNotificacion(notificacion)
+      notificacion = FactoryNotificacion.crearConfirmacion(this)
+      
+      // Solo agregar la notificación sin reconstruir la instancia
+      if (!this.cliente.notificaciones) {
+        this.cliente.notificaciones = [];
+      }
+      this.cliente.notificaciones.push(notificacion);
+      
+      // Asegurar que tiene el ID correcto para el repository
+      if (this.cliente._id && !this.cliente.id) {
+        this.cliente.id = this.cliente._id.toString();
+      }
+      
       return this.cliente
 
     } else {

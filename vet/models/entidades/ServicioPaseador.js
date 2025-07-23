@@ -85,8 +85,17 @@ export class ServicioPaseador{
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
             
             if (fechaBuscada === fechaAlmacenada) {
-                // Llamar al método de la instancia FechaHorariosNoDisponibles
-                fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
+                // Asegurar que es una instancia de FechaHorariosNoDisponibles
+                if (!(fechaHorariosNodispo instanceof FechaHorariosNoDisponibles)) {
+                    // Si no es una instancia, usar eliminación manual
+                    const index = fechaHorariosNodispo.horariosNoDisponibles.indexOf(fechaHorarioTurno.horario);
+                    if (index > -1) {
+                        fechaHorariosNodispo.horariosNoDisponibles.splice(index, 1);
+                    }
+                } else {
+                    // Si es una instancia, usar el método
+                    fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
+                }
             }
         });
         

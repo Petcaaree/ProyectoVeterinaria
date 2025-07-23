@@ -53,9 +53,18 @@ export class ServicioVeterinaria{
             throw new Error("Se esperaba una instancia de FechaHorarioTurno");
         }
         
-        // Buscar si ya existe una fecha igual en el array
+        // Reconstruir todas las instancias para asegurar que tienen los métodos
+        this.fechasNoDisponibles = this.fechasNoDisponibles.map(fechaHorariosNodispo => {
+            if (!(fechaHorariosNodispo instanceof FechaHorariosNoDisponibles)) {
+                // Reconstruir la instancia
+                const instanciaReconstruida = new FechaHorariosNoDisponibles(fechaHorariosNodispo.fecha);
+                instanciaReconstruida.horariosNoDisponibles = [...fechaHorariosNodispo.horariosNoDisponibles];
+                return instanciaReconstruida;
+            }
+            return fechaHorariosNodispo;
+        });
         
-
+        // Buscar si ya existe una fecha igual en el array
         let fechaExistente = this.fechasNoDisponibles.find(fechaHorariosNodispo => {
             const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
@@ -69,7 +78,7 @@ export class ServicioVeterinaria{
                 const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
                 
                 if (fechaBuscada === fechaAlmacenada && !fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
+                    fechaHorariosNodispo.agregarHorarioNoDisponible(fechaHorarioTurno.horario);
                 } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     // Si el horario ya existe, no hacer nada
                     throw new ValidationError("Horario ya está reservado para la fecha especificada.    ");
@@ -89,8 +98,17 @@ export class ServicioVeterinaria{
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
             
             if (fechaBuscada === fechaAlmacenada) {
-                // Llamar al método de la instancia FechaHorariosNoDisponibles
-                fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
+                // Asegurar que es una instancia de FechaHorariosNoDisponibles
+                if (!(fechaHorariosNodispo instanceof FechaHorariosNoDisponibles)) {
+                    // Si no es una instancia, usar eliminación manual
+                    const index = fechaHorariosNodispo.horariosNoDisponibles.indexOf(fechaHorarioTurno.horario);
+                    if (index > -1) {
+                        fechaHorariosNodispo.horariosNoDisponibles.splice(index, 1);
+                    }
+                } else {
+                    // Si es una instancia, usar el método
+                    fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
+                }
             }
         });
         

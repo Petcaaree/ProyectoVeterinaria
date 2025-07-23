@@ -6,6 +6,7 @@ import customParseFormat from "dayjs/plugin/customParseFormat.js";
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js";
 import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
+import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
 
 
 dayjs.extend(customParseFormat)
@@ -229,21 +230,50 @@ export class ReservaService {
             throw new NotFoundError(`Reserva ${idReserva} inexistente`)
         }
 
+        // Asegurar que la reserva tenga el campo id correcto para el repository
+        if (reserva._id && !reserva.id) {
+            reserva.id = reserva._id.toString();
+        }
+
+        // Trabajar directamente con el objeto de datos sin reconstruir
+
         if(nuevoEstado == "CONFIRMADA") {
             if(reserva.estado == EstadoReserva.CONFIRMADA) {
                 throw new ValidationError("Reserva ya confirmada")
             }
-            
-            const anfitrion = await this.anfitrionRepository.findById(idUsuario)
-            if(!anfitrion) {
-                throw new NotFoundError("Anfitrion no encontrado")
+
+            let proveedor
+            if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+                 proveedor = await this.cuidadorRepository.findById(idUsuario)
+            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+                 proveedor = await this.veterinariaRepository.findById(idUsuario)
+            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+                 proveedor = await this.paseadorRepository.findById(idUsuario)
             }
-            if(anfitrion.nombre !== reserva.alojamiento.anfitrion.nombre) {
-                throw new ValidationError("Anfitrion pasado no corresponde al del alojamiento")
+            if(!proveedor) {
+                throw new NotFoundError("Proveedor de servicio no encontrado")
             }
 
-            const huespedActualizado = reserva.notificarCambioEstado(EstadoReserva.CONFIRMADA)
-            await this.huespedRepository.save(huespedActualizado)
+            if(proveedor.nombreUsuario !== reserva.servicioReservado.usuarioProveedor.nombreUsuario) {
+                throw new ValidationError("Proveedor pasado no corresponde al de la reserva")
+            }
+
+            // Cambiar estado y enviar notificación al cliente manualmente
+            reserva.estado = EstadoReserva.CONFIRMADA;
+            const notificacion = FactoryNotificacion.crearConfirmacion(reserva);
+            
+            // Agregar notificación al cliente
+            if (!reserva.cliente.notificaciones) {
+                reserva.cliente.notificaciones = [];
+            }
+            reserva.cliente.notificaciones.push(notificacion);
+            
+            // Asegurar que tiene el ID correcto para el repository
+            if (reserva.cliente._id && !reserva.cliente.id) {
+                reserva.cliente.id = reserva.cliente._id.toString();
+            }
+            
+            await this.clienteRepository.save(reserva.cliente)
             await this.reservaRepository.save(reserva)
         
         } else if(nuevoEstado == "CANCELADA") {
@@ -251,27 +281,99 @@ export class ReservaService {
                 throw new ValidationError("Reserva ya cancelada")
             }
 
-            const huesped = await this.huespedRepository.findById(idUsuario)
-            if(!huesped) {
-                throw new NotFoundError("Huesped no encontrado")
+            // Verificar si quien cancela es el cliente o el proveedor
+            const cliente = await this.clienteRepository.findById(idUsuario)
+            const proveedorCuidador = await this.cuidadorRepository.findById(idUsuario)
+            const proveedorVeterinaria = await this.veterinariaRepository.findById(idUsuario)
+            const proveedorPaseador = await this.paseadorRepository.findById(idUsuario)
+            
+            const usuarioQueCancela = cliente || proveedorCuidador || proveedorVeterinaria || proveedorPaseador;
+            
+            if(!usuarioQueCancela)    {
+                throw new NotFoundError("Usuario no encontrado")
             }
-            if(huesped.nombre !== reserva.huespedReservador.nombre) {
-                throw new ValidationError("Huesped pasado no corresponde al de la reserva")
+            
+            // Validar que el usuario tiene derecho a cancelar esta reserva
+            if (cliente) {
+                if(cliente.nombreUsuario !== reserva.cliente.nombreUsuario) {
+                    throw new ValidationError("Cliente pasado no corresponde al de la reserva")
+                }
+            } else {
+                // Si es un proveedor, verificar que sea el proveedor de la reserva
+                if(usuarioQueCancela.nombreUsuario !== reserva.servicioReservado.usuarioProveedor.nombreUsuario) {
+                    throw new ValidationError("Proveedor pasado no corresponde al de la reserva")
+                }
             }
 
             const fechaActual = new Date()
             if(reserva.rangoFechas.fechaInicio < fechaActual) {
                 throw new ValidationError("No se puede cancelar luego de pasada la fecha inicio")
             }
-
+            
             const fechasReserva = reserva.rangoFechas
-            const alojamiento = reserva.alojamiento
+            if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+                const servicio = reserva.servicioReservado
+                servicio.eliminarFechasReserva(fechasReserva)
+                await this.servicioCuidadorRepository.save(servicio)
 
-            alojamiento.eliminarFechasReserva(fechasReserva)
-            await this.alojamientoRepository.save(alojamiento)
+            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA ) {
+                const servicio = reserva.servicioReservado
+                const objectFechaHorarioTurno = new FechaHorarioTurno(
+                    fechasReserva.fechaInicio,
+                    reserva.horario
+                )
+                servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
+                await this.servicioVeterinariaRepository.save(servicio)
+            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+                const servicio = reserva.servicioReservado
+                const objectFechaHorarioTurno = new FechaHorarioTurno(
+                    fechasReserva.fechaInicio,
+                    reserva.horario
+                )
+                servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
+                await this.servicioPaseadorRepository.save(servicio)
+            }
 
-            const anfitrionActualizado = reserva.notificarCambioEstado(EstadoReserva.CANCELADA, motivo)
-            await this.anfitrionRepository.save(anfitrionActualizado)
+            if (cliente){
+                // Cliente cancela - notificar al proveedor
+                reserva.estado = EstadoReserva.CANCELADA;
+                const notificacion = FactoryNotificacion.crearCancelacionAlProveedor(reserva);
+                
+                if (!reserva.servicioReservado.usuarioProveedor.notificaciones) {
+                    reserva.servicioReservado.usuarioProveedor.notificaciones = [];
+                }
+                reserva.servicioReservado.usuarioProveedor.notificaciones.push(notificacion);
+                
+                // Asegurar que tiene el ID correcto para el repository
+                if (reserva.servicioReservado.usuarioProveedor._id && !reserva.servicioReservado.usuarioProveedor.id) {
+                    reserva.servicioReservado.usuarioProveedor.id = reserva.servicioReservado.usuarioProveedor._id.toString();
+                }
+                
+                if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+                    await this.cuidadorRepository.save(reserva.servicioReservado.usuarioProveedor)
+                } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+                    await this.veterinariaRepository.save(reserva.servicioReservado.usuarioProveedor)    
+                } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+                    await this.paseadorRepository.save(reserva.servicioReservado.usuarioProveedor)
+                }
+            } else {
+                // Proveedor cancela - notificar al cliente
+                reserva.estado = EstadoReserva.CANCELADA;
+                const notificacion = FactoryNotificacion.crearCancelacionAlCliente(reserva);
+                
+                if (!reserva.cliente.notificaciones) {
+                    reserva.cliente.notificaciones = [];
+                }
+                reserva.cliente.notificaciones.push(notificacion);
+                
+                // Asegurar que tiene el ID correcto para el repository
+                if (reserva.cliente._id && !reserva.cliente.id) {
+                    reserva.cliente.id = reserva.cliente._id.toString();
+                }
+                
+                await this.clienteRepository.save(reserva.cliente)
+            }
+            
             await this.reservaRepository.save(reserva)
 
         } else {

@@ -28,6 +28,8 @@ export const errorHandler = (err, req, res, next) => {
     } else {
       // Error de programación: no enviar detalles al cliente
       console.error('ERROR 💥', err);
+      console.error('ERROR MESSAGE:', err.message);
+      console.error('ERROR STACK:', err.stack);
       res.status(500).json({
         status: 'error',
         message: 'Algo salió mal'

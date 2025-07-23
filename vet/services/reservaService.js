@@ -183,7 +183,6 @@ export class ReservaService {
                 parsearFecha(rangoFechas.fechaInicio, "DD/MM/YYYY"),
                 horario
             )
-            console.log("Fecha y horario no disponible:", servicio.fechasNoDisponibles  );
             if (!servicio.estaDisponibleParaFechaYHorario(objectFechaHorarioTurno)) {
                 throw new ValidationError("El servicio no está disponible en el horario indicado")
             } else {

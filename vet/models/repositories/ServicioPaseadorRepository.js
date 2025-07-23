@@ -15,15 +15,11 @@ export class ServicioPaseadorRepository {
             
             const { id, ...datosActualizados } = servicioPaseador
             
-            
-            
             const servicioPaseadorExistente = await this.model.findByIdAndUpdate(
                 id,
                 datosActualizados,
                 { new: true , runValidators: true }
             )
-            
-            
             
             return await this.model.populate(servicioPaseadorExistente, [
                 { path: 'usuarioProveedor'},

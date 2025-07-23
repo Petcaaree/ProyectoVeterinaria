@@ -185,6 +185,28 @@ servicioPaseadorSchema.pre('save', function(next) {
   next();
 });
 
+// Middleware para findOneAndUpdate
+servicioPaseadorSchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate();
+  if (update.fechasNoDisponibles) {
+    update.fechasNoDisponibles = update.fechasNoDisponibles.map(fecha => {
+      if (!fecha.fecha || !fecha.horariosNoDisponibles) {
+        console.warn('Estructura incorrecta en fechasNoDisponibles durante update');
+        return {
+          fecha: new Date(),
+          horariosNoDisponibles: []
+        };
+      }
+      return {
+        fecha: parseFechaToDate(fecha.fecha),
+        horariosNoDisponibles: normalizarHorarios(fecha.horariosNoDisponibles)
+      };
+    });
+  }
+  
+  next();
+});
+
 // Función auxiliar para convertir fechas string a Date
 function parseFechaToDate(fecha) {
   if (fecha instanceof Date) return fecha;
@@ -204,11 +226,11 @@ function normalizarHorarios(horarios) {
   if (!Array.isArray(horarios)) return [];
   return horarios.map(h => {
     if (typeof h === 'string') {
-      return { horario: h };
+      return h;
     } else if (h && h.horario) {
-      return { horario: h.horario };
+      return h.horario;
     }
-    return { horario: '00:00' };
+    return '00:00';
   });
 }
 

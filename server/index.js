@@ -97,7 +97,8 @@ const ciudadController = new CiudadController(ciudadService);
 
 const app = express();
 app.use(cors({
-    origin: "https://birbnb.vercel.app"
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://birbnb.vercel.app"],
+    credentials: true
 }))
 
 // Middleware de logging para todas las peticiones

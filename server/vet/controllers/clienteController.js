@@ -23,6 +23,7 @@ export class ClienteController {
   async logIn(req, res, next) {
     try {
       const datos = req.body
+      console.log("Datos recibidos en logIn:", JSON.stringify(datos, null, 2));
       const usuario = await this.clienteService.logIn(datos)
 
       res.json(usuario)

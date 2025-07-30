@@ -36,6 +36,10 @@ export default function clienteRoutes(getController) {
             getController(ClienteController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.put("/petcare/cliente/:id/marcarNotificacionLeidas", (req, res, next) =>
+            getController(ClienteController).marcarTodasLasNotificacionesLeidas(req, res, next)
+    )
+
     router.get("/petcare/cliente/:id/notificaciones/:tipoLeida", (req, res, next) =>
         getController(ClienteController).getNotificaciones(req, res, next)
     )

@@ -69,7 +69,19 @@ async marcarLeidaNotificacion(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
 
-      const actualizado = await this.veterinariaService.updateNotificacionLeida(id, idNotificacion);
+      const actualizado = await this.veterinariaService.leerNotificacion(id, idNotificacion);
+
+      res.json(actualizado);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async marcarTodasLasNotificacionesLeidas(req, res, next) {
+    try {
+      const { id } = req.params
+
+      const actualizado = await this.veterinariaService.marcarTodasLeidas(id);
 
       res.json(actualizado);
     } catch (error) {
@@ -108,7 +120,7 @@ async marcarLeidaNotificacion(req, res, next) {
       const { id, tipoLeida } = req.params
       const { page, limit } = req.query
 
-      const notificaciones = await this.veterinariaService.getNotificaciones(id, tipoLeida, page, limit)
+      const notificaciones = await this.veterinariaService.getNotificaciones(id, tipoLeida, { page, limit })
 
       res.json(notificaciones)
     } catch(error) {

@@ -146,24 +146,7 @@ export class CuidadorService {
         return this.toDTO(actualizado)
     }
 
-     async updateNotificacionLeida(id, idNotificacion) {
-          const cuidador = await this.cuidadorRepository.findById(id)
-          if(!cuidador) {
-              throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
-          }
-          const notificacion = cuidador.notificaciones.find(n => n.id == idNotificacion)
-          if(!notificacion) {
-              throw new NotFoundError(`Notificacion con id ${idNotificacion} no encontrada`)
-          }
-          notificacion.leida = true
-          notificacion.fechaLeida = new Date()
-          cuidador.notificaciones[indexNotificacion] = notificacion
-          const actualizado = await this.cuidadorRepository.save(cuidador)
-          return this.toDTO(actualizado)
-      }
-
-
-    async getNotificaciones(id, leida, page, limit) {
+    async getNotificaciones(id, leida, { page=1, limit=5 }) {
         const cuidador = await this.cuidadorRepository.findById(id)
         if(!cuidador) {
             throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
@@ -217,6 +200,23 @@ export class CuidadorService {
         return this.notificacionToDTO(notificacion)
     }
 
+    async marcarTodasLeidas(id) {
+        const cuidador = await this.cuidadorRepository.findById(id)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+        }
+
+        cuidador.notificaciones.forEach(n => {
+            if (!n.leida) {
+                n.leida = true
+                n.fechaLeida = new Date()
+            }
+        })
+
+        await this.cuidadorRepository.save(cuidador)
+
+        return cuidador.notificaciones.map(n => this.notificacionToDTO(n))
+    }
     
 
     toDTO(cuidador) {

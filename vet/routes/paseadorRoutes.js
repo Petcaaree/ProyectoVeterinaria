@@ -44,6 +44,10 @@ export default function paseadorRoutes(getController) {
             getController(PaseadorController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.put("/petcare/paseador/:id/marcarNotificacionLeidas", (req, res, next) =>
+                getController(PaseadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
+    )
+
     router.get("/petcare/paseador/:id/notificaciones/:tipoLeida", (req, res, next) =>
         getController(PaseadorController).getNotificaciones(req, res, next)
     )

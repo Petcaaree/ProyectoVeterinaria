@@ -146,26 +146,7 @@ export class VeterinariaService {
         return this.toDTO(actualizado)
     }
 
-     async updateNotificacionLeida(id, idNotificacion) {
-          const veterinaria = await this.veterinariaRepository.findById(id)
-          if(!veterinaria) {
-              throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
-          }
-          const indexNotificacion = veterinaria.notificaciones.findIndex(n => n.id == idNotificacion)
-          if(indexNotificacion === -1) {
-              throw new NotFoundError(`Notificacion con id ${idNotificacion} no encontrada`)
-          }
-
-          const notificacion = veterinaria.notificaciones[indexNotificacion]
-          notificacion.leida = true
-          notificacion.fechaLeida = new Date()
-            veterinaria.notificaciones[indexNotificacion] = notificacion
-          const actualizado = await this.veterinariaRepository.save(veterinaria)
-          return this.toDTO(actualizado)
-      }
-
-
-    async getNotificaciones(id, leida, page, limit) {
+     async getNotificaciones(id, leida, { page=1, limit=5 }) {
         const veterinaria = await this.veterinariaRepository.findById(id)
         if(!veterinaria) {
             throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
@@ -183,7 +164,7 @@ export class VeterinariaService {
             throw new ValidationError(`${leida} no corresponde a true o false`)
         }
 
-        const total = data.length
+        const total = data.length   
         const total_pages = Math.ceil(total / limit)
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
@@ -217,6 +198,24 @@ export class VeterinariaService {
         await this.veterinariaRepository.save(veterinaria)
 
         return this.notificacionToDTO(notificacion)
+    }
+
+    async marcarTodasLeidas(id) {
+        const veterinaria = await this.veterinariaRepository.findById(id)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+        }
+
+        veterinaria.notificaciones.forEach(n => {
+            if (!n.leida) {
+                n.leida = true
+                n.fechaLeida = new Date()
+            }
+        })
+
+        await this.veterinariaRepository.save(veterinaria)
+
+        return veterinaria.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
     

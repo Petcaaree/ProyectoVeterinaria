@@ -140,7 +140,7 @@ export class ClienteService {
         return this.toDTO(actualizado)
     }
 
-    async updateNotificacion(id, notificacion) {
+    /* async updateNotificacion(id, notificacion) {
         const cliente = await this.clienteRepository.findById(id)
         if(!cliente) {
             throw new NotFoundError(`Cliente con id ${id} no encontrado`)
@@ -150,26 +150,12 @@ export class ClienteService {
 
         const actualizado = await this.clienteRepository.save(cliente)
         return this.toDTO(actualizado)
-    }
-
-     async updateNotificacionLeida(id, idNotificacion) {
-          const cliente = await this.clienteRepository.findById(id)
-          if(!cliente) {
-              throw new NotFoundError(`Cliente con id ${id} no encontrado`)
-          }
-          const notificacion = cliente.notificaciones.find(n => n.id == idNotificacion)
-          if(!notificacion) {
-              throw new NotFoundError(`Notificacion con id ${idNotificacion} no encontrada`)
-          }
-          notificacion.leida = true
-          notificacion.fechaLeida = new Date()
-          cliente.notificaciones[indexNotificacion] = notificacion
-          const actualizado = await this.clienteRepository.save(cliente)
-          return this.toDTO(actualizado)
-      }
+    } */
 
 
-    async getNotificaciones(id, leida, page, limit) {
+
+
+    async getNotificaciones(id, leida, { page=1, limit=5 }) {
         const cliente = await this.clienteRepository.findById(id)
         if(!cliente) {
             throw new NotFoundError(`Cliente con id ${id} no encontrado`)
@@ -221,6 +207,24 @@ export class ClienteService {
         await this.clienteRepository.save(cliente)
 
         return this.notificacionToDTO(notificacion)
+    }
+
+    async marcarTodasLeidas(id) {
+        const cliente = await this.clienteRepository.findById(id)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+        }
+
+        cliente.notificaciones.forEach(n => {
+            if (!n.leida) {
+                n.leida = true
+                n.fechaLeida = new Date()
+            }
+        })
+
+        await this.clienteRepository.save(cliente)
+
+        return cliente.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
     async getMascotas(idUsuario) {

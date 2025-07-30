@@ -44,6 +44,11 @@ export default function cuidadorRoutes(getController) {
             getController(CuidadorController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.put("/petcare/cuidador/:id/marcarNotificacionLeidas", (req, res, next) =>
+                getController(CuidadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
+    )
+    
+
     router.get("/petcare/cuidador/:id/notificaciones/:tipoLeida", (req, res, next) =>
         getController(CuidadorController).getNotificaciones(req, res, next)
     )

@@ -72,7 +72,7 @@ async marcarLeidaNotificacion(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
 
-      const actualizado = await this.clienteService.updateNotificacionLeida(id, idNotificacion);
+      const actualizado = await this.clienteService.leerNotificacion(id, idNotificacion);
 
       res.json(actualizado);
     } catch (error) {
@@ -111,11 +111,23 @@ async marcarLeidaNotificacion(req, res, next) {
       const { id, tipoLeida } = req.params
       const { page, limit } = req.query
 
-      const notificaciones = await this.clienteService.getNotificaciones(id, tipoLeida, page, limit)
+      const notificaciones = await this.clienteService.getNotificaciones(id, tipoLeida, { page, limit })
 
       res.json(notificaciones)
     } catch(error) {
       next(error)
+    }
+  }
+
+  async marcarTodasLasNotificacionesLeidas(req, res, next) {
+    try {
+      const { id } = req.params
+
+      const actualizado = await this.clienteService.marcarTodasLeidas(id);
+
+      res.json(actualizado);
+    } catch (error) {
+      next(error);
     }
   }
 

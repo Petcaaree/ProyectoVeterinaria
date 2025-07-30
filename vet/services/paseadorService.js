@@ -147,24 +147,7 @@ export class PaseadorService {
         return this.toDTO(actualizado)
     }
 
-     async updateNotificacionLeida(id, idNotificacion) {
-          const paseador = await this.paseadorRepository.findById(id)
-          if(!paseador) {
-              throw new NotFoundError(`Paseador con id ${id} no encontrado`)
-          }
-          const notificacion = paseador.notificaciones.find(n => n.id == idNotificacion)
-          if(!notificacion) {
-              throw new NotFoundError(`Notificacion con id ${idNotificacion} no encontrada`)
-          }
-          notificacion.leida = true
-          notificacion.fechaLeida = new Date()
-          paseador.notificaciones[indexNotificacion] = notificacion
-          const actualizado = await this.paseadorRepository.save(paseador)
-          return this.toDTO(actualizado)
-      }
-
-
-    async getNotificaciones(id, leida, page, limit) {
+     async getNotificaciones(id, leida, { page=1, limit=5 }) {
         const paseador = await this.paseadorRepository.findById(id)
         if(!paseador) {
             throw new NotFoundError(`Paseador con id ${id} no encontrado`)
@@ -216,6 +199,24 @@ export class PaseadorService {
         await this.paseadorRepository.save(paseador)
 
         return this.notificacionToDTO(notificacion)
+    }
+
+    async marcarTodasLeidas(id) {
+        const paseador = await this.paseadorRepository.findById(id)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+        }
+
+        paseador.notificaciones.forEach(n => {
+            if (!n.leida) {
+                n.leida = true
+                n.fechaLeida = new Date()
+            }
+        })
+
+        await this.paseadorRepository.save(paseador)
+
+        return paseador.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
     

@@ -26,6 +26,7 @@ const FormularioLogin: React.FC<FormularioLoginProps> = ({ onSwitchToRegister })
     { value: 'cuidador', label: 'Cuidador/a', icon: Shield, description: 'Ofrezco servicios de cuidado' }
   ];
 
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({

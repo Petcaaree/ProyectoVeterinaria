@@ -9,17 +9,15 @@ interface ModalAutenticacionProps {
   alCerrar: () => void;
   modo: 'login' | 'registro';
   alCambiarModo: (modo: 'login' | 'registro') => void;
-  onLoginSuccess?: (userData: { nombre: string; tipo: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' }) => void;
 }
 
 const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
   estaAbierto,
   alCerrar,
   modo,
-  alCambiarModo,
-  onLoginSuccess
+  alCambiarModo
 }) => {
-  const { usuario, tipoUsuario } = useAuth();
+  const { usuario } = useAuth();
 
   // Cerrar el modal automáticamente cuando el usuario se loguee
   useEffect(() => {
@@ -27,29 +25,15 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
       // Pequeño delay para mostrar el estado de éxito antes de cerrar
       const timer = setTimeout(() => {
         alCerrar();
-        if (onLoginSuccess && tipoUsuario) {
-          onLoginSuccess({
-            nombre: usuario.nombreUsuario,
-            tipo: tipoUsuario
-          });
-        }
       }, 500);
       
       return () => clearTimeout(timer);
     }
-  }, [usuario, estaAbierto, alCerrar, onLoginSuccess, tipoUsuario]);
+  }, [usuario, estaAbierto, alCerrar]);
   const handleRegisterSubmit = (data: { nombre: string; email: string; password: string; userType: string }) => {
     console.log('Register submitted:', data);
     // Aquí iría la lógica de registro
     // Simular registro exitoso para demo
-    const userData = {
-      nombre: data.nombre,
-      tipo: data.userType as 'cliente' | 'veterinaria' | 'paseador' | 'cuidador'
-    };
-    
-    if (onLoginSuccess) {
-      onLoginSuccess(userData);
-    }
     alCerrar();
   };
 

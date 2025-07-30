@@ -18,7 +18,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('login');
   
   // Usar el contexto de autenticación
-  const { usuario, tipoUsuario, login, loginWithCredentials, registerWithCredentials, logout } = useAuth();
+  const { usuario, tipoUsuario, login, logout } = useAuth();
   
   // Mapear tipos del contexto a los tipos del componente
   const usuarioLogueado = usuario ? {
@@ -42,6 +42,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
   };
 
   const handleUserMenuClick = (action: string) => {
+    console.log('🔍 handleUserMenuClick called with action:', action); // Debug log
     setIsUserMenuOpen(false);
     setIsMenuOpen(false);
     
@@ -123,9 +124,6 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
       case 'add-service':
         if (onViewChange) onViewChange('create-service');
         break;
-      case 'my-services':
-        if (onViewChange) onViewChange('create-service');
-        break;
       case 'my-walks':
         if (onViewChange) onViewChange('my-walks' as any);
         break;
@@ -200,10 +198,10 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
 
   const getUserTypeLabel = (tipo: string) => {
     switch (tipo) {
-      case 'owner': return 'Dueño de Mascota';
-      case 'veterinary': return 'Veterinario/a';
-      case 'walker': return 'Paseador/a';
-      case 'caregiver': return 'Cuidador/a';
+      case 'cliente': return 'Dueño de Mascota';
+      case 'veterinaria': return 'Veterinario/a';
+      case 'paseador': return 'Paseador/a';
+      case 'cuidador': return 'Cuidador/a';
       default: return 'Usuario';
     }
   };
@@ -446,47 +444,6 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         alCerrar={() => setEstaModalAbierto(false)}
         modo={modoAuth}
         alCambiarModo={manejarCambioModo}
-        onLoginSuccess={async (userData: any) => {
-          try {
-            let usuarioCompleto: Usuario;
-            
-            // Verificar si es registro o login
-            if (userData.apellido) {
-              // Es registro (tiene apellido)
-              usuarioCompleto = await registerWithCredentials(
-                userData.nombre,
-                userData.apellido,
-                userData.email,
-                userData.contrasenia,
-                userData.tipo
-              );
-            } else if (userData.contrasenia) {
-              // Es login (tiene credenciales pero no apellido)
-              usuarioCompleto = await loginWithCredentials(
-                userData.email || userData.nombreUsuario, 
-                userData.contrasenia,
-                userData.tipo
-              );
-            } else {
-              // Para los casos demo, usar login directo
-              usuarioCompleto = {
-                nombreUsuario: userData.nombre,
-                email: 'usuario@email.com',
-                direccion: { calle: 'Sin especificar', numero: '' },
-                telefono: '000000000',
-                notificaciones: [],
-                ...(userData.tipo === 'owner' && { mascotas: [] })
-              };
-              login(usuarioCompleto, userData.tipo);
-            }
-            
-            if (onUserLogin) onUserLogin({ nombre: usuarioCompleto.nombreUsuario, tipo: userData.tipo });
-            setEstaModalAbierto(false);
-          } catch (error) {
-            console.error('Error en autenticación:', error);
-            alert('Error en la autenticación. Verifica tus datos.');
-          }
-        }}
       />
     </>
   );

@@ -67,6 +67,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleViewChange = (view: 'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services') => {
+    console.log('🔍 handleViewChange called with view:', view); // Debug log
     setCurrentView(view);
   };
 
@@ -114,6 +115,8 @@ function App() {
   };
 
   const renderContent = () => {
+    console.log('🔍 renderContent called with currentView:', currentView); // Debug log
+    
     if (currentView === 'create-service') {
       return <CrearServicio userType={tipoUsuarioIngles} onBack={() => setCurrentView('home')} />;
     }
@@ -189,7 +192,6 @@ function App() {
         alCerrar={() => setEstaModalAbierto(false)}
         modo={modoAuth}
         alCambiarModo={setModoAuth}
-        onLoginSuccess={handleAuthSuccess}
       />
 
       {/* Modal de Error */}

@@ -93,7 +93,7 @@ const clienteSchema = new mongoose.Schema({
             type: String,
             required: true,
             trim: true,
-            minlength: 1,
+            minlength: 2,
             maxlength: 100
         },
         edad: {
@@ -122,7 +122,7 @@ const clienteSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        minlength: 1,   
+        minlength: 2,   
         maxlength: 1000
         }],
     }]

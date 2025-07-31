@@ -1,7 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Mail, Lock, User, Eye, EyeOff, Check, X, Stethoscope, Heart, Shield, Phone, MapPin, ChevronRight, ChevronLeft } from 'lucide-react';
 import Boton from '../comun/Boton';
 import { useAuth } from '../../context/authContext.tsx';
+
+// --- Autocompletado de ciudades Buenos Aires (solo selección de lista, igual a razas) ---
+// Hooks y lógica deben ir después de los imports
 
 
 
@@ -28,14 +32,14 @@ interface FormularioRegistroProps {
 
 
 
+
 const FormularioRegistro: React.FC<FormularioRegistroProps> = ({ onSubmit, onSwitchToLogin }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [mostrarContrasenia, setMostrarContrasenia] = useState(false);
   const [loading, setLoading] = useState(false);
-const [showError, setShowError] = useState(false); // Nuevo estado añadido
-    const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false); // Nuevo estado añadido
+  const [error, setError] = useState('');
   const { registerWithCredentials } = useAuth();
-  
   const [formData, setFormData] = useState({
     nombreUsuario: '',
     email: '',
@@ -54,6 +58,104 @@ const [showError, setShowError] = useState(false); // Nuevo estado añadido
     },
     tipoUsuario: 'cliente'
   });
+
+  // --- Autocompletado de ciudades principales (municipios) de Buenos Aires y CABA ---
+  const [ciudades, setCiudades] = useState<{ id: string; nombre: string; provincia: string }[]>([]);
+  const [ciudadInput, setCiudadInput] = useState('');
+  const [showCiudadesDropdown, setShowCiudadesDropdown] = useState(false);
+  const [ciudadSeleccionada, setCiudadSeleccionada] = useState<{ id: string; nombre: string; provincia: string } | null>(null);
+
+  // Localidades dependientes de la ciudad seleccionada
+  const [localidades, setLocalidades] = useState<{ id: string; nombre: string }[]>([]);
+  const [localidadInput, setLocalidadInput] = useState('');
+  const [showLocalidadesDropdown, setShowLocalidadesDropdown] = useState(false);
+  const [localidadSeleccionada, setLocalidadSeleccionada] = useState<{ id: string; nombre: string } | null>(null);
+
+  // Traer todos los municipios (ciudades principales) de Buenos Aires y CABA
+  useEffect(() => {
+    Promise.all([
+      fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=buenos%20aires&campos=id,nombre&max=500').then(r => r.json()),
+      fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=ciudad%20autonoma%20de%20buenos%20aires&campos=id,nombre&max=100').then(r => r.json())
+    ]).then(([ba, caba]) => {
+      const municipiosBA = (ba.municipios || []).map((m: any) => ({ id: m.id, nombre: m.nombre, provincia: 'buenos aires' }));
+      // Para CABA, solo mostrar "Ciudad Autónoma de Buenos Aires" como ciudad
+      const municipiosCABA = [{ id: '02000', nombre: 'Ciudad Autónoma de Buenos Aires', provincia: 'caba' }];
+      setCiudades([...municipiosBA, ...municipiosCABA]);
+    });
+  }, []);
+
+  // Cuando se selecciona una ciudad, traer las localidades/barrio correspondientes
+  useEffect(() => {
+    if (!ciudadSeleccionada) {
+      setLocalidades([]);
+      setLocalidadSeleccionada(null);
+      setLocalidadInput('');
+      return;
+    }
+    // Si es CABA (por id o provincia), usar lista estática de barrios
+    if (ciudadSeleccionada.provincia === 'caba' || ciudadSeleccionada.id === '02000') {
+      const barriosCABA = [
+        { id: '1', nombre: 'Agronomía' },
+        { id: '2', nombre: 'Almagro' },
+        { id: '3', nombre: 'Balvanera' },
+        { id: '4', nombre: 'Barracas' },
+        { id: '5', nombre: 'Belgrano' },
+        { id: '6', nombre: 'Boedo' },
+        { id: '7', nombre: 'Caballito' },
+        { id: '8', nombre: 'Chacarita' },
+        { id: '9', nombre: 'Coghlan' },
+        { id: '10', nombre: 'Colegiales' },
+        { id: '11', nombre: 'Constitución' },
+        { id: '12', nombre: 'Flores' },
+        { id: '13', nombre: 'Floresta' },
+        { id: '14', nombre: 'La Boca' },
+        { id: '15', nombre: 'La Paternal' },
+        { id: '16', nombre: 'Liniers' },
+        { id: '17', nombre: 'Mataderos' },
+        { id: '18', nombre: 'Monte Castro' },
+        { id: '19', nombre: 'Monserrat' },
+        { id: '20', nombre: 'Nueva Pompeya' },
+        { id: '21', nombre: 'Núñez' },
+        { id: '22', nombre: 'Palermo' },
+        { id: '23', nombre: 'Parque Avellaneda' },
+        { id: '24', nombre: 'Parque Chacabuco' },
+        { id: '25', nombre: 'Parque Chas' },
+        { id: '26', nombre: 'Parque Patricios' },
+        { id: '27', nombre: 'Puerto Madero' },
+        { id: '28', nombre: 'Recoleta' },
+        { id: '29', nombre: 'Retiro' },
+        { id: '30', nombre: 'Saavedra' },
+        { id: '31', nombre: 'San Cristóbal' },
+        { id: '32', nombre: 'San Nicolás' },
+        { id: '33', nombre: 'San Telmo' },
+        { id: '34', nombre: 'Vélez Sarsfield' },
+        { id: '35', nombre: 'Versalles' },
+        { id: '36', nombre: 'Villa Crespo' },
+        { id: '37', nombre: 'Villa del Parque' },
+        { id: '38', nombre: 'Villa Devoto' },
+        { id: '39', nombre: 'Villa General Mitre' },
+        { id: '40', nombre: 'Villa Lugano' },
+        { id: '41', nombre: 'Villa Luro' },
+        { id: '42', nombre: 'Villa Ortúzar' },
+        { id: '43', nombre: 'Villa Pueyrredón' },
+        { id: '44', nombre: 'Villa Real' },
+        { id: '45', nombre: 'Villa Riachuelo' },
+        { id: '46', nombre: 'Villa Santa Rita' },
+        { id: '47', nombre: 'Villa Soldati' },
+        { id: '48', nombre: 'Villa Urquiza' }
+      ];
+      setLocalidades(barriosCABA);
+    } else {
+      // Si es otra ciudad de Buenos Aires, traer localidades de ese municipio
+      fetch(`https://apis.datos.gob.ar/georef/api/localidades?municipio=${encodeURIComponent(ciudadSeleccionada.nombre)}&provincia=buenos%20aires&max=100`)
+        .then(r => r.json())
+        .then(data => {
+          setLocalidades((data.localidades || []).map((l: any) => ({ id: l.id, nombre: l.nombre })));
+        });
+    }
+    setLocalidadSeleccionada(null);
+    setLocalidadInput('');
+  }, [ciudadSeleccionada]);
 
 useEffect(() => {
   if (error) {
@@ -80,22 +182,6 @@ useEffect(() => {
   // Manejar campos anidados
   if (name.includes('.')) {
     const parts = name.split('.');
-    
-    setFormData(prev => {
-      // Crear una copia profunda del estado anterior
-      const newData = { ...prev };
-      
-      // Navegar a través de la estructura anidada
-      let current: any = newData;
-      for (let i = 0; i < parts.length - 1; i++) {
-        current = current[parts[i]] = { ...current[parts[i]] };
-      }
-      
-      // Asignar el valor final
-      current[parts[parts.length - 1]] = value;
-      
-      return newData;
-    });
   } else {
     // Manejar campos planos
     setFormData(prev => ({
@@ -112,70 +198,90 @@ useEffect(() => {
     }));
   };
 
-  /* const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    onSubmit({
-      nombreUsuario: formData.nombreUsuario,
-      email: formData.email,
-      contrasenia: formData.contrasenia,
-      telefono: formData.telefono,
-      direccion: formData.direccion,
-      tipoUsuario: formData.tipoUsuario
-    });
-  }; */
 
   const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoading(true);
-      setError('');
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-      if (formData.contrasenia !== formData.confirmarContrasenia) {
-        setError('Las contraseñas no coinciden');
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        await registerWithCredentials(formData.nombreUsuario, formData.email, formData.contrasenia, formData.telefono, formData.direccion, formData.tipoUsuario);
-        // El contexto ya maneja la navegación y el almacenamiento
-      } catch (error: any) {
-    // Aquí manejamos el error del backend
-    if (error.response) {
-      // Si el backend devuelve una respuesta con detalles del error
-      const errorMessage = error.response.data.message || 
-                         error.response.data.error || 
-                         'Error al crear la cuenta';
-      setError(errorMessage);
-    } else if (error.request) {
-      // Si no se recibió respuesta del backend
-      setError('No se recibió respuesta del servidor');
-    } else {
-      // Otros tipos de errores
-      setError(error.message || 'Error al crear la cuenta');
+    // Validación de teléfono: solo dígitos y 8 caracteres
+    const telefonoLimpio = formData.telefono.replace(/\D/g, '');
+    if (telefonoLimpio.length !== 8) {
+      setError('El teléfono debe tener exactamente 8 números.');
+      setLoading(false);
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    // Validación de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Por favor ingresa un correo electrónico válido.');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.contrasenia !== formData.confirmarContrasenia) {
+      setError('Las contraseñas no coinciden');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await registerWithCredentials(formData.nombreUsuario, formData.email, formData.contrasenia, formData.telefono, formData.direccion, formData.tipoUsuario);
+      // El contexto ya maneja la navegación y el almacenamiento
+    } catch (error: any) {
+      // Aquí manejamos el error del backend
+      if (error.response) {
+        // Si el backend devuelve una respuesta con detalles del error
+        const errorMessage = error.response.data.message || 
+                           error.response.data.error || 
+                           'Error al crear la cuenta';
+        setError(errorMessage);
+      } else if (error.request) {
+        // Si no se recibió respuesta del backend
+        setError('No se recibió respuesta del servidor');
+      } else {
+        // Otros tipos de errores
+        setError(error.message || 'Error al crear la cuenta');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleContraseniaVisibility = () => {
     setMostrarContrasenia(!mostrarContrasenia);
   };
 
+  const canProceedStep1 = formData.tipoUsuario && formData.nombreUsuario && formData.email && formData.telefono;
+
   const nextStep = () => {
+    if (currentStep === 1) {
+      // Validación de teléfono: solo dígitos y 8 caracteres
+      const telefonoLimpio = formData.telefono.replace(/\D/g, '');
+      if (telefonoLimpio.length !== 8) {
+        setError('El teléfono debe tener exactamente 8 números.');
+        setShowError(true);
+        return;
+      }
+      // Validación de email
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Por favor ingresa un correo electrónico válido.');
+        setShowError(true);
+        return;
+      }
+    }
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     }
   };
-
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const canProceedStep1 = formData.tipoUsuario && formData.nombreUsuario && formData.email && formData.telefono;
   
   // Validaciones de contraseña
   const passwordValidations = [
@@ -422,6 +528,224 @@ useEffect(() => {
                 Dirección
               </label>
               <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="direccion.localidad.ciudad.nombre"
+                    value={ciudadSeleccionada ? ciudadSeleccionada.nombre : ciudadInput}
+                    onChange={e => {
+                      if (!ciudadSeleccionada) {
+                        setCiudadInput(e.target.value);
+                        setFormData(prev => ({
+                          ...prev,
+                          direccion: {
+                            ...prev.direccion,
+                            localidad: {
+                              ...prev.direccion.localidad,
+                              ciudad: { nombre: '' },
+                              nombre: ''
+                            }
+                          }
+                        }));
+                        setShowCiudadesDropdown(true);
+                      }
+                    }}
+                    onFocus={() => setShowCiudadesDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowCiudadesDropdown(false), 150)}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm ${ciudadSeleccionada ? 'bg-green-50 text-green-700 font-semibold' : ''}`}
+                    placeholder="Ciudad"
+                    required
+                    autoComplete="off"
+                    readOnly={!!ciudadSeleccionada}
+                  />
+                  {showCiudadesDropdown && !ciudadSeleccionada && (
+                    <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow max-h-48 overflow-y-auto mt-1">
+                  {ciudades
+                    .filter(c => {
+                      const input = ciudadInput.toLowerCase();
+                      if (c.provincia === 'caba') {
+                        // Permitir filtrar por 'capital federal', 'caba' o 'ciudad autonoma'
+                        return (
+                          c.nombre.toLowerCase().includes(input) ||
+                          'capital federal'.includes(input) ||
+                          'caba'.includes(input) ||
+                          input.includes('capital federal') ||
+                          input.includes('caba')
+                        );
+                      }
+                      return c.nombre.toLowerCase().includes(input);
+                    })
+                    .slice(0, 10)
+                    .map(c => (
+                      <li
+                        key={c.id}
+                        className="px-3 py-2 hover:bg-green-100 cursor-pointer"
+                        onMouseDown={() => {
+                          if (c.provincia === 'caba') {
+                            setCiudadInput('Capital Federal (CABA)');
+                            setCiudadSeleccionada({ ...c, nombre: 'Ciudad Autónoma de Buenos Aires', provincia: 'caba' });
+                            setFormData(prev => ({
+                              ...prev,
+                              direccion: {
+                                ...prev.direccion,
+                                localidad: {
+                                  ...prev.direccion.localidad,
+                                  ciudad: { nombre: 'Ciudad Autónoma de Buenos Aires' },
+                                  nombre: ''
+                                }
+                              }
+                            }));
+                          } else {
+                            setCiudadInput(c.nombre);
+                            setCiudadSeleccionada(c);
+                            setFormData(prev => ({
+                              ...prev,
+                              direccion: {
+                                ...prev.direccion,
+                                localidad: {
+                                  ...prev.direccion.localidad,
+                                  ciudad: { nombre: c.nombre },
+                                  nombre: ''
+                                }
+                              }
+                            }));
+                          }
+                          setShowCiudadesDropdown(false);
+                        }}
+                      >
+                        {c.provincia === 'caba' ? 'Capital Federal (CABA)' : c.nombre}
+                      </li>
+                    ))}
+                  {ciudades.filter(c => {
+                    const input = ciudadInput.toLowerCase();
+                    if (c.provincia === 'caba') {
+                      return (
+                        c.nombre.toLowerCase().includes(input) ||
+                        'capital federal'.includes(input) ||
+                        'caba'.includes(input) ||
+                        input.includes('capital federal') ||
+                        input.includes('caba')
+                      );
+                    }
+                    return c.nombre.toLowerCase().includes(input);
+                  }).length === 0 && (
+                    <li className="px-3 py-2 text-gray-400">No se encontraron ciudades</li>
+                  )}
+                    </ul>
+                  )}
+                  {ciudadSeleccionada && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500"
+                      onClick={() => {
+                        setCiudadSeleccionada(null);
+                        setCiudadInput('');
+                        setFormData(prev => ({
+                          ...prev,
+                          direccion: {
+                            ...prev.direccion,
+                            localidad: {
+                              ...prev.direccion.localidad,
+                              ciudad: { nombre: '' },
+                              nombre: ''
+                            }
+                          }
+                        }));
+                        setLocalidades([]);
+                        setLocalidadSeleccionada(null);
+                        setLocalidadInput('');
+                      }}
+                      tabIndex={-1}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="direccion.localidad.nombre"
+                    value={localidadSeleccionada ? localidadSeleccionada.nombre : localidadInput}
+                    onChange={e => {
+                      if (!localidadSeleccionada) {
+                        setLocalidadInput(e.target.value);
+                        setFormData(prev => ({
+                          ...prev,
+                          direccion: {
+                            ...prev.direccion,
+                            localidad: {
+                              ...prev.direccion.localidad,
+                              nombre: ''
+                            }
+                          }
+                        }));
+                        setShowLocalidadesDropdown(true);
+                      }
+                    }}
+                    onFocus={() => setShowLocalidadesDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowLocalidadesDropdown(false), 150)}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm ${localidadSeleccionada ? 'bg-green-50 text-green-700 font-semibold' : ''}`}
+                    placeholder="Localidad"
+                    required
+                    autoComplete="off"
+                    readOnly={!!localidadSeleccionada}
+                    disabled={!ciudadSeleccionada}
+                  />
+                  {showLocalidadesDropdown && !localidadSeleccionada && (
+                    <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow max-h-48 overflow-y-auto mt-1">
+                      {localidades.filter(l => l.nombre.toLowerCase().includes(localidadInput.toLowerCase())).slice(0, 10).map(l => (
+                        <li
+                          key={l.id}
+                          className="px-3 py-2 hover:bg-green-100 cursor-pointer"
+                          onMouseDown={() => {
+                            setLocalidadInput(l.nombre);
+                            setLocalidadSeleccionada(l);
+                            setFormData(prev => ({
+                              ...prev,
+                              direccion: {
+                                ...prev.direccion,
+                                localidad: {
+                                  ...prev.direccion.localidad,
+                                  nombre: l.nombre
+                                }
+                              }
+                            }));
+                            setShowLocalidadesDropdown(false);
+                          }}
+                        >
+                          {l.nombre}
+                        </li>
+                      ))}
+                      {localidades.filter(l => l.nombre.toLowerCase().includes(localidadInput.toLowerCase())).length === 0 && (
+                        <li className="px-3 py-2 text-gray-400">No se encontraron localidades</li>
+                      )}
+                    </ul>
+                  )}
+                  {localidadSeleccionada && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-red-500"
+                      onClick={() => {
+                        setLocalidadSeleccionada(null);
+                        setLocalidadInput('');
+                        setFormData(prev => ({
+                          ...prev,
+                          direccion: {
+                            ...prev.direccion,
+                            localidad: {
+                              ...prev.direccion.localidad,
+                              nombre: ''
+                            }
+                          }
+                        }));
+                      }}
+                      tabIndex={-1}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                
                 <input
                   type="text"
                   name="direccion.calle"
@@ -440,24 +764,7 @@ useEffect(() => {
                   placeholder="Altura"
                   required
                 />
-                <input
-                  type="text"
-                  name="direccion.localidad.nombre"
-                  value={formData.direccion.localidad.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
-                  placeholder="Localidad"
-                  required
-                />
-                <input
-                  type="text"
-                  name="direccion.localidad.ciudad.nombre"
-                  value={formData.direccion.localidad.ciudad.nombre}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
-                  placeholder="Ciudad"
-                  required
-                />
+                
               </div>
             </div>
 

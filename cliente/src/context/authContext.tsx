@@ -74,16 +74,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+ 
   const registerWithCredentials = async (
-    nombre: string, 
-    apellido: string, 
-    email: string, 
-    contrasenia: string, 
+    nombreUsuario: string,
+    email: string,
+    contrasenia: string,
+    telefono: string,
+    direccion: {
+      calle: string;
+      altura: string;
+      localidad: {
+        nombre: string;
+        ciudad: {
+          nombre: string;
+        }
+      };
+    },
     tipoUsuario: string
   ): Promise<Usuario> => {
     try {
-      const response = await signinUsuario({ nombre, apellido, email, contrasenia }, tipoUsuario);
+      const response = await signinUsuario({ nombreUsuario, email, contrasenia, telefono, direccion }, tipoUsuario);
       const usuarioCompleto = response.data;
+
+      console.log('Usuario registrado:', usuarioCompleto);
       
       setUsuario(usuarioCompleto);
       if (isValidUserType(tipoUsuario)) {

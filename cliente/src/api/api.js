@@ -56,14 +56,15 @@ export const loginUsuario = async (datos, tipo) => {
 export const signinUsuario = async (datos, tipo) => {
     try {
         const response = await axios.post(`${API_URL}/signin/${tipo}`, {
-            "nombre": datos.nombre,
-            "apellido": datos.apellido,
+            "nombreUsuario": datos.nombreUsuario,
             "email": datos.email,
             "contrasenia": datos.contrasenia,
+            "telefono": datos.telefono,
+            "direccion": datos.direccion,
         });
         return response;
     } catch (error) {
-        console.error("Error al obtener el usuario:", error);
+        console.error("Error al crear el usuario:", error);
         throw error;
     }
 };

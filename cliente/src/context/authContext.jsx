@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const registerWithCredentials = async (nombre, apellido, email, contrasenia, tipoUsuario) => {
+  const registerWithCredentials = async (nombreUsuario, email, contrasenia, telefono,tipoUsuario) => {
     try {
       // Llamar a tu API de registro usando la función existente
       const response = await signinUsuario({ nombre, apellido, email, contrasenia }, tipoUsuario);

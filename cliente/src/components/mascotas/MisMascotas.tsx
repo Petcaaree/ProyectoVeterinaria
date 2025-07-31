@@ -1,78 +1,100 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, PawPrint, Edit, Trash2, Calendar, Weight, Ruler, Heart, Dog, Cat, Bird } from 'lucide-react';
-
+import { useAuth } from '../../context/authContext.tsx';
 interface MisMascotasProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
   onRegisterPet: () => void;
 }
 
-interface Pet {
-  id: string;
-  name: string;
-  species: 'dog' | 'cat' | 'bird' | 'other';
-  breed: string;
-  age: number;
-  weight: number;
-  photos: string[];
-  notes: string;
-  registeredDate: string;
+interface Mascota {
+  id: string; // Cambiar de _id a id para coincidir con la API
+  nombre: string;
+  edad: number;
+  tipo: string;
+  raza?: string;
+  peso?: number;
+  fotos?: string[];
 }
 
 const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterPet }) => {
-  // Mock data - en una app real vendría de una API
-  const [pets, setPets] = useState<Pet[]>([
-    {
-      id: '1',
-      name: 'Max',
-      species: 'dog',
-      breed: 'Golden Retriever',
-      age: 3,
-      weight: 28,
-      photos: [
-        'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=400',
-        'https://images.pexels.com/photos/2253275/pexels-photo-2253275.jpeg?auto=compress&cs=tinysrgb&w=400'
-      ],
-      notes: 'Muy activo, le encanta jugar con pelotas. Alérgico al pollo.',
-      registeredDate: '2024-01-10'
-    },
-    {
-      id: '2',
-      name: 'Luna',
-      species: 'cat',
-      breed: 'Siamés',
-      age: 2,
-      weight: 4,
-      photos: [
-        'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg?auto=compress&cs=tinysrgb&w=400'
-      ],
-      notes: 'Tranquila, le gusta dormir en lugares altos. Toma medicamento para la tiroides.',
-      registeredDate: '2024-01-05'
-    }
-  ]);
+  const [mascotas, setMascotas] = useState<Mascota[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [mascotaToDelete, setMascotaToDelete] = useState<Mascota | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const getSpeciesIcon = (species: string) => {
-    switch (species) {
-      case 'dog': return Dog;
-      case 'cat': return Cat;
-      case 'bird': return Bird;
+  const { usuario, getMascotas, deleteMascota } = useAuth();
+
+  useEffect(() => {
+    const cargarMascotas = async () => {
+      if (usuario && usuario.id) {
+        try {
+          setIsLoading(true);
+          setError(null);
+          const data = await getMascotas(usuario.id);
+          setMascotas(data || []); // Asegurar que siempre sea un array
+          console.log('Mascotas obtenidas:', data);
+        } catch (error) {
+          console.error('Error al obtener mascotas:', error);
+          setError('Error al cargar las mascotas');
+          setMascotas([]); // Asegurar que sea un array vacío en caso de error
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+        setMascotas([]);
+      }
+    };
+
+    cargarMascotas();
+  }, [usuario, getMascotas]);
+
+  const getSpeciesIcon = (tipo: string) => {
+    switch (tipo) {
+      case 'PERRO': return Dog;
+      case 'GATO': return Cat;
+      case 'AVE': return Bird;
       default: return Heart;
     }
   };
 
-  const getSpeciesLabel = (species: string) => {
-    switch (species) {
-      case 'dog': return 'Perro';
-      case 'cat': return 'Gato';
-      case 'bird': return 'Ave';
+  const getSpeciesLabel = (tipo: string) => {
+    switch (tipo) {
+      case 'PERRO': return 'Perro';
+      case 'GATO': return 'Gato';
+      case 'AVE': return 'Ave';
       default: return 'Otro';
     }
   };
 
-  const handleDeletePet = (petId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar esta mascota? Esta acción no se puede deshacer.')) {
-      setPets(prev => prev.filter(pet => pet.id !== petId));
+  const handleDeletePet = (mascota: Mascota) => {
+    setMascotaToDelete(mascota);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (mascotaToDelete && usuario && usuario.id) {
+      try {
+        setIsDeleting(true);
+        await deleteMascota(usuario.id, mascotaToDelete.id);
+        setMascotas(prev => prev.filter(mascota => mascota.id !== mascotaToDelete.id));
+        setShowDeleteModal(false);
+        setMascotaToDelete(null);
+      } catch (error) {
+        console.error('Error al eliminar mascota:', error);
+        setError('Error al eliminar la mascota');
+      } finally {
+        setIsDeleting(false);
+      }
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setMascotaToDelete(null);
   };
 
   if (userType !== 'cliente') {
@@ -92,6 +114,8 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
       </div>
     );
   }
+
+
 
   return (
     <div className="min-h-screen bg-purple-50 py-8">
@@ -129,48 +153,85 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-purple-100 p-3 rounded-full">
-                <PawPrint className="h-6 w-6 text-purple-600" />
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-xl shadow-lg p-6 animate-pulse">
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gray-200 p-3 rounded-full w-12 h-12"></div>
+                  <div>
+                    <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{pets.length}</p>
-                <p className="text-gray-600">Mascotas Registradas</p>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-600">{error}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <PawPrint className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{mascotas?.length || 0}</p>
+                  <p className="text-gray-600">Mascotas Registradas</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-green-100 p-3 rounded-full">
+                  <Heart className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{mascotas?.filter(m => m.fotos && m.fotos.length > 0).length || 0}</p>
+                  <p className="text-gray-600">Con Fotos</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center space-x-3">
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <Calendar className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {mascotas && mascotas.length > 0 
+                      ? Math.round(mascotas.reduce((acc, mascota) => acc + mascota.edad, 0) / mascotas.length) 
+                      : 0
+                    }
+                  </p>
+                  <p className="text-gray-600">Edad Promedio</p>
+                </div>
               </div>
             </div>
           </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-100 p-3 rounded-full">
-                <Heart className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{pets.filter(p => p.photos.length > 0).length}</p>
-                <p className="text-gray-600">Con Fotos</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Calendar className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(pets.reduce((acc, pet) => acc + pet.age, 0) / pets.length) || 0}
-                </p>
-                <p className="text-gray-600">Edad Promedio</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Pets Grid */}
-        {pets.length === 0 ? (
+        {isLoading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-lg p-6 animate-pulse">
+                <div className="h-48 bg-gray-200 rounded-lg mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="flex space-x-2">
+                  <div className="flex-1 h-8 bg-gray-200 rounded"></div>
+                  <div className="w-16 h-8 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : !mascotas || mascotas.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <PawPrint className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes mascotas registradas</h3>
@@ -187,17 +248,17 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {pets.map((pet) => {
-              const SpeciesIcon = getSpeciesIcon(pet.species);
+            {mascotas.map((mascota) => {
+              const SpeciesIcon = getSpeciesIcon(mascota.tipo);
               
               return (
-                <div key={pet.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <div key={mascota.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                   {/* Pet Photo */}
                   <div className="h-48 bg-gradient-to-br from-purple-400 to-pink-500 relative">
-                    {pet.photos.length > 0 ? (
+                    {mascota.fotos && mascota.fotos.length > 0 ? (
                       <img
-                        src={pet.photos[0]}
-                        alt={pet.name}
+                        src={mascota.fotos[0]}
+                        alt={mascota.nombre}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -207,7 +268,7 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                     )}
                     <div className="absolute top-4 right-4 bg-white bg-opacity-90 px-2 py-1 rounded-full">
                       <span className="text-xs font-semibold text-gray-700">
-                        {pet.photos.length} foto{pet.photos.length !== 1 ? 's' : ''}
+                        {mascota.fotos ? mascota.fotos.length : 0} foto{(mascota.fotos?.length || 0) !== 1 ? 's' : ''}
                       </span>
                     </div>
                   </div>
@@ -216,14 +277,14 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                     {/* Pet Info */}
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">{pet.name}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">{mascota.nombre}</h3>
                         <div className="flex items-center space-x-2 text-gray-600">
                           <SpeciesIcon className="h-4 w-4" />
-                          <span className="text-sm">{getSpeciesLabel(pet.species)}</span>
-                          {pet.breed && (
+                          <span className="text-sm">{getSpeciesLabel(mascota.tipo)}</span>
+                          {mascota.raza && (
                             <>
                               <span className="text-gray-400">•</span>
-                              <span className="text-sm">{pet.breed}</span>
+                              <span className="text-sm">{mascota.raza}</span>
                             </>
                           )}
                         </div>
@@ -234,37 +295,32 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{pet.age} año{pet.age !== 1 ? 's' : ''}</span>
+                        <span className="text-sm text-gray-600">{mascota.edad} año{mascota.edad !== 1 ? 's' : ''}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Weight className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">{pet.weight} kg</span>
-                      </div>
+                      {mascota.peso && (
+                        <div className="flex items-center space-x-2">
+                          <Weight className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm text-gray-600">{mascota.peso} kg</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Notes */}
-                    {pet.notes && (
-                      <div className="mb-4">
-                        <p className="text-sm text-gray-600 line-clamp-2">{pet.notes}</p>
-                      </div>
-                    )}
-
                     {/* Photo Gallery Preview */}
-                    {pet.photos.length > 1 && (
+                    {mascota.fotos && mascota.fotos.length > 1 && (
                       <div className="mb-4">
                         <p className="text-xs font-semibold text-gray-700 mb-2">Fotos adicionales:</p>
                         <div className="flex space-x-2 overflow-x-auto">
-                          {pet.photos.slice(1, 4).map((photo, index) => (
+                          {mascota.fotos.slice(1, 4).map((foto, index) => (
                             <img
                               key={index}
-                              src={photo}
-                              alt={`${pet.name} ${index + 2}`}
+                              src={foto}
+                              alt={`${mascota.nombre} ${index + 2}`}
                               className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
                             />
                           ))}
-                          {pet.photos.length > 4 && (
+                          {mascota.fotos.length > 4 && (
                             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs text-gray-600">+{pet.photos.length - 4}</span>
+                              <span className="text-xs text-gray-600">+{mascota.fotos.length - 4}</span>
                             </div>
                           )}
                         </div>
@@ -278,22 +334,11 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                         <span>Editar</span>
                       </button>
                       <button
-                        onClick={() => handleDeletePet(pet.id)}
+                        onClick={() => handleDeletePet(mascota)}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                    </div>
-
-                    {/* Registration Date */}
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <p className="text-xs text-gray-500">
-                        Registrado el {new Date(pet.registeredDate).toLocaleDateString('es-ES', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -302,6 +347,108 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
           </div>
         )}
       </div>
+
+      {/* Modal de confirmación para eliminar mascota */}
+      {showDeleteModal && mascotaToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Header del modal */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 text-white">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white bg-opacity-20 p-2 rounded-full">
+                  <Trash2 className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Eliminar Mascota</h3>
+                  <p className="text-red-100 text-sm">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contenido del modal */}
+            <div className="p-6">
+              <div className="flex items-center space-x-4 mb-6">
+                {/* Foto de la mascota */}
+                <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-purple-400 to-pink-500 flex-shrink-0">
+                  {mascotaToDelete.fotos && mascotaToDelete.fotos.length > 0 ? (
+                    <img
+                      src={mascotaToDelete.fotos[0]}
+                      alt={mascotaToDelete.nombre}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      {(() => {
+                        const SpeciesIcon = getSpeciesIcon(mascotaToDelete.tipo);
+                        return <SpeciesIcon className="h-8 w-8 text-white opacity-70" />;
+                      })()}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Información de la mascota */}
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900">{mascotaToDelete.nombre}</h4>
+                  <p className="text-gray-600 text-sm">
+                    {getSpeciesLabel(mascotaToDelete.tipo)}
+                    {mascotaToDelete.raza && ` • ${mascotaToDelete.raza}`}
+                  </p>
+                  <p className="text-gray-500 text-xs">
+                    {mascotaToDelete.edad} año{mascotaToDelete.edad !== 1 ? 's' : ''}
+                    {mascotaToDelete.peso && ` • ${mascotaToDelete.peso} kg`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h4 className="text-sm font-medium text-red-800">
+                      ¿Estás seguro de que quieres eliminar a {mascotaToDelete.nombre}?
+                    </h4>
+                    <p className="text-sm text-red-700 mt-1">
+                      Se eliminarán permanentemente todos los datos, fotos y registros asociados con esta mascota.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Eliminando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      <span>Eliminar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

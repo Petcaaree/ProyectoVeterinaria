@@ -1,3 +1,5 @@
+import type { DatosMascota } from '../api/api';
+
 interface Localidad {
   nombre: string;
   ciudad: string; // Nombre de la ciudad, no ObjectId
@@ -28,7 +30,7 @@ interface Notificacion {
 }
 
 export interface Usuario {
-  id?: string;
+  id: string;
   nombreUsuario: string;
   email: string;
   telefono: string;
@@ -42,7 +44,26 @@ export interface AuthContextType {
   tipoUsuario: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   login: (usuarioData: Usuario, tipo: string) => void;
   loginWithCredentials: (email: string, contrasenia: string, tipoUsuario: string) => Promise<Usuario>;
-  registerWithCredentials: (nombre: string, apellido: string, email: string, contrasenia: string, tipoUsuario: string) => Promise<Usuario>;
+  registerWithCredentials: (
+    nombreUsuario: string, 
+    email: string, 
+    contrasenia: string, 
+    telefono: string, 
+    direccion: {
+      calle: string;
+      altura: string;
+      localidad: {
+        nombre: string;
+        ciudad: {
+          nombre: string;
+        }
+      };
+    }, 
+    tipoUsuario: string
+  ) => Promise<Usuario>;
+  registroMascota: ((usuarioId: string, datosMascota: DatosMascota) => Promise<Mascota>);
+  getMascotas: (usuarioId: string) => Promise<Mascota[]>;
+  deleteMascota: (usuarioId: string, mascotaId: string) => Promise<void>;
   logout: () => void;
   cambiarTipoUsuario: (tipo: string) => void;
 }

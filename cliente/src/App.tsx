@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Encabezado from './components/Encabezado';
 import Heroe from './components/Heroe';
 import Servicios from './components/Servicios';
@@ -65,6 +65,53 @@ function App() {
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showRedirectMessage, setShowRedirectMessage] = useState(false);
+
+  // Efecto para manejar cambios de rol y redireccionar automáticamente
+  useEffect(() => {
+    // Definir qué vistas están permitidas para cada tipo de usuario
+    const vistasPorTipo = {
+      'cliente': ['home', 'create-service', 'appointments', 'notifications', 'my-pets', 'register-pet'],
+      'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services'],
+      'paseador': ['home', 'create-service', 'appointments', 'notifications', 'my-walks'],
+      'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services']
+    };
+
+    // Vistas que requieren autenticación
+    const vistasQueRequierenAutenticacion = [
+      'appointments', 'notifications', 'my-pets', 'register-pet', 
+      'my-walks', 'my-vet-services', 'my-care-services'
+    ];
+
+    // Si no hay usuario logueado y está en una vista que requiere autenticación
+    if (!tipoUsuario && vistasQueRequierenAutenticacion.includes(currentView)) {
+      console.log(`🔄 Sesión cerrada: redirigiendo desde ${currentView} a home`);
+      setCurrentView('home');
+      setCurrentService('overview');
+      
+      // Mostrar mensaje de redirección temporal
+      setShowRedirectMessage(true);
+      setTimeout(() => {
+        setShowRedirectMessage(false);
+      }, 3000);
+    }
+    // Si hay un usuario logueado y está en una vista no permitida para su tipo
+    else if (tipoUsuario && vistasPorTipo[tipoUsuario]) {
+      const vistasPermitidas = vistasPorTipo[tipoUsuario];
+      
+      if (!vistasPermitidas.includes(currentView)) {
+        console.log(`🔄 Redirigiendo: ${currentView} no está permitida para ${tipoUsuario}, volviendo a home`);
+        setCurrentView('home');
+        setCurrentService('overview');
+        
+        // Mostrar mensaje de redirección temporal
+        setShowRedirectMessage(true);
+        setTimeout(() => {
+          setShowRedirectMessage(false);
+        }, 3000);
+      }
+    }
+  }, [tipoUsuario, currentView]);
 
   const handleViewChange = (view: 'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services') => {
     console.log('🔍 handleViewChange called with view:', view); // Debug log
@@ -76,7 +123,17 @@ function App() {
   };
 
   const handleUserLogout = () => {
-    // El logout se maneja en el contexto
+    // Vistas que requieren autenticación
+    const vistasQueRequierenAutenticacion = [
+      'appointments', 'notifications', 'my-pets', 'register-pet', 
+      'my-walks', 'my-vet-services', 'my-care-services'
+    ];
+
+    // Si estamos en una vista que requiere autenticación, ir a home
+    if (vistasQueRequierenAutenticacion.includes(currentView)) {
+      setCurrentView('home');
+      setCurrentService('overview');
+    }
   };
 
   const handleRegistrarMascota = () => {
@@ -228,6 +285,61 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de mensaje de redirección */}
+      {showRedirectMessage && (
+        <>
+          <div className="fixed top-4 right-4 z-50">
+            <div className="bg-blue-600 text-white px-6 py-4 rounded-lg shadow-lg animate-bounce-in">
+              <div className="flex items-center space-x-3">
+                <div className="bg-white bg-opacity-20 p-2 rounded-full">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-semibold">
+                    {tipoUsuario ? 'Cuenta cambiada' : 'Sesión cerrada'}
+                  </p>
+                  <p className="text-sm opacity-90">
+                    {tipoUsuario 
+                      ? `Te hemos redirigido al inicio como ${getUserTypeLabel(tipoUsuario || '')}`
+                      : 'Te hemos redirigido al inicio'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Estilos para la animación */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              @keyframes bounce-in {
+                0% { 
+                  transform: translateX(100%) scale(0.8); 
+                  opacity: 0; 
+                }
+                60% { 
+                  transform: translateX(-10px) scale(1.05); 
+                  opacity: 1; 
+                }
+                80% { 
+                  transform: translateX(5px) scale(0.95); 
+                }
+                100% { 
+                  transform: translateX(0) scale(1); 
+                  opacity: 1; 
+                }
+              }
+              
+              .animate-bounce-in {
+                animation: bounce-in 0.6s ease-out;
+              }
+            `
+          }} />
+        </>
       )}
     </div>
   );

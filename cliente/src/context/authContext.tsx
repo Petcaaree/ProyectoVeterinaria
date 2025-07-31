@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { loginUsuario, signinUsuario } from '../api/api.js';
+import { DatosMascota, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota } from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -112,6 +112,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const registroMascota = async (idUsuario: string, datosMascota: DatosMascota) => {
+    if (!usuario?.id) {
+      throw new Error('No se pudo obtener la información del usuario.');
+    }
+
+    try {
+      const response = await registrarMascota(idUsuario, datosMascota);
+      return response.data;
+    } catch (error) {
+      console.error('Error al registrar mascota:', error);
+      throw error;
+    }
+  };
+
+  const getMascotas = async (usuarioId: string) => {
+    if (!usuarioId) {
+      throw new Error('ID de usuario no proporcionado');
+    }
+
+    try {
+      const response = await obtenerMascotas(usuarioId);
+      console.log('Respuesta completa de obtenerMascotas:', response); // Debug
+      return response; // obtenerMascotas ya devuelve response.data
+    } catch (error) {
+      console.error('Error al obtener mascotas:', error);
+      throw error;
+    }
+  };
+
+  const deleteMascota = async (usuarioId: string, mascotaId: string) => {
+    if (!usuario?.id) {
+      throw new Error('No se pudo obtener la información del usuario.');
+    }
+
+    try {
+      const response = await eliminarMascota(usuarioId, mascotaId);
+      return response.data;
+    } catch (error) {
+      console.error('Error al eliminar mascota:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -131,6 +174,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     loginWithCredentials,
     registerWithCredentials,
+    registroMascota,
+    getMascotas,
+    deleteMascota,
     logout,
     cambiarTipoUsuario,
     tipoUsuario
@@ -142,3 +188,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+

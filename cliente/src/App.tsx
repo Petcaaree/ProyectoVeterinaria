@@ -175,7 +175,7 @@ function App() {
     console.log('🔍 renderContent called with currentView:', currentView); // Debug log
     
     if (currentView === 'create-service') {
-      return <CrearServicio userType={tipoUsuarioIngles} onBack={() => setCurrentView('home')} />;
+      return <CrearServicio userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
     }
     
     if (currentView === 'appointments') {

@@ -203,6 +203,10 @@ export class ReservaService {
         }
         
         const proveedorActualizado = nuevaReserva.notificar()
+        
+        // Incrementar contador de reservas del servicio
+        servicio.incrementarReservas()
+        
         if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
             await this.servicioCuidadorRepository.save(servicio)
             if (proveedorActualizado) {
@@ -314,6 +318,8 @@ export class ReservaService {
             if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
                 const servicio = reserva.servicioReservado
                 servicio.eliminarFechasReserva(fechasReserva)
+                // Decrementar contador de reservas
+                servicio.decrementarReservas()
                 await this.servicioCuidadorRepository.save(servicio)
 
             } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA ) {
@@ -323,6 +329,8 @@ export class ReservaService {
                     reserva.horario
                 )
                 servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
+                // Decrementar contador de reservas
+                servicio.decrementarReservas()
                 await this.servicioVeterinariaRepository.save(servicio)
             } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
                 const servicio = reserva.servicioReservado
@@ -331,6 +339,8 @@ export class ReservaService {
                     reserva.horario
                 )
                 servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
+                // Decrementar contador de reservas
+                servicio.decrementarReservas()
                 await this.servicioPaseadorRepository.save(servicio)
             }
 

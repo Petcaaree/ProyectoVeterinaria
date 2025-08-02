@@ -6,15 +6,17 @@ import { Notificacion } from '../models/entidades/Notificacion.js';
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import {ServicioPaseador} from "../models/entidades/ServicioPaseador.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
+import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
 import mongoose from "mongoose"
 
 export class ServicioPaseadorService {
 
-    constructor(servicioPaseadorRepository,paseadorRepository,ciudadRepository,localidadRepository) {
+    constructor(servicioPaseadorRepository, paseadorRepository, ciudadRepository, localidadRepository, reservaRepository) {
         this.servicioPaseadorRepository = servicioPaseadorRepository;
         this.paseadorRepository = paseadorRepository;
         this.ciudadRepository = ciudadRepository;
         this.localidadRepository = localidadRepository;
+        this.reservaRepository = reservaRepository;
     }
 
     async findAll({page = 1, limit = 4}) {
@@ -257,6 +259,17 @@ async delete(id) {
             if(servicioPaseador.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Paseador con id ${id} ya está desactivada`);
             }
+            
+            // Verificar si hay reservas pendientes antes de desactivar
+            const reservasDelServicio = await this.reservaRepository.findByServicioReservado(id)
+            const reservasPendientes = reservasDelServicio.filter(reserva => 
+                reserva.estado === EstadoReserva.PENDIENTE || reserva.estado === EstadoReserva.CONFIRMADA
+            )
+            
+            if(reservasPendientes.length > 0) {
+                throw new ConflictError(`No se puede desactivar el servicio. Hay ${reservasPendientes.length} reserva(s) pendiente(s) o confirmada(s)`);
+            }
+            
             servicioPaseador.estado = EstadoServicio.DESACTIVADA
         }
         
@@ -292,7 +305,9 @@ async delete(id) {
             diasDisponibles: servicoPaseador.diasDisponibles,
             horariosDisponibles: servicoPaseador.horariosDisponibles,
             fechasNoDisponibles: servicoPaseador.fechasNoDisponibles,
-            estado: servicoPaseador.estado
+            estado: servicoPaseador.estado,
+            fechaCreacion: servicoPaseador.fechaCreacion,
+            cantidadReservas: servicoPaseador.cantidadReservas
         }
     }
     notificacionToDTO(notificacion) {

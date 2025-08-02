@@ -16,6 +16,8 @@ export class ServicioCuidador{
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
         this.estado = EstadoServicio.ACTIVO; // Estado del servicio (ACTIVO o DESACTIVADO)
         this.direccion = direccion; // Dirección del servicio
+        this.fechaCreacion = new Date(); // Fecha de creación del servicio
+        this.cantidadReservas = 0; // Cantidad de reservas realizadas
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -64,6 +66,16 @@ export class ServicioCuidador{
             this.estado = nuevoEstado;
         } else {
             throw new Error("Estado inválido. Debe ser ACTIVO o DESACTIVADO.");
+        }
+    }
+
+    incrementarReservas() {
+        this.cantidadReservas += 1;
+    }
+
+    decrementarReservas() {
+        if (this.cantidadReservas > 0) {
+            this.cantidadReservas -= 1;
         }
     }
 }

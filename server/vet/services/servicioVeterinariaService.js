@@ -6,17 +6,19 @@ import { ServicioVeterinaria } from "../models/entidades/ServicioVeterinaria.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
+import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
 
 import mongoose from "mongoose"
 
 
 export class ServicioVeterinariaService {
 
-    constructor(servicioVeterinariaRepository,veterinariaRepository, ciudadRepository, localidadRepository) {
+    constructor(servicioVeterinariaRepository, veterinariaRepository, ciudadRepository, localidadRepository, reservaRepository) {
         this.servicioVeterinariaRepository = servicioVeterinariaRepository
         this.veterinariaRepository = veterinariaRepository
         this.ciudadRepository = ciudadRepository
         this.localidadRepository = localidadRepository
+        this.reservaRepository = reservaRepository
     }
 
     async findAll({page = 1, limit = 4}) {
@@ -257,6 +259,17 @@ export class ServicioVeterinariaService {
             if(servicioVeterinaria.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Veterinaria con id ${id} ya está desactivada`);
             }
+            
+            // Verificar si hay reservas pendientes antes de desactivar
+            const reservasDelServicio = await this.reservaRepository.findByServicioReservado(id)
+            const reservasPendientes = reservasDelServicio.filter(reserva => 
+                reserva.estado === EstadoReserva.PENDIENTE || reserva.estado === EstadoReserva.CONFIRMADA
+            )
+            
+            if(reservasPendientes.length > 0) {
+                throw new ConflictError(`No se puede desactivar el servicio. Hay ${reservasPendientes.length} reserva(s) pendiente(s) o confirmada(s)`);
+            }
+            
             servicioVeterinaria.estado = EstadoServicio.DESACTIVADA
         }
         await this.servicioVeterinariaRepository.save(servicioVeterinaria)
@@ -283,7 +296,9 @@ export class ServicioVeterinariaService {
             horariosDisponibles: servicoVeterinaria.horariosDisponibles,
             mascotasAceptadas: servicoVeterinaria.mascotasAceptadas,
             fechasNoDisponibles: servicoVeterinaria.fechasNoDisponibles,
-            estado: servicoVeterinaria.estado
+            estado: servicoVeterinaria.estado,
+            fechaCreacion: servicoVeterinaria.fechaCreacion,
+            cantidadReservas: servicoVeterinaria.cantidadReservas
         }
     }
 

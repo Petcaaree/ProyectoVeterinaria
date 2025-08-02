@@ -149,6 +149,17 @@ const servicioVeterinariaSchema = new mongoose.Schema({
     enum: ["Activada", "Desactivada"],
     default: "Activada"
   },
+  fechaCreacion: {
+    type: Date,
+    required: true,
+    default: Date.now
+  },
+  cantidadReservas: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
 });
 
 // Middleware para normalizar los datos al leer desde la DB

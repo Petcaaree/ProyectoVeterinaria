@@ -22,6 +22,8 @@ export class ServicioVeterinaria{
         this.diasDisponibles = diasDisponibles ; // Días disponibles para el servicio
         this.horariosDisponibles = horariosDisponibles ; // Horarios disponibles para el servicio
         this.mascotasAceptadas = mascotasAceptadas; // Lista de tipos de mascotas aceptadas
+        this.fechaCreacion = new Date(); // Fecha de creación del servicio
+        this.cantidadReservas = 0; // Cantidad de reservas realizadas
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -125,5 +127,14 @@ export class ServicioVeterinaria{
             throw new Error("Estado inválido. Debe ser ACTIVO o DESACTIVADO.");
         }
     }
-    
+
+    incrementarReservas() {
+        this.cantidadReservas += 1;
+    }
+
+    decrementarReservas() {
+        if (this.cantidadReservas > 0) {
+            this.cantidadReservas -= 1;
+        }
+    }
 }

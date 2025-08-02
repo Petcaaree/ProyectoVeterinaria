@@ -66,9 +66,9 @@ const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo
 const cuidadorService = new CuidadorService(cuidadorRepo, ciudadRepo, localidadRepo);
 const paseadorService = new PaseadorService(paseadorRepo, ciudadRepo, localidadRepo);
 const veterinariaService = new VeterinariaService(veterinariaRepo, ciudadRepo, localidadRepo);
-const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, ciudadRepo, localidadRepo);
-const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo);
-const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo);
+const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, ciudadRepo, localidadRepo, reservaRepo);
+const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
+const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
 
 const clienteController = new ClienteController(clienteService, reservaService);

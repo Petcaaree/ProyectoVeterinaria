@@ -6,17 +6,19 @@ import { ServicioCuidador } from "../models/entidades/ServicioCuidador.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
+import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
 
 import mongoose from "mongoose"
 
 
 export class ServicioCuidadorService {
 
-    constructor(servicioCuidadorRepository,cuidadorRepository, ciudadRepository, localidadRepository) {
+    constructor(servicioCuidadorRepository, cuidadorRepository, ciudadRepository, localidadRepository, reservaRepository) {
         this.servicioCuidadorRepository = servicioCuidadorRepository
         this.cuidadorRepository = cuidadorRepository
         this.ciudadRepository = ciudadRepository
         this.localidadRepository = localidadRepository
+        this.reservaRepository = reservaRepository
     }
 
     async findAll({page = 1, limit = 4}) {
@@ -266,6 +268,17 @@ export class ServicioCuidadorService {
             if(servicioCuidador.estado === EstadoServicio.DESACTIVADA) {
                 throw new ConflictError(`Servicio Cuidador con id ${id} ya está desactivada`);
             }
+            
+            // Verificar si hay reservas pendientes antes de desactivar
+            const reservasDelServicio = await this.reservaRepository.findByServicioReservado(id)
+            const reservasPendientes = reservasDelServicio.filter(reserva => 
+                reserva.estado === EstadoReserva.PENDIENTE || reserva.estado === EstadoReserva.CONFIRMADA
+            )
+            
+            if(reservasPendientes.length > 0) {
+                throw new ConflictError(`No se puede desactivar el servicio. Hay ${reservasPendientes.length} reserva(s) pendiente(s) o confirmada(s)`);
+            }
+            
             servicioCuidador.estado = EstadoServicio.DESACTIVADA
         }
         await this.servicioCuidadorRepository.save(servicioCuidador)
@@ -289,7 +302,9 @@ export class ServicioCuidadorService {
             diasDisponibles: servicoCuidador.diasDisponibles,
             mascotasAceptadas: servicoCuidador.mascotasAceptadas,
             fechasNoDisponibles: servicoCuidador.fechasNoDisponibles,
-            estado: servicoCuidador.estado
+            estado: servicoCuidador.estado,
+            fechaCreacion: servicoCuidador.fechaCreacion,
+            cantidadReservas: servicoCuidador.cantidadReservas
         }
     }
 

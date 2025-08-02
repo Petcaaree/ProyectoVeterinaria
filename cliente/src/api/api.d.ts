@@ -56,11 +56,37 @@ export interface DatosMascota {
   fotos: string[];
 }
 
+export interface DatosServicioVeterinario {
+  idVeterinaria: string;
+  nombreServicio: string;
+  tipoServicio: string;
+  duracionMinutos: number;
+  precio: number;
+  descripcion: string;
+  nombreClinica: string;
+  emailClinica: string;
+  telefonoClinica: string;
+  diasDisponibles: string[];
+  horariosDisponibles: string[];
+  mascotasAceptadas: string[];
+  direccion: {
+    calle: string;
+    altura: number;
+    localidad: {
+      nombre: string;
+      ciudad: {
+        nombre: string;
+      };
+    };
+  };
+}
+
 export declare function getAlojamientos(pageNumber: number, filtros: FiltrosAlojamiento): Promise<any>;
 export declare function getDestinos(pageNumber: number): Promise<any>;
 export declare function loginUsuario(datos: DatosLogin, tipo: string): Promise<any>;
 export declare function signinUsuario(datos: DatosRegistro, tipo: string): Promise<any>;
 export declare function registrarMascota(usuarioId: string, datosMascota: DatosMascota): Promise<any>;
+export declare function crearServiciooVeterinaria(data: DatosServicioVeterinario): Promise<any>;
 export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
 export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;

@@ -1,4 +1,17 @@
 // Función robusta para formatear la dirección según las interfaces posibles
+
+// ...existing imports...
+import React, { useState } from 'react';
+import Modal from 'react-modal';
+import { ArrowLeft, Plus, Save, Stethoscope, Heart, Shield, MapPin, Clock, DollarSign, Calendar, User, Phone, Mail, Award, Home } from 'lucide-react';
+import { useAuth } from '../../context/authContext.tsx';
+
+
+interface CrearServicioProps {
+  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  onBack: () => void;
+}
+
 function formatDireccion(direccion: any): string {
   if (!direccion) return '';
   if (typeof direccion === 'string') return direccion;
@@ -33,25 +46,14 @@ function formatDireccion(direccion: any): string {
   }
   return [calle, altura, localidad, ciudad].filter(Boolean).join(', ');
 }
-// ...existing imports...
-import React, { useState } from 'react';
-import Modal from 'react-modal';
-import { ArrowLeft, Plus, Save, Stethoscope, Heart, Shield, MapPin, Clock, DollarSign, Calendar, User, Phone, Mail, Award, Home } from 'lucide-react';
-import { useAuth } from '../../context/authContext.tsx';
-
-
-interface CrearServicioProps {
-  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
-  onBack: () => void;
-}
 
 const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
 
-  const { usuario } = useAuth();
+  const { usuario, createSrvicioVeterinario } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [formDataVeterinaria, setFormDataVeterinaria] = useState({
-    idVeterinaria: userType === 'veterinaria' ? usuario?.id : '',
+    idVeterinaria: usuario.id ,
     nombreServicio: '',
     descripcion: '',
     precio: '',
@@ -60,7 +62,16 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
     diasDisponibles: [] as string[],
     mascotasAceptadas: [] as string[],
     nombreClinica: '',
-    direccion: '',
+    direccion: {
+      calle: '',
+      altura: '',
+      localidad: {
+        nombre: '',
+        ciudad: {
+          nombre: ''
+        }
+      }
+    },
     telefonoClinica: '',
     emailClinica: '',
     tipoServicio: '',
@@ -207,12 +218,20 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
     const direccionNueva = {
       calle: nuevaDireccion.calle,
       altura: nuevaDireccion.altura,
-      localidad: localidadSeleccionada ? { id: localidadSeleccionada.id, nombre: localidadSeleccionada.nombre } : nuevaDireccion.localidad,
-      ciudad: ciudadSeleccionada ? { id: ciudadSeleccionada.id, nombre: ciudadSeleccionada.nombre, provincia: ciudadSeleccionada.provincia } : nuevaDireccion.ciudad
+      localidad: {
+        nombre: localidadSeleccionada ? localidadSeleccionada.nombre : (typeof nuevaDireccion.localidad === 'string' ? nuevaDireccion.localidad : ''),
+        ciudad: {
+          nombre: ciudadSeleccionada ? ciudadSeleccionada.nombre : (typeof nuevaDireccion.ciudad === 'string' ? nuevaDireccion.ciudad : '')
+        }
+      }
     };
     setFormDataVeterinaria(prev => {
       const nuevoForm = { ...prev, direccion: direccionNueva };
-      console.log('Dirección agregada:', nuevoForm.direccion);
+      console.log('Dirección agregada:', direccionNueva);
+      // Mostrar el formDataVeterinaria actualizado
+      setTimeout(() => {
+        console.log('formDataVeterinaria actualizado:', nuevoForm);
+      }, 0);
       return nuevoForm;
     });
     setShowDireccionModal(false);
@@ -241,51 +260,114 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
 
   const handleDurationBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (name === 'duration' && (userType === 'veterinaria' || userType === 'paseador')) {
-      const numValue = parseInt(value);
-      if (!isNaN(numValue) && numValue > 0) {
-        const rounded = Math.round(numValue / 30) * 30;
-        if (userType === 'veterinaria') {
-          setFormDataVeterinaria(prev => ({
-            ...prev,
-            [name]: rounded.toString()
-          }));
-        } else if (userType === 'paseador') {
-          setFormDataPaseador(prev => ({
-            ...prev,
-            [name]: rounded.toString()
-          }));
-        }
+    if ((name === 'duracionMinutos') && (userType === 'veterinaria' || userType === 'paseador')) {
+      let numValue = parseInt(value);
+      if (isNaN(numValue) || numValue < 30) numValue = 30;
+      if (numValue > 120) numValue = 120;
+      // Redondear a múltiplos de 30
+      const rounded = Math.round(numValue / 30) * 30;
+      const finalValue = [30, 60, 90, 120].includes(rounded) ? rounded : 30;
+      if (userType === 'veterinaria') {
+        setFormDataVeterinaria(prev => ({
+          ...prev,
+          duracionMinutos: finalValue.toString()
+          // No modificar horariosDisponibles, solo la duración
+        }));
+      } else if (userType === 'paseador') {
+        setFormDataPaseador(prev => ({
+          ...prev,
+          duracionMinutos: finalValue.toString()
+          // No modificar horariosDisponibles, solo la duración
+        }));
       }
     }
   };
 
+
+  // Función para ordenar días de la semana
+  const sortDays = (days: string[]) => {
+    const weekOrder = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+    return days.slice().sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+  };
+
+  // Función para ordenar horarios
+  const sortTimes = (times: string[]) => {
+    return times.slice().sort((a, b) => {
+      const [ah, am] = a.split(':').map(Number);
+      const [bh, bm] = b.split(':').map(Number);
+      return ah * 60 + am - (bh * 60 + bm);
+    });
+  };
+
   const handleArrayChange = (field: string, value: string) => {
+    // Mascotas aceptadas: guardar como PERRO, GATO, AVE, OTRO
+    const formatValue = (field: string, value: string) => {
+      if (field === 'mascotasAceptadas') {
+        switch (value.toUpperCase()) {
+          case 'PERROS':
+            return 'PERRO';
+          case 'GATOS':
+            return 'GATO';
+          case 'AVES':
+            return 'AVE';
+          case 'OTROS':
+            return 'OTRO';
+          default:
+            return value.toUpperCase();
+        }
+      }
+      if (field === 'diasDisponibles') {
+        return value.toUpperCase();
+      }
+      return value;
+    };
     if (userType === 'veterinaria') {
-      setFormDataVeterinaria(prev => ({
-        ...prev,
-        [field]: prev[field as keyof typeof prev].includes(value)
-          ? (prev[field as keyof typeof prev] as string[]).filter(item => item !== value)
-          : [...(prev[field as keyof typeof prev] as string[]), value]
-      }));
+      setFormDataVeterinaria(prev => {
+        const arr = prev[field as keyof typeof prev] as string[];
+        const formattedValue = formatValue(field, value);
+        let newArr;
+        if (arr.includes(formattedValue)) {
+          // Si ya está, lo saco (deselección)
+          newArr = arr.filter(item => item !== formattedValue);
+        } else {
+          // Si no está, lo agrego (selección)
+          newArr = [...arr, formattedValue];
+        }
+        if (field === 'diasDisponibles') newArr = sortDays(newArr);
+        if (field === 'horariosDisponibles') newArr = sortTimes(newArr);
+        return { ...prev, [field]: newArr };
+      });
     } else if (userType === 'paseador') {
-      setFormDataPaseador(prev => ({
-        ...prev,
-        [field]: prev[field as keyof typeof prev].includes(value)
-          ? (prev[field as keyof typeof prev] as string[]).filter(item => item !== value)
-          : [...(prev[field as keyof typeof prev] as string[]), value]
-      }));
+      setFormDataPaseador(prev => {
+        const arr = prev[field as keyof typeof prev] as string[];
+        const formattedValue = formatValue(field, value);
+        let newArr;
+        if (arr.includes(formattedValue)) {
+          newArr = arr.filter(item => item !== formattedValue);
+        } else {
+          newArr = [...arr, formattedValue];
+        }
+        if (field === 'diasDisponibles') newArr = sortDays(newArr);
+        if (field === 'horariosDisponibles') newArr = sortTimes(newArr);
+        return { ...prev, [field]: newArr };
+      });
     } else if (userType === 'cuidador') {
-      setFormDataCuidador(prev => ({
-        ...prev,
-        [field]: prev[field as keyof typeof prev].includes(value)
-          ? (prev[field as keyof typeof prev] as string[]).filter(item => item !== value)
-          : [...(prev[field as keyof typeof prev] as string[]), value]
-      }));
+      setFormDataCuidador(prev => {
+        const arr = prev[field as keyof typeof prev] as string[];
+        const formattedValue = formatValue(field, value);
+        let newArr;
+        if (arr.includes(formattedValue)) {
+          newArr = arr.filter(item => item !== formattedValue);
+        } else {
+          newArr = [...arr, formattedValue];
+        }
+        if (field === 'diasDisponibles') newArr = sortDays(newArr);
+        return { ...prev, [field]: newArr };
+      });
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let data;
     if (userType === 'veterinaria') {
@@ -296,30 +378,54 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
       data = formDataCuidador;
     }
     console.log('Service created:', data);
-    alert('¡Servicio creado exitosamente!');
-    onBack();
+
+    try {
+      setLoading(true);
+      setError('');
+      if (userType === 'veterinaria') {
+        await createSrvicioVeterinario(data);
+      } else if (userType === 'paseador') {
+        // Aquí deberías implementar la lógica para crear un servicio de paseador
+        console.log('Crear servicio de paseador:', data);
+      } else if (userType === 'cuidador') {
+        // Aquí deberías implementar la lógica para crear un servicio de cuidador
+        console.log('Crear servicio de cuidador:', data);
+      }
+      onBack();
+    } catch (error: any) {
+      console.error('Error al crear servicio:', error);
+      if (error?.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error?.response?.data?.error) {
+        setError(error.response.data.error);
+      } else if (error?.request) {
+        setError('No se recibió respuesta del servidor');
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Error al crear el servicio');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Generar horarios disponibles basados en la duración
   const generateTimeSlots = (duration: number) => {
-    // Solo permitir duraciones múltiplos de 30 minutos
-    if (!duration || duration < 30 || duration % 30 !== 0) return [];
-    
+    // Solo permitir duraciones 30, 60, 90, 120
+    if (![30, 60, 90, 120].includes(duration)) return [];
     const slots = [];
     const startHour = 10; // 10:00 AM
     const endHour = 20; // 8:00 PM
     const totalMinutes = (endHour - startHour) * 60;
-    
     for (let minutes = 0; minutes < totalMinutes; minutes += duration) {
       const hour = Math.floor(minutes / 60) + startHour;
       const minute = minutes % 60;
-      
       if (hour < endHour) {
         const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         slots.push(timeString);
       }
     }
-    
     return slots;
   };
 
@@ -410,24 +516,19 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
 
   // Tipos de servicios veterinarios
   const veterinariaServiceTypes = [
-    'Vacunación',
-    'Control Veterinario',
-    'Baño y Aseo',
-    'Desparasitación',
-    'Cirugía Menor',
-    'Radiografías',
-    'Ecografías',
-    'Odontología Veterinaria',
-    'Hospitalización',
-    'Consulta General',
-    'Emergencia',
-    'Otro'
-  ];
+    'Control',
+    'Vacunacion',
+    'Baño',
+    'Desparacitacion',    
+    'Cirugia',
+    'Radiografia',
+    'Ecografia'
+    ];
 
-  // Generar horarios dinámicamente para veterinarios
+  // Generar horarios dinámicamente para veterinarios y paseadores
   let durationValue = '';
-  if (userType === 'veterinaria') durationValue = formDataVeterinaria.duration;
-  else if (userType === 'paseador') durationValue = formDataPaseador.duration;
+  if (userType === 'veterinaria') durationValue = formDataVeterinaria.duracionMinutos;
+  else if (userType === 'paseador') durationValue = formDataPaseador.duracionMinutos;
   const availableTimeSlots = (userType === 'veterinaria' || userType === 'paseador') && durationValue && parseInt(durationValue) >= 30
     ? generateTimeSlots(parseInt(durationValue))
     : timeSlots;
@@ -471,7 +572,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                   </label>
                   <input
                     type="text"
-                    name="name"
+                    name="nombreServicio"
                     value={userType === 'veterinaria' ? formDataVeterinaria.nombreServicio : userType === 'paseador' ? formDataPaseador.nombreServicio : formDataCuidador.nombreServicio}
                     onChange={handleInputChange}
                     className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-${config.color}-500 focus:border-transparent`}
@@ -591,10 +692,12 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       </label>
                       <select
                         name="direccion"
-                        value={formatDireccion(formDataVeterinaria.direccion)}
+                        value={formatDireccion(formDataVeterinaria.direccion) || "__default__"}
                         onChange={e => {
                           if (e.target.value === '__nueva__') {
                             setShowDireccionModal(true);
+                          } else if (e.target.value === "__default__") {
+                            // No hacer nada si es el valor por defecto
                           } else {
                             // Buscar la dirección seleccionada en las opciones
                             let direccionSeleccionada = null;
@@ -639,14 +742,15 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
                       >
-                        {/* Dirección guardada del usuario */}
+                        <option value="__default__" disabled hidden>Selecciona una dirección...</option>
+                        {/* Mostrar solo opciones válidas, sin opción en blanco */}
                         {direccionUsuario && (
                           <option value={formatDireccion(direccionUsuario)}>
                             {formatDireccion(direccionUsuario)}
                           </option>
                         )}
-                        {/* Si la dirección nueva no es igual a la guardada, mostrarla */}
-                        {formDataVeterinaria.direccion && formatDireccion(formDataVeterinaria.direccion) !== formatDireccion(direccionUsuario) && (
+                        {/* Si la dirección nueva existe y es distinta a la guardada, mostrarla */}
+                        {formDataVeterinaria.direccion && formatDireccion(formDataVeterinaria.direccion) !== formatDireccion(direccionUsuario) && formatDireccion(formDataVeterinaria.direccion) !== '' && (
                           <option value={formatDireccion(formDataVeterinaria.direccion)}>
                             {formatDireccion(formDataVeterinaria.direccion)}
                           </option>
@@ -892,20 +996,29 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       Disponibilidad *
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {weekDays.map(day => (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => handleArrayChange('diasDisponibles', day)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            (userType === 'veterinaria' ? formDataVeterinaria.diasDisponibles : userType === 'paseador' ? formDataPaseador.diasDisponibles : formDataCuidador.diasDisponibles).includes(day)
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
+                      {weekDays.map(day => {
+                        // Comparar en mayúsculas
+                        const isSelected = (userType === 'veterinaria'
+                          ? formDataVeterinaria.diasDisponibles
+                          : userType === 'paseador'
+                            ? formDataPaseador.diasDisponibles
+                            : formDataCuidador.diasDisponibles
+                        ).includes(day.toUpperCase());
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => handleArrayChange('diasDisponibles', day)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isSelected
+                                ? `bg-${config.color}-500 text-white`
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -942,6 +1055,39 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                         Horarios generados cada {formDataVeterinaria.duracionMinutos} minutos (de 10:00 AM a 8:00 PM)
                       </p>
                     )}
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Mascotas Aceptadas *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Perros', 'Gatos', 'Aves', 'Otros'].map(pet => {
+                        // Comparar con el formato guardado: PERRO, GATO, AVE, OTRO
+                        let petKey = '';
+                        switch (pet.toUpperCase()) {
+                          case 'PERROS': petKey = 'PERRO'; break;
+                          case 'GATOS': petKey = 'GATO'; break;
+                          case 'AVES': petKey = 'AVE'; break;
+                          case 'OTROS': petKey = 'OTRO'; break;
+                          default: petKey = pet.toUpperCase();
+                        }
+                        const isSelected = formDataVeterinaria.mascotasAceptadas?.includes(petKey);
+                        return (
+                          <button
+                            key={pet}
+                            type="button"
+                            onClick={() => handleArrayChange('mascotasAceptadas', pet)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isSelected
+                                ? `bg-${config.color}-500 text-white`
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {pet}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </>
@@ -1077,6 +1223,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       </p>
                     )}
                   </div>
+                  
                 </div>
               </>
             )}
@@ -1153,6 +1300,30 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                           {day}
                         </button>
                       ))}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Mascotas Aceptadas *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Perros', 'Gatos', 'Aves', 'Otros'].map(pet => {
+                        const isSelected = formDataCuidador.mascotasAceptadas?.includes(pet.toUpperCase());
+                        return (
+                          <button
+                            key={pet}
+                            type="button"
+                            onClick={() => handleArrayChange('mascotasAceptadas', pet)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isSelected
+                                ? `bg-${config.color}-500 text-white`
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {pet}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

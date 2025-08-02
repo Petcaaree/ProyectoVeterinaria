@@ -1,4 +1,4 @@
-import type { DatosMascota } from '../api/api';
+import type { DatosMascota, DatosServicioVeterinario } from '../api/api';
 
 interface Localidad {
   nombre: string;
@@ -64,6 +64,7 @@ export interface AuthContextType {
   registroMascota: ((usuarioId: string, datosMascota: DatosMascota) => Promise<Mascota>);
   getMascotas: (usuarioId: string) => Promise<Mascota[]>;
   deleteMascota: (usuarioId: string, mascotaId: string) => Promise<void>;
+  createSrvicioVeterinario: (data: DatosServicioVeterinario) => Promise<any>;
   logout: () => void;
   cambiarTipoUsuario: (tipo: string) => void;
 }

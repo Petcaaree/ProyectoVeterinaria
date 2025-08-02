@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota } from '../api/api.js';
+import { DatosMascota,DatosServicioVeterinario, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -169,6 +169,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('tipoUsuario', tipo);
   };
 
+  const createSrvicioVeterinario = async (data: DatosServicioVeterinario) => {
+    try {
+      const response = await crearServiciooVeterinaria(data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear servicio veterinario:', error);
+      throw error;
+    }
+  };
+
   const contextValue: AuthContextType = {
     usuario,
     login,
@@ -177,6 +187,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     registroMascota,
     getMascotas,
     deleteMascota,
+    createSrvicioVeterinario,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

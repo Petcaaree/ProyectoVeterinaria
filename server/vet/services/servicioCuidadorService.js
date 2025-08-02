@@ -154,8 +154,21 @@ export class ServicioCuidadorService {
     async create(servicioCuidador) {
         const { idCuidador, nombreServicio, precio, descripcion, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, mascotasAceptadas, direccion } = servicioCuidador
 
-        if(!idCuidador || !nombreServicio  || !precio || !descripcion  || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !mascotasAceptadas || !direccion) {
-            throw new ValidationError("Faltan datos obligatorios")
+        // Validar campos obligatorios
+        const camposFaltantes = [];
+        if (!idCuidador) camposFaltantes.push('idCuidador');
+        if (!nombreServicio) camposFaltantes.push('nombreServicio');
+        if (!precio) camposFaltantes.push('precio');
+        if (!descripcion) camposFaltantes.push('descripcion');
+        if (!nombreContacto) camposFaltantes.push('nombreContacto');
+        if (!emailContacto) camposFaltantes.push('emailContacto');
+        if (!telefonoContacto) camposFaltantes.push('telefonoContacto');
+        if (!diasDisponibles || diasDisponibles.length === 0) camposFaltantes.push('diasDisponibles');
+        if (!mascotasAceptadas || mascotasAceptadas.length === 0) camposFaltantes.push('mascotasAceptadas');
+        if (!direccion) camposFaltantes.push('direccion');
+
+        if (camposFaltantes.length > 0) {
+            throw new ValidationError(`Faltan los siguientes datos obligatorios: ${camposFaltantes.join(', ')}`);
         }
 
         const existente = await this.servicioCuidadorRepository.findByName(nombreServicio)

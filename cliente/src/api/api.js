@@ -258,6 +258,73 @@ export const crearServiciooVeterinaria = async (data) => {
     }
 }
 
+export const crearServicioPaseador = async (data) => {
+    try {
+        const response = await axios.post(`${API_URL}/servicioPaseadores`, {
+            "idPaseador": data.idPaseador,
+            "nombreServicio": data.nombreServicio,
+            "duracionMinutos": data.duracionMinutos,
+            "precio": data.precio,
+            "descripcion": data.descripcion,
+            "nombreContacto": data.nombreContacto,
+            "emailContacto": data.emailContacto,
+            "telefonoContacto": data.telefonoContacto,
+            "diasDisponibles": data.diasDisponibles,
+            "horariosDisponibles": data.horariosDisponibles,
+            "direccion": {
+              "calle": data.direccion.calle,
+              "altura": data.direccion.altura,
+              "localidad": {
+                "nombre": data.direccion.localidad.nombre,
+                "ciudad": {
+                  "nombre": data.direccion.localidad.ciudad.nombre
+                }
+              }
+            }
+        });
+
+        console.log("Servicio creado:", response.data);
+
+        return response.data
+   } catch(error) {
+        console.error("Error al crear el servicio:", error);
+        throw error;
+    }
+}
+
+export const crearServicioCuidador = async (data) => {
+    try {
+        const response = await axios.post(`${API_URL}/servicioCuidador`, { 
+            "idCuidador": data.idCuidador,
+            "nombreServicio": data.nombreServicio,
+            "precio": data.precio,
+            "descripcion": data.descripcion,
+            "nombreContacto": data.nombreContacto,
+            "emailContacto": data.emailContacto,
+            "telefonoContacto": data.telefonoContacto,
+            "diasDisponibles": data.diasDisponibles,
+            "mascotasAceptadas": data.mascotasAceptadas,
+            "direccion": {
+              "calle": data.direccion.calle,
+              "altura": data.direccion.altura,
+              "localidad": {
+                "nombre": data.direccion.localidad.nombre,
+                "ciudad": {
+                  "nombre": data.direccion.localidad.ciudad.nombre
+                }
+              }
+            }
+        });
+
+        console.log("Servicio creado:", response.data);
+
+        return response.data
+   } catch(error) {
+        console.error("Error al crear el servicio:", error);
+        throw error;
+    }
+}
+
 export const registrarMascota = async (clienteId, mascotaData) => {
     try {
         const response = await axios.post(`${API_URL}/cliente/${clienteId}/mascota`, {

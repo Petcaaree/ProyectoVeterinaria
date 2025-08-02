@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota,DatosServicioVeterinario, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria} from '../api/api.js';
+import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -169,7 +169,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('tipoUsuario', tipo);
   };
 
-  const createSrvicioVeterinario = async (data: DatosServicioVeterinario) => {
+  const createServicioVeterinario = async (data: DatosServicioVeterinario) => {
     try {
       const response = await crearServiciooVeterinaria(data);
       return response.data;
@@ -179,6 +179,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+ 
+
+  const createServicioPaseador = async (data: DatosServicioPaseador) => {
+    try {
+      const response = await crearServicioPaseador(data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear servicio paseador:', error);
+      throw error;
+    }
+  };
+   const createServicioCuidador = async (data: DatosServicioCuidador) => {
+    try {
+      const response = await crearServicioCuidador(data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear servicio cuidador:', error);
+      throw error;
+    }
+  }; 
+
   const contextValue: AuthContextType = {
     usuario,
     login,
@@ -187,7 +208,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     registroMascota,
     getMascotas,
     deleteMascota,
-    createSrvicioVeterinario,
+    createServicioVeterinario,
+    createServicioPaseador,
+    createServicioCuidador,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

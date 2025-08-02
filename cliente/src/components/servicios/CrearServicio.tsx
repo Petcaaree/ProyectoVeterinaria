@@ -3,7 +3,7 @@
 // ...existing imports...
 import React, { useState } from 'react';
 import Modal from 'react-modal';
-import { ArrowLeft, Plus, Save, Stethoscope, Heart, Shield, MapPin, Clock, DollarSign, Calendar, User, Phone, Mail, Award, Home } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Stethoscope, Heart, Shield, MapPin, Clock, DollarSign, Calendar, User, Phone, Mail, Award, Home, X } from 'lucide-react';
 import { useAuth } from '../../context/authContext.tsx';
 
 
@@ -47,13 +47,33 @@ function formatDireccion(direccion: any): string {
   return [calle, altura, localidad, ciudad].filter(Boolean).join(', ');
 }
 
-const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
+type ViewType =
+  | 'home'
+  | 'create-service'
+  | 'appointments'
+  | 'notifications'
+  | 'my-pets'
+  | 'register-pet'
+  | 'my-walks'
+  | 'my-vet-services'
+  | 'my-care-services';
 
-  const { usuario, createSrvicioVeterinario } = useAuth();
+interface CrearServicioProps {
+  userType: string;
+  onBack: () => void;
+  setCurrentView: (view: ViewType) => void;
+}
+
+const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurrentView }) => {
+
+  const [showError, setShowError] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const { usuario, createServicioVeterinario, createServicioPaseador, createServicioCuidador } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [formDataVeterinaria, setFormDataVeterinaria] = useState({
-    idVeterinaria: usuario.id ,
+    idVeterinaria: usuario?.id ,
     nombreServicio: '',
     descripcion: '',
     precio: '',
@@ -78,7 +98,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
   });
 
   const [formDataPaseador, setFormDataPaseador] = useState({
-    idPaseador: userType === 'paseador' ? usuario?.id : '',
+    idPaseador: usuario?.id ,
     nombreServicio: '',
     descripcion: '',
     precio: '',
@@ -88,26 +108,35 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
     nombreContacto: '',
     telefonoContacto: '',
     emailContacto: '',
-    direccion: '',
+    direccion: {
+      calle: usuario?.direccion?.calle || '',
+      altura: usuario?.direccion?.altura || '',
+      localidad: {
+        nombre: usuario?.direccion?.localidad?.nombre || '',
+        ciudad: {
+          nombre: usuario?.direccion?.localidad?.ciudad || ''
+        }
+      }
+    },
   });
 
   const [formDataCuidador, setFormDataCuidador] = useState({
-    idCuidador: userType === 'cuidador' ? usuario?.id : '',
+    idCuidador: usuario?.id ,
     nombreServicio: '',
     descripcion: '',
     precio: '',
     diasDisponibles: [] as string[],
     mascotasAceptadas: [] as string[],
-    nombreCuidador: '',
-    telefonoCuidador: '',
-    emailCuidador: '',
+    nombreContacto: '',
+    telefonoContacto: '',
+    emailContacto: '',
     direccion: {
-      calle: '',
-      altura: '',
+      calle: usuario?.direccion?.calle || '',
+      altura: usuario?.direccion?.altura || '',
       localidad: {
-        nombre: '',
+        nombre: usuario?.direccion?.localidad?.nombre || '',
         ciudad: {
-          nombre: ''
+          nombre: usuario?.direccion?.localidad?.ciudad || ''
         }
       }
     },
@@ -132,6 +161,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
   const [localidadSeleccionada, setLocalidadSeleccionada] = useState<{ id: string; nombre: string } | null>(null);
 
   React.useEffect(() => {
+    console.log('direccionUsuario:', usuario?.direccion);
     Promise.all([
       fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=buenos%20aires&campos=id,nombre&max=500').then(r => r.json()),
       fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=ciudad%20autonoma%20de%20buenos%20aires&campos=id,nombre&max=100').then(r => r.json())
@@ -317,7 +347,10 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
         }
       }
       if (field === 'diasDisponibles') {
-        return value.toUpperCase();
+        const dia = value.toUpperCase();
+        if (dia === 'SÁBADO') return 'SABADO';
+        if (dia === 'MIÉRCOLES') return 'MIERCOLES';
+        return dia;
       }
       return value;
     };
@@ -370,12 +403,41 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let data;
+    let dias, horarios, mascotas;
     if (userType === 'veterinaria') {
       data = formDataVeterinaria;
+      dias = formDataVeterinaria.diasDisponibles;
+      horarios = formDataVeterinaria.horariosDisponibles;
+      mascotas = formDataVeterinaria.mascotasAceptadas;
     } else if (userType === 'paseador') {
       data = formDataPaseador;
+      dias = formDataPaseador.diasDisponibles;
+      horarios = formDataPaseador.horariosDisponibles;
+      mascotas = undefined;
     } else if (userType === 'cuidador') {
       data = formDataCuidador;
+      dias = formDataCuidador.diasDisponibles;
+      horarios = undefined;
+      mascotas = formDataCuidador.mascotasAceptadas;
+    }
+    // Validación mínima: al menos 1 día, 1 horario y 1 mascota (según tipo)
+    if (!dias || dias.length < 1) {
+      setError('Debes seleccionar al menos un día disponible.');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
+      return;
+    }
+    if ((userType === 'veterinaria' || userType === 'paseador') && (!horarios || horarios.length < 1)) {
+      setError('Debes seleccionar al menos un horario disponible.');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
+      return;
+    }
+    if ((userType === 'veterinaria' || userType === 'cuidador') && (!mascotas || mascotas.length < 1)) {
+      setError('Debes seleccionar al menos una mascota aceptada.');
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
+      return;
     }
     console.log('Service created:', data);
 
@@ -383,28 +445,44 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
       setLoading(true);
       setError('');
       if (userType === 'veterinaria') {
-        await createSrvicioVeterinario(data);
+        await createServicioVeterinario(data);
       } else if (userType === 'paseador') {
-        // Aquí deberías implementar la lógica para crear un servicio de paseador
+        await createServicioPaseador(data);
         console.log('Crear servicio de paseador:', data);
       } else if (userType === 'cuidador') {
-        // Aquí deberías implementar la lógica para crear un servicio de cuidador
+        await createServicioCuidador(data);
         console.log('Crear servicio de cuidador:', data);
       }
-      onBack();
-    } catch (error: any) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        if (userType === 'veterinaria') {
+          setCurrentView('my-vet-services');
+        } else if (userType === 'paseador') {
+          setCurrentView('my-walks');
+        } else if (userType === 'cuidador') {
+          setCurrentView('my-care-services');
+        } else {
+          setCurrentView('home');
+        }
+      }, 2500);
+    } catch (error) {
       console.error('Error al crear servicio:', error);
-      if (error?.response?.data?.message) {
-        setError(error.response.data.message);
-      } else if (error?.response?.data?.error) {
-        setError(error.response.data.error);
-      } else if (error?.request) {
-        setError('No se recibió respuesta del servidor');
-      } else if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Error al crear el servicio');
+      let errorMsg = 'Error al crear el servicio';
+      if (typeof error === 'object' && error !== null) {
+        if ('response' in error && error.response?.data?.message) {
+          errorMsg = error.response.data.message;
+        } else if ('response' in error && error.response?.data?.error) {
+          errorMsg = error.response.data.error;
+        } else if ('request' in error) {
+          errorMsg = 'No se recibió respuesta del servidor';
+        } else if (error instanceof Error) {
+          errorMsg = error.message;
+        }
       }
+      setError(errorMsg);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
     } finally {
       setLoading(false);
     }
@@ -980,7 +1058,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                         Teléfono *
                       </label>
                       <input
-                        type="tel"
+                        type="number"
                         name="telefonoClinica"
                         value={formDataVeterinaria.telefonoClinica}
                         onChange={handleInputChange}
@@ -997,13 +1075,16 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                     </label>
                     <div className="grid grid-cols-4 gap-2">
                       {weekDays.map(day => {
-                        // Comparar en mayúsculas
+                        // Normalizar el nombre del día para la comparación
+                        let normalizedDay = day.toUpperCase();
+                        if (normalizedDay === 'SÁBADO') normalizedDay = 'SABADO';
+                        if (normalizedDay === 'MIÉRCOLES') normalizedDay = 'MIERCOLES';
                         const isSelected = (userType === 'veterinaria'
                           ? formDataVeterinaria.diasDisponibles
                           : userType === 'paseador'
                             ? formDataPaseador.diasDisponibles
                             : formDataCuidador.diasDisponibles
-                        ).includes(day.toUpperCase());
+                        ).includes(normalizedDay);
                         return (
                           <button
                             key={day}
@@ -1172,20 +1253,26 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       Disponibilidad *
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {weekDays.map(day => (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => handleArrayChange('diasDisponibles', day)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            formDataPaseador.diasDisponibles.includes(day)
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
+                      {weekDays.map(day => {
+                        let normalizedDay = day.toUpperCase();
+                        if (normalizedDay === 'SÁBADO') normalizedDay = 'SABADO';
+                        if (normalizedDay === 'MIÉRCOLES') normalizedDay = 'MIERCOLES';
+                        const isSelected = formDataPaseador.diasDisponibles.includes(normalizedDay);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => handleArrayChange('diasDisponibles', day)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isSelected
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1239,8 +1326,8 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       </label>
                       <input
                         type="text"
-                        name="nombreCuidador"
-                        value={formDataCuidador.nombreCuidador}
+                        name="nombreContacto"
+                        value={formDataCuidador.nombreContacto}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="Tu nombre completo"
@@ -1254,8 +1341,8 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       </label>
                       <input
                         type="email"
-                        name="emailCuidador"
-                        value={formDataCuidador.emailCuidador}
+                        name="emailContacto"
+                        value={formDataCuidador.emailContacto}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="tu@email.com"
@@ -1271,8 +1358,8 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       </label>
                       <input
                         type="tel"
-                        name="telefonoCuidador"
-                        value={formDataCuidador.telefonoCuidador}
+                        name="telefonoContacto"
+                        value={formDataCuidador.telefonoContacto}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                         placeholder="+57 300 123 4567"
@@ -1286,20 +1373,26 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                       Disponibilidad *
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {weekDays.map(day => (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => handleArrayChange('diasDisponibles', day)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            formDataCuidador.diasDisponibles.includes(day)
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
+                      {weekDays.map(day => {
+                        let normalizedDay = day.toUpperCase();
+                        if (normalizedDay === 'SÁBADO') normalizedDay = 'SABADO';
+                        if (normalizedDay === 'MIÉRCOLES') normalizedDay = 'MIERCOLES';
+                        const isSelected = formDataCuidador.diasDisponibles.includes(normalizedDay);
+                        return (
+                          <button
+                            key={day}
+                            type="button"
+                            onClick={() => handleArrayChange('diasDisponibles', day)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              isSelected
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div className="mt-4">
@@ -1308,7 +1401,16 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       {['Perros', 'Gatos', 'Aves', 'Otros'].map(pet => {
-                        const isSelected = formDataCuidador.mascotasAceptadas?.includes(pet.toUpperCase());
+                        // Comparar con el formato guardado: PERRO, GATO, AVE, OTRO
+                        let petKey = '';
+                        switch (pet.toUpperCase()) {
+                          case 'PERROS': petKey = 'PERRO'; break;
+                          case 'GATOS': petKey = 'GATO'; break;
+                          case 'AVES': petKey = 'AVE'; break;
+                          case 'OTROS': petKey = 'OTRO'; break;
+                          default: petKey = pet.toUpperCase();
+                        }
+                        const isSelected = formDataCuidador.mascotasAceptadas?.includes(petKey);
                         return (
                           <button
                             key={pet}
@@ -1347,6 +1449,24 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack }) => {
                 <span>Crear Servicio</span>
               </button>
             </div>
+            {/* Pop-up de error animado centrado */}
+            {showError && (
+              <div className="mt-6 flex justify-center">
+                <div className="bg-white border border-red-500 shadow-lg rounded-xl px-6 py-4 flex items-center space-x-3">
+                  <X className="h-5 w-5 text-red-500 cursor-pointer" onClick={() => setShowError(false)} />
+                  <span className="text-red-700 font-semibold text-base text-center">{error}</span>
+                </div>
+              </div>
+            )}
+            {/* Pop-up de éxito animado */}
+            {showSuccess && (
+              <div className="fixed inset-0 flex items-center justify-center z-[200] animate-fade-in-out">
+                <div className="bg-green-600 text-white px-8 py-6 rounded-2xl shadow-lg text-lg font-semibold flex flex-col items-center">
+                  <Award className="w-10 h-10 mb-2" />
+                  ¡Servicio creado exitosamente!
+                </div>
+              </div>
+            )}
           </form>
         </div>
       </div>

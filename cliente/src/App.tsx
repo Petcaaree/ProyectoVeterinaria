@@ -61,6 +61,11 @@ function App() {
   };
 
   const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services'>('home');
+
+  // Scroll al top cada vez que cambia la vista
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentView]);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -175,7 +180,7 @@ function App() {
     console.log('🔍 renderContent called with currentView:', currentView); // Debug log
     
     if (currentView === 'create-service') {
-      return <CrearServicio userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <CrearServicio userType={tipoUsuario as 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
     }
     
     if (currentView === 'appointments') {

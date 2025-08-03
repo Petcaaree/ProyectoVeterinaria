@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador} from '../api/api.js';
+import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -147,10 +147,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      const response = await eliminarMascota(usuarioId, mascotaId);
-      return response.data;
+      await eliminarMascota(usuarioId, mascotaId);
+
     } catch (error) {
       console.error('Error al eliminar mascota:', error);
+      throw error;
+    }
+  };
+
+  const getServiciosVeterinaria = async (id: string, page: number = 1) => {
+    if (!id) {
+      throw new Error('ID de veterinaria no proporcionado');
+    }
+    try {
+      const response = await getServiciosVeterinariaByUsuario(id, page);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de veterinaria:', error);
       throw error;
     }
   };
@@ -211,6 +224,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     createServicioVeterinario,
     createServicioPaseador,
     createServicioCuidador,
+    getServiciosVeterinaria,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

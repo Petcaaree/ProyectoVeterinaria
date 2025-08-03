@@ -68,7 +68,7 @@ export class ServicioVeterinariaController {
             const id = req.params.id
             const { page, limit } = req.query;
 
-            const servicioVeterinarias = await this.servicioVeterinariaService.findByVeterinarias(id, { page, limit });
+            const servicioVeterinarias = await this.servicioVeterinariaService.findByVeterinaria(id, { page, limit });
             res.json(servicioVeterinarias);
         } catch (error) {
             next(error);

@@ -176,7 +176,7 @@ export class ServicioVeterinariaService {
             throw new NotFoundError(`Veterinaria con id ${idVeterinaria} no encontrada`)
         }
 
-        const compararDirecciones = (dir1, dir2) => {
+        /* const compararDirecciones = (dir1, dir2) => {
             if (!dir1 || !dir2) return false;
             
             return dir1.calle === dir2.calle &&
@@ -191,7 +191,7 @@ export class ServicioVeterinariaService {
         }
         if (existenteVeterinaria.direccion && !compararDirecciones(existenteVeterinaria.direccion, direccion)) {
              throw new ValidationError("La dirección del servicio debe coincidir con la del paseador");
-        }
+        } */
 
         // Validar que direccion tenga la estructura esperada
         if(!direccion.calle || !direccion.altura || !direccion.localidad || !direccion.localidad.nombre || !direccion.localidad.ciudad || !direccion.localidad.ciudad.nombre) {

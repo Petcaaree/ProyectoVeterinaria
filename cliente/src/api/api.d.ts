@@ -134,6 +134,9 @@ export declare function registrarMascota(usuarioId: string, datosMascota: DatosM
 export declare function crearServiciooVeterinaria(data: DatosServicioVeterinario): Promise<any>;
 export declare function crearServicioPaseador(data: DatosServicioPaseador): Promise<any>;
 export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
+export declare function obtenerMascotas(usuarioId: string): Promise<any>;
+export declare function eliminarMascota(usuarioId: string, mascotaId: string): Promise<void>;
+export declare function getServiciosVeterinariaByUsuario(usuarioId: string, page: number): Promise<any[]>;
 export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
 export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;

@@ -292,38 +292,6 @@ export const crearServicioPaseador = async (data) => {
     }
 }
 
-export const crearServicioCuidador = async (data) => {
-    try {
-        const response = await axios.post(`${API_URL}/servicioCuidador`, { 
-            "idCuidador": data.idCuidador,
-            "nombreServicio": data.nombreServicio,
-            "precio": data.precio,
-            "descripcion": data.descripcion,
-            "nombreContacto": data.nombreContacto,
-            "emailContacto": data.emailContacto,
-            "telefonoContacto": data.telefonoContacto,
-            "diasDisponibles": data.diasDisponibles,
-            "mascotasAceptadas": data.mascotasAceptadas,
-            "direccion": {
-              "calle": data.direccion.calle,
-              "altura": data.direccion.altura,
-              "localidad": {
-                "nombre": data.direccion.localidad.nombre,
-                "ciudad": {
-                  "nombre": data.direccion.localidad.ciudad.nombre
-                }
-              }
-            }
-        });
-
-        console.log("Servicio creado:", response.data);
-
-        return response.data
-   } catch(error) {
-        console.error("Error al crear el servicio:", error);
-        throw error;
-    }
-}
 
 export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
     try {
@@ -372,6 +340,69 @@ export const eliminarMascota = async (usuarioId, mascotaId) => {
         return response.data;
     } catch (error) {
         console.error("Error al eliminar la mascota:", error);
+        throw error;
+    }
+};
+
+
+export const crearServicioCuidador = async (data) => {
+    try {
+        const response = await axios.post(`${API_URL}/servicioCuidador`, { 
+            "idCuidador": data.idCuidador,
+            "nombreServicio": data.nombreServicio,
+            "precio": data.precio,
+            "descripcion": data.descripcion,
+            "nombreContacto": data.nombreContacto,
+            "emailContacto": data.emailContacto,
+            "telefonoContacto": data.telefonoContacto,
+            "diasDisponibles": data.diasDisponibles,
+            "mascotasAceptadas": data.mascotasAceptadas,
+            "direccion": {
+              "calle": data.direccion.calle,
+              "altura": data.direccion.altura,
+              "localidad": {
+                "nombre": data.direccion.localidad.nombre,
+                "ciudad": {
+                  "nombre": data.direccion.localidad.ciudad.nombre
+                }
+              }
+            }
+        });
+
+        console.log("Servicio creado:", response.data);
+
+        return response.data
+   } catch(error) {
+        console.error("Error al crear el servicio:", error);
+        throw error;
+    }
+}
+
+
+
+export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
+    try {
+        const response = await axios.get(`${API_URL}/serviciosPaseadores/paseador/${usuarioId}`, {       
+            
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener servicios de paseador:", error);
+        throw error;
+    }
+};
+
+
+export const getServiciosCuidadorByUsuario = async (usuarioId, page) => {
+    try {
+        const response = await axios.get(`${API_URL}/serviciosCuidador/cuidador/${usuarioId}`, {       
+            
+        });
+
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener servicios de cuidador:", error);
         throw error;
     }
 };

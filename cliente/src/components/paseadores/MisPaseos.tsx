@@ -1,163 +1,90 @@
-import React, { useState } from 'react';
 import { ArrowLeft, Heart, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2 } from 'lucide-react';
-
+import React, { useEffect, useState } from 'react';
+import {useAuth} from '../../context/authContext.tsx';
+import { get } from 'http';
 interface MisPaseosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
 }
 
-interface WalkingService {
-  id: string;
-  name: string;
-  description: string;
-  pricePerHour: number;
-  duration: number;
-  availability: string[];
-  areas: string[];
-  isActive: boolean;
-  createdDate: string;
-  bookingsCount: number;
-}
-
-interface Booking {
-  id: string;
-  date: string;
-  time: string;
-  duration: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  client: string;
-  pet: string;
-  phone: string;
-  price: number;
-  notes?: string;
-  area: string;
-}
 
 const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
   const [activeTab, setActiveTab] = useState<'services' | 'bookings'>('services');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
-
-  // Mock data para servicios
-  const [services, setServices] = useState<WalkingService[]>([
-    {
-      id: '1',
-      name: 'Paseo Básico',
-      description: 'Paseo estándar de 1 hora por el parque con ejercicio básico',
-      pricePerHour: 15000,
-      duration: 60,
-      availability: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'],
-      areas: ['Chapinero', 'Zona Rosa'],
-      isActive: true,
-      createdDate: '2024-01-10',
-      bookingsCount: 12
-    },
-    {
-      id: '2',
-      name: 'Paseo Premium',
-      description: 'Paseo extendido de 2 horas con socialización y ejercicio intensivo',
-      pricePerHour: 18000,
-      duration: 120,
-      availability: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
-      areas: ['Chapinero', 'Zona Rosa', 'Chicó'],
-      isActive: true,
-      createdDate: '2024-01-05',
-      bookingsCount: 8
-    }
-  ]);
-
-  // Mock data para reservas
-  const bookings: Booking[] = [
-    {
-      id: '1',
-      date: '2024-01-15',
-      time: '10:00',
-      duration: 60,
-      status: 'confirmed',
-      client: 'Ana García',
-      pet: 'Max (Golden Retriever)',
-      phone: '+57 300 123 4567',
-      price: 15000,
-      area: 'Chapinero',
-      notes: 'Mascota muy activa, le gusta correr'
-    },
-    {
-      id: '2',
-      date: '2024-01-18',
-      time: '15:30',
-      duration: 120,
-      status: 'pending',
-      client: 'Carlos Mendoza',
-      pet: 'Luna (Siamés)',
-      phone: '+57 301 234 5678',
-      price: 36000,
-      area: 'Zona Rosa'
-    },
-    {
-      id: '3',
-      date: '2024-01-12',
-      time: '09:00',
-      duration: 60,
-      status: 'completed',
-      client: 'María López',
-      pet: 'Rocky (Bulldog Francés)',
-      phone: '+57 302 345 6789',
-      price: 15000,
-      area: 'Chicó'
-    }
-  ];
-
-  const filteredBookings = bookings.filter(booking => {
-    return filter === 'all' || booking.status === filter;
-  });
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return { color: 'yellow', icon: AlertCircle, text: 'Pendiente', bg: 'bg-yellow-100', textColor: 'text-yellow-800' };
-      case 'confirmed':
-        return { color: 'blue', icon: CheckCircle, text: 'Confirmado', bg: 'bg-blue-100', textColor: 'text-blue-800' };
-      case 'completed':
-        return { color: 'green', icon: CheckCircle, text: 'Completado', bg: 'bg-green-100', textColor: 'text-green-800' };
-      case 'cancelled':
-        return { color: 'red', icon: XCircle, text: 'Cancelado', bg: 'bg-red-100', textColor: 'text-red-800' };
-      default:
-        return { color: 'gray', icon: AlertCircle, text: 'Desconocido', bg: 'bg-gray-100', textColor: 'text-gray-800' };
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  const toggleServiceStatus = (serviceId: string) => {
-    setServices(prev => 
-      prev.map(service => 
-        service.id === serviceId 
-          ? { ...service, isActive: !service.isActive }
-          : service
-      )
-    );
-  };
-
-  const deleteService = (serviceId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
-      setServices(prev => prev.filter(service => service.id !== serviceId));
-    }
-  };
+    const [page, setPage] = useState(1);
+    const { usuario , getServiciosPaseador} = useAuth();
+    // Mock data para información de la clínica
+    
+  
+    // Mock data para servicios
+    const [services, setServices] = useState<any>([])
+    // Mock data para reservas
+    
+  useEffect(() => {
+     // Simula una carga de datos
+    const cargarServicios = async () => {
+        if (usuario && usuario.id) {
+          try {
+            //setIsLoading(true);
+            //setError(null);
+            const data = await getServiciosPaseador(usuario.id , page);
+            setServices(data?.data || []); // Acceder a la propiedad data del objeto respuesta
+            console.log('Servicios obtenidos:', data);
+          } catch (error) {
+            console.error('Error al obtener servicios:', error);
+            //setError('Error al cargar los servicios');
+            setServices([]); // Asegurar que sea un array vacío en caso de error
+          } finally {
+            //setIsLoading(false);
+          }
+        } else {
+          //setIsLoading(false);
+          setServices([]);
+        }
+      };
+  
+      cargarServicios();
+      // Aquí podrías hacer una llamada a la API para obtener los servicios del veterinario
+  }, [page, usuario, getServiciosPaseador]);
+    
+  
+    const formatPrice = (price: number) => {
+      return price.toLocaleString('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+      });
+    };
+  
+   
+  
+    const formatDayOfWeek = (day: string) => {
+      const dayMap: { [key: string]: string } = {
+        'LUNES': 'Lunes',
+        'MARTES': 'Martes',
+        'MIERCOLES': 'Miércoles',
+        'JUEVES': 'Jueves',
+        'VIERNES': 'Viernes',
+        'SABADO': 'Sábado',
+        'DOMINGO': 'Domingo'
+      };
+      return dayMap[day.toUpperCase()] || day;
+    };
+  
+    const toggleServiceStatus = (serviceId: string, estado: string) => {
+      setServices(prev => 
+        prev.map(service => 
+          service.id === serviceId 
+            ? { ...service, estado: estado === 'Activada' ? 'Desactivada' : 'Activada' }
+            : service
+        )
+      );
+    };
+  
+    const deleteService = (serviceId: string) => {
+      if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
+        setServices(prev => prev.filter(service => service.id !== serviceId));
+      }
+    };
 
   if (userType !== 'paseador') {
     return (
@@ -224,16 +151,7 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
               >
                 Mis Servicios ({services.length})
               </button>
-              <button
-                onClick={() => setActiveTab('bookings')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'bookings'
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Reservas ({filteredBookings.length})
-              </button>
+              
             </nav>
           </div>
 
@@ -257,47 +175,47 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900">{service.name}</h3>
+                            <h3 className="text-xl font-bold text-gray-900">{service.nombreServicio}</h3>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              service.isActive 
+                              service.estado === 'Activada' 
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {service.isActive ? 'Activo' : 'Inactivo'}
+                              {service.estado === 'Activada' ? 'Activo' : 'Inactivo'}
                             </span>
                           </div>
-                          <p className="text-gray-600 mb-3">{service.description}</p>
+                          <p className="text-gray-600 mb-3">{service.descripcion}</p>
                           
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
                               <span className="font-medium text-gray-900">Precio:</span>
-                              <p className="text-green-600 font-bold">{formatPrice(service.pricePerHour)}/hora</p>
+                              <p className="text-green-600 font-bold">{formatPrice(service.precio)}/hora</p>
                             </div>
                             <div>
                               <span className="font-medium text-gray-900">Duración:</span>
-                              <p className="text-gray-600">{service.duration} min</p>
+                              <p className="text-gray-600">{service.duracionMinutos} min</p>
                             </div>
                             <div>
                               <span className="font-medium text-gray-900">Reservas:</span>
-                              <p className="text-gray-600">{service.bookingsCount} total</p>
+                              <p className="text-gray-600">{service.cantidadReservas} total</p>
                             </div>
                             <div>
                               <span className="font-medium text-gray-900">Creado:</span>
-                              <p className="text-gray-600">{new Date(service.createdDate).toLocaleDateString('es-ES')}</p>
+                              <p className="text-gray-600">{new Date(service.fechaCreacion).toLocaleDateString('es-ES')}</p>
                             </div>
                           </div>
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => toggleServiceStatus(service.id)}
+                            onClick={() => toggleServiceStatus(service.id, service.esta)}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                              service.isActive
+                              service.estado === 'Activada'
                                 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                                 : 'bg-green-100 text-green-800 hover:bg-green-200'
                             }`}
                           >
-                            {service.isActive ? 'Desactivar' : 'Activar'}
+                            {service.estado === 'Activada' ? 'Desactivar' : 'Activar'}
                           </button>
                           <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <Edit className="h-4 w-4" />
@@ -316,14 +234,14 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                         <div>
                           <h4 className="text-sm font-medium text-gray-900 mb-2">Disponibilidad:</h4>
                           <div className="flex flex-wrap gap-1">
-                            {service.availability.map((day, index) => (
+                            {service.diasDisponibles.map((day, index) => (
                               <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                                {day}
+                                {formatDayOfWeek(day)}
                               </span>
                             ))}
                           </div>
                         </div>
-                        <div>
+                        {/* <div>
                           <h4 className="text-sm font-medium text-gray-900 mb-2">Zonas de servicio:</h4>
                           <div className="flex flex-wrap gap-1">
                             {service.areas.map((area, index) => (
@@ -332,7 +250,18 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                               </span>
                             ))}
                           </div>
+                        </div> */}
+                         {/* Available Hours */}
+                      <div className="mt-2">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">Horarios disponibles:</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {service.horariosDisponibles.map((hour, index) => (
+                            <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                              {hour}
+                            </span>
+                          ))}
                         </div>
+                      </div>
                       </div>
                     </div>
                   ))}

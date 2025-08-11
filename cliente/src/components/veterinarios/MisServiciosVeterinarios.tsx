@@ -6,33 +6,14 @@ interface MisServiciosVeterinariosProps {
   onBack: () => void;
 }
 
-export interface DatosServicioVeterinario {
-  idVeterinaria: string;
-  nombreServicio: string;
-  tipoServicio: string;
-  duracionMinutos: number;
-  precio: number;
-  descripcion: string;
-  diasDisponibles: string[];
-  horariosDisponibles: string[];
-  mascotasAceptadas: string[];
-  fechaCreacion: string; // ISO string date
-  estado: string;
-cantidadReservas: number;  
-}
 
-interface ClinicInfo {
-  name: string;
-  address: string;
-  phone: string;
-  email: string;
-}
 
 
 
 const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ userType, onBack }) => {
   const [activeTab, setActiveTab] = useState<'services' | 'bookings'>('services');
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<boolean>(false);
   const { usuario , getServiciosVeterinaria} = useAuth();
   // Mock data para información de la clínica
   const clinicInfo: ClinicInfo = {
@@ -82,15 +63,7 @@ useEffect(() => {
     });
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  
 
   const formatDayOfWeek = (day: string) => {
     const dayMap: { [key: string]: string } = {
@@ -105,11 +78,11 @@ useEffect(() => {
     return dayMap[day.toUpperCase()] || day;
   };
 
-  const toggleServiceStatus = (serviceId: string) => {
+  const toggleServiceStatus = (serviceId: string, estado: string) => {
     setServices(prev => 
       prev.map(service => 
         service.id === serviceId 
-          ? { ...service, isActive: !service.isActive }
+          ? { ...service, estado: estado === 'Activada' ? 'Desactivada' : 'Activada' }
           : service
       )
     );
@@ -269,7 +242,7 @@ useEffect(() => {
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => toggleServiceStatus(service.id)}
+                            onClick={() => toggleServiceStatus(service.id, service.estado)}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                               service.estado === 'Activada'
                                 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'

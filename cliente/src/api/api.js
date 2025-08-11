@@ -293,18 +293,7 @@ export const crearServicioPaseador = async (data) => {
 }
 
 
-export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
-    try {
-        const response = await axios.get(`${API_URL}/serviciosVet/veterinaria/${usuarioId}`, {       
-            
-        });
 
-        return response.data;
-    } catch (error) {
-        console.error("Error al obtener servicios de veterinaria:", error);
-        throw error;
-    }
-};
 
 export const registrarMascota = async (clienteId, mascotaData) => {
     try {
@@ -378,7 +367,18 @@ export const crearServicioCuidador = async (data) => {
     }
 }
 
+export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
+    try {
+        const response = await axios.get(`${API_URL}/serviciosVet/veterinaria/${usuarioId}`, {       
+            
+        });
 
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener servicios de veterinaria:", error);
+        throw error;
+    }
+};
 
 export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
     try {

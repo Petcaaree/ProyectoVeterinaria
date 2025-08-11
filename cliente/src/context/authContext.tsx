@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario} from '../api/api.js';
+import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -168,6 +168,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getServiciosPaseador = async (id: string, page: number = 1) => {
+    if (!id) {
+      throw new Error('ID de paseador no proporcionado');
+    }
+    try {
+      const response = await getServiciosPaseadorByUsuario(id, page);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de paseador:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -225,6 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     createServicioPaseador,
     createServicioCuidador,
     getServiciosVeterinaria,
+    getServiciosPaseador,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

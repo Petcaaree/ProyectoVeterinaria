@@ -9,7 +9,7 @@ export class ServicioCuidadorController {
 
     async findAll(req, res, next){
         try {
-            const { page = 1, limit = 4} = req.query
+            const { page = 1, limit = 6} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null, fechaInicio=null, fechaFin=null, mascotasAceptadas=[]} = req.query
@@ -127,25 +127,20 @@ export class ServicioCuidadorController {
         }
     }
 
-    async findActivos(req, res, next) {
+    async findByEstadoServicioCuidador(req, res, next) {
         try {
+
+            const id = req.params.id;
+            const estado = req.params.estado;
             const { page = 1, limit = 4 } = req.query;
-            const result = await this.servicioCuidadorService.findByEstado(EstadoServicio.ACTIVO, { page, limit });
+            const result = await this.servicioCuidadorService.findByEstado(estado, id, { page, limit });
             res.json(result);
         } catch (error) {
             next(error);
         }
     }
 
-    async findInactivos(req, res, next) {
-        try {
-            const { page = 1, limit = 4 } = req.query;
-            const result = await this.servicioCuidadorService.findByEstado(EstadoServicio.DESACTIVADA, { page, limit });
-            res.json(result);
-        } catch (error) {
-            next(error);
-        }
-    }
+    
 
 
 

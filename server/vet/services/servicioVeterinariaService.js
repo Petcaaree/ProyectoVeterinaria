@@ -276,16 +276,16 @@ export class ServicioVeterinariaService {
         return this.toDTO(servicioVeterinaria)
     }
 
-    async findByEstado(estado, {page = 1, limit = 4}) {
-        const pageNum = Math.max(Number(page), 1)
+    async findByEstado(estado, veterinariaID, { page = 1, limit = 4 }) {
+        const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioVeterinariaRepository.findByEstado(estado);
+        const servicios = await this.servicioVeterinariaRepository.findByEstadoByVeterinaria(estado, veterinariaID);
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;
         const endIndex = startIndex + limitNum;
-        const totalPages = Math.ceil(total / limitNum);
+        const total_pages = Math.ceil(total / limitNum);
 
         const data = servicios.slice(startIndex, endIndex).map(s => this.toDTO(s));
 
@@ -298,7 +298,7 @@ export class ServicioVeterinariaService {
         };
     }
 
-    toDTO(servicioVeterinaria) {
+    toDTO(servicoVeterinaria) {
         return {
             id: servicoVeterinaria.id,
             usuarioProveedor: {

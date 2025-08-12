@@ -126,6 +126,7 @@ export interface DatosServicioCuidador {
   };
 }
 
+export declare function getServiciosPaseadores(pageNumber: number, filtros?: any): Promise<any>;
 export declare function getAlojamientos(pageNumber: number, filtros: FiltrosAlojamiento): Promise<any>;
 export declare function getDestinos(pageNumber: number): Promise<any>;
 export declare function loginUsuario(datos: DatosLogin, tipo: string): Promise<any>;
@@ -136,10 +137,11 @@ export declare function crearServicioPaseador(data: DatosServicioPaseador): Prom
 export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
 export declare function obtenerMascotas(usuarioId: string): Promise<any>;
 export declare function eliminarMascota(usuarioId: string, mascotaId: string): Promise<void>;
-export declare function getServiciosVeterinariaByUsuario(usuarioId: string, page: number): Promise<any[]>;
-export declare function getServiciosPaseadorByUsuario(usuarioId: string, page: number): Promise<any[]>;
-export declare function getServiciosCuidadorByUsuario(usuarioId: string, page: number): Promise<any[]>;
+export declare function getServiciosVeterinariaByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
+export declare function getServiciosPaseadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
+export declare function getServiciosCuidadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
 export declare function cambiarEstadoServicio(serviceId: string, estado: string, tipoUsuario: string): Promise<void>;
+export declare function obetenerServiciosCuidadores(page: number, filtro: any): Promise<any[]>;
 export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
 export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;

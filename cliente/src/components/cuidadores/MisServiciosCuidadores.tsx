@@ -15,8 +15,11 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
       const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0)
   const [total , setTotal] = useState(0)
+  const [totalActivos, setTotalActivos] = useState(0);
+  const [totalInactivos, setTotalInactivos] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
       const { usuario , getServiciosCuidador, activarOdesactivarServicio} = useAuth();
+      const [seleccionoEstado, setSeleccionoEstado] = useState<boolean>(false);
       // Mock data para información de la clínica
       
     
@@ -26,18 +29,34 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
       
     useEffect(() => {
        // Simula una carga de datos
-      
-    
         cargarServicios();
+        cargarTotales();
         // Aquí podrías hacer una llamada a la API para obtener los servicios del veterinario
-    }, [page]);
+    }, [page, activeTab,]);
+
+    const cargarTotales = async () => {
+      if (usuario && usuario.id) {
+        try {
+          // Cargar total de activos
+          const dataActivos = await getServiciosCuidador(usuario.id, 1, 'Activada');
+          setTotalActivos(dataActivos?.total || 0);
+          
+          // Cargar total de inactivos
+          const dataInactivos = await getServiciosCuidador(usuario.id, 1, 'Desactivada');
+          setTotalInactivos(dataInactivos?.total || 0);
+        } catch (error) {
+          console.error('Error al obtener totales:', error);
+        }
+      }
+    };
 
 
     const cargarServicios = async () => {
           if (usuario && usuario.id) {
             try {
               setIsLoading(true);
-              const data = await getServiciosCuidador(usuario.id , page);
+              const estado = activeTab === 'activos' ? 'Activada' : 'Desactivada';
+              const data = await getServiciosCuidador(usuario.id,  page, estado);
               setServices(data?.data || []); // Acceder a la propiedad data del objeto respuesta
               setTotalPages(data?.total_pages || 0);
               setTotal(data?.total || 0); 
@@ -94,8 +113,18 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
         };
         return dayMap[day.toUpperCase()] || day;
       };
+
+       const formatearMascota = (mascota: string) => {
+      const mascotaMap: { [key: string]: string } = {
+        'PERRO': 'Perro',
+        'GATO': 'Gato',
+        'AVE': 'Ave',
+        'OTRO': 'Otro'
+            };
+      return mascotaMap[mascota.toUpperCase()] || mascota;
+    }
     
-      const toggleServiceStatus = (serviceId: string, estado: string) => {
+      /* const toggleServiceStatus = (serviceId: string, estado: string) => {
         setServices(prev => 
           prev.map(service => 
             service.id === serviceId 
@@ -103,7 +132,7 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
               : service
           )
         );
-      };
+      }; */
 
       const activarDesactivarServicio = async (idServicio: string, estadoActual: string, tipoUsuario: string) => {
         try {
@@ -115,32 +144,30 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           // Llamar a la función del contexto con el nuevo estado
           await activarOdesactivarServicio(idServicio, tipoUsuario, nuevoEstado);
           
-          // Actualizar la lista de servicios después de la acción
-          await cargarServicios();
+          // Si era el único servicio en esta página, regresar a página 1
+          if (services.length === 1 && page > 1) {
+            setPage(1);
+          } else {
+            // Actualizar la lista de servicios después de la acción
+            await cargarServicios();
+          }
+          
+          // Recargar los totales para actualizar los contadores
+          await cargarTotales();
           
           console.log("Estado cambiado exitosamente");
         } catch (error) {
           console.error("Error al cambiar el estado del servicio:", error);
           alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
         }
-      }
-          
-    
+      }    
       const deleteService = (serviceId: string) => {
         if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
           setServices(prev => prev.filter(service => service.id !== serviceId));
         }
       };  
 
-      const formatearMascota = (mascota: string) => {
-      const mascotaMap: { [key: string]: string } = {
-        'PERRO': 'Perro',
-        'GATO': 'Gato',
-        'AVE': 'Ave',
-        'OTRO': 'Otro'
-            };
-      return mascotaMap[mascota.toUpperCase()] || mascota;
-    }
+     
   // Mock data para servicios
   
 
@@ -201,24 +228,30 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
-                onClick={() => setActiveTab('activos')}
+                onClick={() => {
+                  setActiveTab('activos');
+                  setPage(1); // Resetear página al cambiar tab
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === 'activos'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Activos ({services.filter(service => service.estado === 'Activada').length})
+                Activos ({totalActivos})
               </button>
               <button
-                onClick={() => setActiveTab('inactivos')}
+                onClick={() => {
+                  setActiveTab('inactivos');
+                  setPage(1); // Resetear página al cambiar tab
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === 'inactivos'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Inactivos ({services.filter(service => service.estado === 'Desactivada').length})
+                Inactivos ({totalInactivos})
               </button>
               
             </nav>

@@ -1,269 +1,432 @@
-import React, { useState } from 'react';
-import { Heart, MapPin, Star, Clock, Award, Shield, Search, Filter, Calendar } from 'lucide-react';
-import { walkerServices } from '../data/mockData';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Heart, Clock, Star, Award, Shield, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
 import Filtros from './comun/Filtros';
 import SinResultados from './comun/SinResultados';
 import TarjetaPaseador from './paseadores/TarjetaPaseador';
 import CalendarioModerno from './comun/CalendarioModerno';
+import { getServiciosPaseadores } from '../api/api.js'; 
+
+
+/** ===== Tipos del back (DTO) ===== **/
+type ServicioPaseadorDTO = {
+  id: string;
+  usuarioProveedor: { nombre: string; email: string };
+  nombreServicio: string;
+  direccion: {
+    calle: string;
+    altura: string | number;
+    localidad?: { nombre: string; ciudad?: { nombre: string } };
+  };
+  precio: number;
+  descripcion: string;
+  duracionMinutos: number;
+  nombreContacto: string;
+  emailContacto: string;
+  telefonoContacto: string;
+  diasDisponibles: string[];
+  horariosDisponibles: string[];
+  fechasNoDisponibles?: Array<{ fecha: string | Date; horariosNoDisponibles?: string[] }>;
+  estado: 'Activada' | 'Desactivada';
+  fechaCreacion: string;
+  cantidadReservas?: number;
+};
+
+type PageResponse<T> = {
+  page: number;
+  per_page: number;
+  total?: number;
+  totalServicios?: number;
+  totalPaseadores?: number;
+  total_pages: number;
+  data: T[];
+};
+
+/** ===== Modelo que espera TarjetaPaseador (similar a tus mocks) ===== **/
+type WalkerCardModel = {
+  id: string;
+  name: string;
+  areas: string[];
+  pricePerHour: number;
+  description: string;
+  availability: string[]; // ["Lunes","Martes"...]
+  rating: number;         // placeholders para UI
+  experience: number;     // placeholders para UI
+  raw: ServicioPaseadorDTO;
+};
 
 interface PaginaPaseadoresProps {
   userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 }
 
+const dtoToCard = (dto: ServicioPaseadorDTO): WalkerCardModel => {
+  const area = dto?.direccion?.localidad?.nombre ?? 'Sin localidad';
+  return {
+    id: dto.id,
+    name: dto.usuarioProveedor?.nombre || dto.nombreServicio,
+    areas: [area].filter(Boolean),
+    pricePerHour: dto.precio,
+    description: dto.descripcion,
+    availability: dto.diasDisponibles ?? [],
+    rating: 4.6,       // placeholders para no romper UI
+    experience: 3,     // placeholders
+    raw: dto,
+  };
+};
+
 const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
-  const [selectedWalker, setSelectedWalker] = useState<any>(null);
+  const [selectedWalker, setSelectedWalker] = useState<WalkerCardModel | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [mostrarCalendario, setMostrarCalendario] = useState(false);
+
+  // filtros (mismo patrón que Cuidadores)
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [experienceFilter, setExperienceFilter] = useState('all'); // UI-only
   const [locationFilter, setLocationFilter] = useState('all');
-  const [experienceFilter, setExperienceFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
+  const [fechaPaseo, setFechaPaseo] = useState(''); // una sola fecha para paseos
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
+  // paginación
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // datos
+  const [walkServices, setWalkServices] = useState<WalkerCardModel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string|null>(null);
+
+  // carga desde back
+  useEffect(() => {
+    cargarServicios();
+    // scroll arriba suave como en cuidadores
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchTerm, minPrice, maxPrice, locationFilter, fechaPaseo]);
+
+  const cargarServicios = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filtros = {
+        nombre: searchTerm || undefined,                  // ver ajuste en repo: usar filtro.nombre
+        localidad: locationFilter !== 'all' ? locationFilter : undefined,
+        precioMin: minPrice || undefined,
+        precioMax: maxPrice || undefined,
+        fecha: fechaPaseo ? new Date(fechaPaseo).toLocaleDateString('es-AR') : undefined,
+      };
+
+      const resp = await getServiciosPaseadores(page, filtros);
+      const data = (resp?.data ?? []).map(dtoToCard);
+
+      setWalkServices(data);
+      setTotalPages(resp?.total_pages ?? 1);
+    } catch (e: any) {
+      setError(e?.message ?? 'Error al cargar servicios');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleBookWalker = (walker: any) => {
+  // helpers UI
+  const formatPrice = (price: number) =>
+    price.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+
+  const handleBookWalker = (walker: WalkerCardModel) => {
     setSelectedWalker(walker);
     setIsBookingOpen(true);
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
+  const renderStars = (rating: number) =>
+    Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
+        className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
       />
     ));
+
+  // áreas únicas (para combo “Zonas” si lo agregás luego; ahora no hay select explícito en Filtros)
+  const areas = useMemo(() => {
+    const set = new Set<string>();
+    walkServices.forEach(w => w.areas.forEach(a => a && set.add(a)));
+    return Array.from(set);
+  }, [walkServices]);
+
+  // Filtro adicional en memoria para “experienceFilter” (UI only)
+  const filteredWalkers = useMemo(() => {
+    return walkServices.filter(w => {
+      if (experienceFilter === 'junior' && w.experience > 2) return false;
+      if (experienceFilter === 'mid' && (w.experience <= 2 || w.experience > 4)) return false;
+      if (experienceFilter === 'senior' && w.experience <= 4) return false;
+      return true;
+    });
+  }, [walkServices, experienceFilter]);
+
+  // paginación like cuidadores
+  const handlePreviousPage = () => {
+    if (page > 1) setPage(p => p - 1);
   };
 
-  // Get unique areas for location filter
-  const areas = [...new Set(walkerServices.flatMap(walker => walker.areas))];
-
-  // Check if walker is available on selected date
-  const isAvailableOnDate = (walker: any, selectedDate: string) => {
-    if (!selectedDate) return true;
-    
-    const date = new Date(selectedDate);
-    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const dayName = dayNames[date.getDay()];
-    
-    return walker.availability.includes(dayName);
+  const handleNextPage = () => {
+    if (page < totalPages) setPage(p => p + 1);
   };
 
-  // Filter walkers based on search and filters
-  const filteredWalkers = walkerServices.filter(walker => {
-    const matchesSearch = walker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         walker.areas.some(area => area.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesPrice = (!minPrice && !maxPrice) ||
-                        (() => {
-                          const price = walker.pricePerHour;
-                          const min = minPrice ? parseInt(minPrice) : 0;
-                          const max = maxPrice ? parseInt(maxPrice) : Infinity;
-                          return price >= min && price <= max;
-                        })();
-    
-    const matchesLocation = locationFilter === 'all' || 
-                           walker.areas.some(area => area.toLowerCase().includes(locationFilter.toLowerCase()));
-    
-    const matchesExperience = experienceFilter === 'all' ||
-                             (experienceFilter === 'junior' && walker.experience <= 2) ||
-                             (experienceFilter === 'mid' && walker.experience > 2 && walker.experience <= 4) ||
-                             (experienceFilter === 'senior' && walker.experience > 4);
-    
-    const matchesDate = isAvailableOnDate(walker, dateFilter);
-    
-    return matchesSearch && matchesPrice && matchesLocation && matchesExperience && matchesDate;
-  });
+  const goToPage = (pageNumber: number) => setPage(pageNumber);
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="py-8 bg-green-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header (tema verde como front) */}
         <EncabezadoPagina
           icono={Heart}
           titulo="Paseadores Profesionales"
-          descripcion="Encuentra el paseador perfecto para tu mascota. Servicio de paseos por horas con profesionales certificados y confiables."
+          descripcion="Encuentra el paseador ideal por hora para tu mascota. Profesionales verificados, con disponibilidad y zonas claras."
           colorFondo="bg-green-100"
           colorIcono="text-green-600"
         />
 
-        {/* Filters */}
+        {/* Filtros (mismo bloque visual que cuidadores, adaptado a paseadores) */}
         <Filtros
           busqueda={searchTerm}
-          alCambiarBusqueda={setSearchTerm}
+          alCambiarBusqueda={(v: string) => { setSearchTerm(v); setPage(1); }}
           placeholderBusqueda="Buscar paseador o zona..."
           colorTema="green"
           filtrosAdicionales={
             <>
-            {/* Min Price */}
-            <input
-              type="number"
-              placeholder="Precio mín/hora"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            />
+              {/* Precio mín */}
+              <input
+                type="number"
+                placeholder="Precio mín/hora"
+                value={minPrice}
+                onChange={(e) => { setMinPrice(e.target.value); setPage(1); }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+              />
 
-            {/* Max Price */}
-            <input
-              type="number"
-              placeholder="Precio máx/hora"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            />
+              {/* Precio máx */}
+              <input
+                type="number"
+                placeholder="Precio máx/hora"
+                value={maxPrice}
+                onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+              />
 
-            {/* Location Filter */}
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            >
-              <option value="all">Todas las zonas</option>
-              {areas.map(area => (
-                <option key={area} value={area}>{area}</option>
-              ))}
-            </select>
-
-            {/* Experience Filter */}
-            <select
-              value={experienceFilter}
-              onChange={(e) => setExperienceFilter(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            >
-              <option value="all">Todos los tipos</option>
-              <option value="dog">Perros</option>
-              <option value="cat">Gatos</option>
-              <option value="bird">Aves</option>
-              <option value="other">Otros</option>
-            </select>
-
-            {/* Date Filter */}
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <button
-                type="button"
-                onClick={() => setMostrarCalendario(true)}
-                className="w-full pl-10 pr-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white text-left text-sm"
+              {/* Tipo/“experiencia” (UI solo) */}
+              <select
+                value={experienceFilter}
+                onChange={(e) => setExperienceFilter(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               >
-                <span className={dateFilter ? 'text-gray-900' : 'text-gray-500'}>
-                  {dateFilter 
-                    ? new Date(dateFilter).toLocaleDateString('es-ES', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        year: 'numeric' 
-                      })
-                    : 'Fecha del paseo'
-                  }
-                </span>
-              </button>
-            </div>
+                <option value="all">Todos los tipos</option>
+                <option value="junior">Junior</option>
+                <option value="mid">Mid</option>
+                <option value="senior">Senior</option>
+              </select>
+
+              {/* Fecha del paseo */}
+              <div className="col-span-full md:col-span-1">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Fecha del paseo
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarCalendario(true)}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
+                  >
+                    {fechaPaseo 
+                      ? new Date(fechaPaseo).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      : 'Seleccionar fecha'
+                    }
+                  </button>
+                </div>
+              </div>
             </>
           }
         />
 
-        {/* Results Count */}
+        {/* contador + estados */}
         <div className="mb-6">
-          <p className="text-gray-600">
-            Mostrando {filteredWalkers.length} paseador{filteredWalkers.length !== 1 ? 'es' : ''} 
-            {searchTerm && ` para "${searchTerm}"`}
-            {dateFilter && ` disponibles el ${new Date(dateFilter).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
-          </p>
+          {loading && <p className="text-gray-600">Cargando servicios…</p>}
+          {error && <p className="text-red-600">Error: {error}</p>}
+          {!loading && !error && (
+            <p className="text-gray-600">
+              Mostrando {filteredWalkers.length} paseador{filteredWalkers.length !== 1 ? 'es' : ''} 
+              {searchTerm && ` para "${searchTerm}"`}
+              {fechaPaseo && ` disponibles el ${new Date(fechaPaseo).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+            </p>
+          )}
         </div>
 
-        {/* Walkers Grid */}
-        {filteredWalkers.length === 0 ? (
+        {/* grid */}
+        {!loading && !error && (filteredWalkers.length === 0 ? (
           <SinResultados />
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {filteredWalkers.map((walker) => (
-              <TarjetaPaseador
-                key={walker.id}
-                paseador={walker}
-                alContratar={handleBookWalker}
-              />
-            ))}
-          </div>
-        )}
+          <>
+            {/* Carrusel de Paseadores */}
+            <div className="relative mb-16">
+              {/* Contenedor del carrusel */}
+              <div className="flex items-center">
+                {/* Botón Anterior - Lado Izquierdo */}
+                {totalPages > 1 && (
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={page === 1}
+                    className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                      page === 1 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-green-600 text-white hover:bg-green-700 hover:scale-110 shadow-xl'
+                    }`}
+                    style={{ left: '-60px' }}
+                  >
+                    <ChevronLeft className="h-6 w-6 mx-auto" />
+                  </button>
+                )}
 
-        {/* Service Features */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 md:p-12">
+                {/* Grid de Tarjetas */}
+                <div className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                  {filteredWalkers.map((walker) => (
+                    <TarjetaPaseador
+                      key={walker.id}
+                      paseador={walker}
+                      alContratar={() => handleBookWalker(walker)}
+                    />
+                  ))}
+                </div>
+
+                {/* Botón Siguiente - Lado Derecho */}
+                {totalPages > 1 && (
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                      page === totalPages 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-green-600 text-white hover:bg-green-700 hover:scale-110 shadow-xl'
+                    }`}
+                    style={{ right: '-60px' }}
+                  >
+                    <ChevronRight className="h-6 w-6 mx-auto" />
+                  </button>
+                )}
+              </div>
+
+              {/* Indicadores de páginas - Centrados debajo */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-8">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 7) {
+                      pageNumber = i + 1;
+                    } else if (page <= 4) {
+                      pageNumber = i + 1;
+                    } else if (page >= totalPages - 3) {
+                      pageNumber = totalPages - 6 + i;
+                    } else {
+                      pageNumber = page - 3 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          page === pageNumber
+                            ? 'bg-green-600 scale-125'
+                            : 'bg-gray-300 hover:bg-green-300'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Información de páginas */}
+              {totalPages > 1 && (
+                <div className="text-center mt-4">
+                  <p className="text-gray-600 text-sm">
+                    Página <span className="font-semibold text-green-600">{page}</span> de{' '}
+                    <span className="font-semibold text-green-600">{totalPages}</span>
+                    
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        ))}
+
+        {/* banner features (verde, como tu estilo) */}
+        <div className="bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl p-8 md:p-12 text-white mb-16">
           <div className="text-center mb-12">
-            <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-              ¿Qué incluye nuestro servicio de paseos?
+            <h3 className="text-2xl md:text-3xl font-bold mb-4">
+              ¿Por qué elegir nuestros paseadores?
             </h3>
-            <p className="text-gray-600 text-lg">
-              Mucho más que un simple paseo
+            <p className="text-green-100 text-lg">
+              Seguridad y diversión en cada paseo
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-green-600" />
+              <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Seguridad Total</h4>
-              <p className="text-gray-600 text-sm">GPS tracking y seguro incluido</p>
+              <h4 className="text-lg font-semibold mb-2">Seguro & GPS</h4>
+              <p className="text-green-100 text-sm">Seguimiento y cobertura durante el paseo</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-blue-600" />
+              <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Reportes en Tiempo Real</h4>
-              <p className="text-gray-600 text-sm">Fotos y actualizaciones del paseo</p>
+              <h4 className="text-lg font-semibold mb-2">Reportes en Vivo</h4>
+              <p className="text-green-100 text-sm">Fotos y actualizaciones en tiempo real</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-purple-600" />
+              <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Heart className="h-8 w-8" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Ejercicio Personalizado</h4>
-              <p className="text-gray-600 text-sm">Adaptado a la edad y raza</p>
+              <h4 className="text-lg font-semibold mb-2">Ejercicio a Medida</h4>
+              <p className="text-green-100 text-sm">Rutinas según edad y energía</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-orange-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="h-8 w-8 text-orange-600" />
+              <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="h-8 w-8" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">Socialización</h4>
-              <p className="text-gray-600 text-sm">Interacción con otras mascotas</p>
+              <h4 className="text-lg font-semibold mb-2">Socialización</h4>
+              <p className="text-green-100 text-sm">Convivencia y aprendizaje positivo</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Booking Modal */}
+      {/* Modal de reserva */}
       <ModalReserva
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
         service={selectedWalker}
-        serviceType="walker"
+        serviceType="paseador"
         userType={userType}
       />
-      
-      {/* Calendario Modal */}
+
+      {/* Calendario */}
       {mostrarCalendario && (
         <CalendarioModerno
-          fechaSeleccionada={dateFilter}
+          fechaSeleccionada={fechaPaseo}
           onFechaSeleccionada={(fecha) => {
-            setDateFilter(fecha);
+            setFechaPaseo(fecha);
             setMostrarCalendario(false);
+            setPage(1);
           }}
           onCerrar={() => setMostrarCalendario(false)}
-          fechaMinima={new Date().toISOString().split('T')[0]}
+          fechaMinima={today}
           colorTema="green"
           titulo="Seleccionar fecha del paseo"
         />

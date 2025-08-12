@@ -21,13 +21,15 @@ export class ServicioCuidadorService {
         this.reservaRepository = reservaRepository
     }
 
-    async findAll({page = 1, limit = 4}) {
+    async findAll({page = 1, limit = 6}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Buscar cuidadores distintos
-        let cuidadores = await this.cuidadorRepository.findByPage(pageNum, limit)
+        /* let cuidadores = await this.cuidadorRepository.findByPage(pageNum, limit)
 
+
+       
         // console.log("Cuidadores encontrados:", cuidadores.length)
 
 
@@ -54,23 +56,39 @@ export class ServicioCuidadorService {
         }
 
         // Aplanar el array de servicios (solo de cuidadores con servicios)
-        const todosLosServicios = serviciosValidos
+        const todosLosServicios = serviciosValidos */
 
-        const total = await this.cuidadorRepository.countAll()
+
+        const todosLosServiciosPorPagina = await this.servicioCuidadorRepository.findByPage(pageNum, limitNum)
+        const todosLosServicios = await this.servicioCuidadorRepository.findAll()
+
+        // Obtener cuidadores distintos de todos los servicios
+        const cuidadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
+        const totalCuidadoresDistintos = cuidadoresDistintosIds.size
+
+        // Obtener cuidadores distintos de los servicios de esta página
+        const cuidadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
+
+        const total = await this.servicioCuidadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
-        const data = todosLosServicios.map(s => this.toDTO(s))
+        const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
+
+        /* const startIndex = (pageNum - 1) * limitNum;
+        const endIndex = startIndex + limitNum;
+        const cuidadoresPaginasID = cuidadorIds.slice(startIndex, endIndex); */
 
         return {
             page: pageNum,
             per_page: limitNum,
             totalServicios: todosLosServicios.length,
-            totalCuidadores: cuidadoresConServicios.length,
+            totalCuidadores: totalCuidadoresDistintos,
+            cuidadoresPagina: cuidadoresDistintosPagina.size,
             total_pages: total_pages,
             data: data
         };
     }
 
-    async findByFilters(filtro,{page=1,limit=4}) {
+    async findByFilters(filtro,{page=1,limit=6}) {
         console.log("Filtro recibido:", filtro);
                 const pageNum = Math.max(Number(page), 1)
                 const limitNum = Math.min(Math.max(Number(limit), 1), 100)
@@ -285,11 +303,11 @@ export class ServicioCuidadorService {
         return this.toDTO(servicioCuidador)
     }
 
-    async findByEstado(estado, { page = 1, limit = 4 }) {
+    async findByEstado(estado, cuidadorID, { page = 1, limit = 4 }) {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioCuidadorRepository.findByEstado(estado);
+        const servicios = await this.servicioCuidadorRepository.findByEstadoByCuidador(estado, cuidadorID);
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
-import { Shield, Home, Clock, Star, Award, CheckCircle, Calendar } from 'lucide-react';
-import { caregiverServices } from '../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { Shield, Home, Clock, Star, Award, CheckCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+//import { cuidadorServices } from '../data/mockData';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
 import Filtros from './comun/Filtros';
 import SinResultados from './comun/SinResultados';
 import TarjetaCuidador from './cuidadores/TarjetaCuidador';
 import CalendarioModerno from './comun/CalendarioModerno';
+import { useAuth } from '../context/authContext.tsx';
+import ServiciosCuidadores from './ServiciosCuidadores';
+
 
 interface PaginaCuidadoresProps {
   userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 }
 
 const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
-  const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
+  const [selectedCuidador, setSelectedCuidador] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
@@ -24,6 +27,53 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [locationFilter, setLocationFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [cuidadorServices, setCuidadorServicios] = useState<any[]>([]);
+
+  const { usuario, getServiciosCuidadores } = useAuth();
+
+  const [filtros, setFiltros] = useState({
+    nombreServicio: '',
+    precioMin: '',
+    precioMax: '',
+    mascotasAceptadas: [],
+    fechaInicio: '',
+    fechaFin: '',
+  });
+
+  useEffect(() => {
+    cargarServicios();
+  }, [page]);
+
+    const cargarServicios = async () => {
+    // Simular carga de servicios
+    const servicios = await getServiciosCuidadores(page, filtros);
+    setCuidadorServicios(servicios.data);
+    setTotalPages(servicios.total_pages); // Suponiendo 10 servicios por página
+  };
+
+  // Funciones para navegación de carrusel
+  const handlePreviousPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const goToPage = (pageNumber: number) => {
+    setPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('es-CO', {
@@ -33,8 +83,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     });
   };
 
-  const handleBookCaregiver = (caregiver: any) => {
-    setSelectedCaregiver(caregiver);
+  const handleBookCuidador = (cuidador: any) => {
+    setSelectedCuidador(cuidador);
     setIsBookingOpen(true);
   };
 
@@ -49,8 +99,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     ));
   };
 
-  // Check if caregiver is available on selected date
-  const isAvailableOnDateRange = (caregiver: any, startDate: string, endDate: string) => {
+  // Check if cuidador is available on selected date
+  const isAvailableOnDateRange = (cuidador: any, startDate: string, endDate: string) => {
     if (!startDate && !endDate) return true;
     
     // Si solo hay fecha de inicio, verificar ese día
@@ -58,13 +108,13 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
       const date = new Date(startDate);
       const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
       const dayName = dayNames[date.getDay()];
-      return caregiver.availability.some((period: string) => 
+      return cuidador.availability.some((period: string) => 
         period.includes(dayName) || period.includes('Lunes a Domingo') || period.includes('Lunes a Viernes')
       );
     }
     
     // Para rangos de fechas, verificar disponibilidad general
-    return caregiver.availability.some((period: string) => 
+    return cuidador.availability.some((period: string) => 
       period.includes('Lunes a Domingo') || 
       (period.includes('Lunes a Viernes') && !isWeekendRange(startDate, endDate))
     );
@@ -85,30 +135,30 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     return true;
   };
 
-  // Filter caregivers based on search and filters
-  const filteredCaregivers = caregiverServices.filter(caregiver => {
-    const matchesSearch = caregiver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         caregiver.services.some(service => 
+  // Filter cuidadors based on search and filters
+  /* const filteredCuidadors = cuidadorServices.filter(cuidador => {
+    const matchesSearch = cuidador.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         cuidador.services.some(service => 
                            service.toLowerCase().includes(searchTerm.toLowerCase())
                          );
     
     const matchesPrice = (!minPrice && !maxPrice) ||
                         (() => {
-                          const price = caregiver.pricePerDay;
+                          const price = cuidador.pricePerDay;
                           const min = minPrice ? parseInt(minPrice) : 0;
                           const max = maxPrice ? parseInt(maxPrice) : Infinity;
                           return price >= min && price <= max;
                         })();
     
     const matchesExperience = experienceFilter === 'all' ||
-                             (experienceFilter === 'junior' && caregiver.experience <= 3) ||
-                             (experienceFilter === 'mid' && caregiver.experience > 3 && caregiver.experience <= 6) ||
-                             (experienceFilter === 'senior' && caregiver.experience > 6);
+                             (experienceFilter === 'junior' && cuidador.experience <= 3) ||
+                             (experienceFilter === 'mid' && cuidador.experience > 3 && cuidador.experience <= 6) ||
+                             (experienceFilter === 'senior' && cuidador.experience > 6);
     
-    const matchesDate = isAvailableOnDateRange(caregiver, fechaInicio, fechaFin);
+    const matchesDate = isAvailableOnDateRange(cuidador, fechaInicio, fechaFin);
     
     return matchesSearch && matchesPrice && matchesExperience && matchesDate;
-  });
+  }); */
 
   const today = new Date().toISOString().split('T')[0];
   return (
@@ -238,29 +288,111 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
         {/* Results Count */}
         <div className="mb-6">
           <p className="text-gray-600">
-            Mostrando {filteredCaregivers.length} cuidador{filteredCaregivers.length !== 1 ? 'es' : ''} 
+            Mostrando {cuidadorServices.length} cuidador{cuidadorServices.length !== 1 ? 'es' : ''} 
             {searchTerm && ` para "${searchTerm}"`}
             {fechaInicio && fechaFin && ` disponibles del ${new Date(fechaInicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} al ${new Date(fechaFin).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`}
             {fechaInicio && !fechaFin && ` disponibles desde el ${new Date(fechaInicio).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
           </p>
         </div>
 
-        {/* Caregivers Grid */}
-        {filteredCaregivers.length === 0 ? (
+        {/* Cuidadors Grid */}
+        {cuidadorServices.length === 0 ? (
           <SinResultados />
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {filteredCaregivers.map((caregiver) => (
-              <TarjetaCuidador
-                key={caregiver.id}
-                cuidador={caregiver}
-                alContratar={handleBookCaregiver}
-              />
-            ))}
-          </div>
+          <>
+            {/* Carrusel de Cuidadores */}
+            <div className="relative mb-16">
+              {/* Contenedor del carrusel */}
+              <div className="flex items-center">
+                {/* Botón Anterior - Lado Izquierdo */}
+                {totalPages > 1 && (
+                  <button
+                    onClick={handlePreviousPage}
+                    disabled={page === 1}
+                    className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                      page === 1 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-orange-600 text-white hover:bg-orange-700 hover:scale-110 shadow-xl'
+                    }`}
+                    style={{ left: '-60px' }}
+                  >
+                    <ChevronLeft className="h-6 w-6 mx-auto" />
+                  </button>
+                )}
+
+                {/* Grid de Tarjetas */}
+                <div className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                  {cuidadorServices.map((cuidador) => (
+                    <TarjetaCuidador
+                      key={cuidador.id}
+                      cuidador={cuidador}
+                      alContratar={handleBookCuidador}
+                    />
+                  ))}
+                </div>
+
+                {/* Botón Siguiente - Lado Derecho */}
+                {totalPages > 1 && (
+                  <button
+                    onClick={handleNextPage}
+                    disabled={page === totalPages}
+                    className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                      page === totalPages 
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                        : 'bg-orange-600 text-white hover:bg-orange-700 hover:scale-110 shadow-xl'
+                    }`}
+                    style={{ right: '-60px' }}
+                  >
+                    <ChevronRight className="h-6 w-6 mx-auto" />
+                  </button>
+                )}
+              </div>
+
+              {/* Indicadores de páginas - Centrados debajo */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-8">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 7) {
+                      pageNumber = i + 1;
+                    } else if (page <= 4) {
+                      pageNumber = i + 1;
+                    } else if (page >= totalPages - 3) {
+                      pageNumber = totalPages - 6 + i;
+                    } else {
+                      pageNumber = page - 3 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          page === pageNumber
+                            ? 'bg-orange-600 scale-125'
+                            : 'bg-gray-300 hover:bg-orange-300'
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Información de páginas */}
+              {totalPages > 1 && (
+                <div className="text-center mt-4">
+                  <p className="text-gray-600 text-sm">
+                    Página <span className="font-semibold text-orange-600">{page}</span> de{' '}
+                    <span className="font-semibold text-orange-600">{totalPages}</span>
+                    
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
-        {/* Why Choose Our Caregivers */}
+        {/* Why Choose Our Cuidadors */}
         <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl p-8 md:p-12 text-white mb-16">
           <div className="text-center mb-12">
             <h3 className="text-2xl md:text-3xl font-bold mb-4">
@@ -311,8 +443,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
       <ModalReserva
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
-        service={selectedCaregiver}
-        serviceType="caregiver"
+        service={selectedCuidador}
+        serviceType="cuidador"
        userType={userType}
       />
       </div>

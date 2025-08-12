@@ -367,9 +367,9 @@ export const crearServicioCuidador = async (data) => {
     }
 }
 
-export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
+export const getServiciosVeterinariaByUsuario = async (usuarioId, page, estado) => {
     try {
-        const response = await axios.get(`${API_URL}/serviciosVet/veterinaria/${usuarioId}`, {       
+        const response = await axios.get(`${API_URL}/veterinaria/${usuarioId}/serviciosVeterinaria/${estado}`, {       
             params: { 
                 "page": page,
                 "limit": 3
@@ -383,9 +383,9 @@ export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
     }
 };
 
-export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
+export const getServiciosPaseadorByUsuario = async (usuarioId, page, estado) => {
     try {
-        const response = await axios.get(`${API_URL}/serviciosPaseadores/paseador/${usuarioId}`, {       
+        const response = await axios.get(`${API_URL}/paseador/${usuarioId}/serviciosPaseador/${estado}`, {       
             params: { 
                 "page": page,
                 "limit": 3
@@ -400,9 +400,9 @@ export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
 };
 
 
-export const getServiciosCuidadorByUsuario = async (usuarioId, page) => {
+export const getServiciosCuidadorByUsuario = async (usuarioId, page, estado) => {
     try {
-        const response = await axios.get(`${API_URL}/serviciosCuidador/cuidador/${usuarioId}`, {       
+        const response = await axios.get(`${API_URL}/cuidador/${usuarioId}/serviciosCuidador/${estado}`, {       
             params: { 
                 "page": page,
                 "limit": 3
@@ -426,4 +426,48 @@ export const cambiarEstadoServicio = async (serviceId ,estado , tipoUsuario) => 
         console.error("Error al cambiar el estado del servicio:", error);
         throw error;
     }
+};
+
+export const obetenerServiciosCuidadores = async (pageNumber, filtros) => {
+    try {
+
+        const filtrosLimpiados = Object.fromEntries(
+            Object.entries(filtros).filter(([_, v]) => {
+                if (Array.isArray(v)) return v.length > 0;
+                return v !== null && v !== undefined && v !== '';
+            })
+        );
+        const response = await axios.get(`${API_URL}/serviciosCuidadores`, {
+            params: {
+                page: pageNumber,
+                ...filtrosLimpiados
+            },
+            paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener servicios de cuidadores:", error);
+        throw error;
+    }
+};
+
+export const getServiciosPaseadores = async (pageNumber, filtros = {}) => {
+  try {
+    const filtrosLimpiados = Object.fromEntries(
+      Object.entries(filtros).filter(([_, v]) => {
+        if (Array.isArray(v)) return v.length > 0;
+        return v !== null && v !== undefined && v !== '';
+      })
+    );
+
+    const response = await axios.get(`${API_URL}/serviciosPaseadores`, {
+      params: { page: pageNumber, limit: 6, ...filtrosLimpiados },
+      paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
+    });
+
+    return response.data; // { page, per_page, total_pages, data, ... }
+  } catch (error) {
+    console.error("Error al obtener servicios de paseadores:", error);
+    throw error;
+  }
 };

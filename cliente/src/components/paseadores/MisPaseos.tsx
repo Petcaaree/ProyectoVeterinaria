@@ -1,6 +1,7 @@
-import { ArrowLeft, Heart, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Heart, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2, ArrowRight } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {useAuth} from '../../context/authContext.tsx';
+
 interface MisPaseosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
@@ -8,44 +9,82 @@ interface MisPaseosProps {
 
 
 const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
-  const [activeTab, setActiveTab] = useState<'services' | 'bookings'>('services');
-    const [page, setPage] = useState(1);
-    const { usuario , getServiciosPaseador} = useAuth();
-    // Mock data para información de la clínica
-    
+  const [activeTab, setActiveTab] = useState<'activos' | 'inactivos'>('activos');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0)
+  const [total , setTotal] = useState(0)
+  const [totalActivos, setTotalActivos] = useState(0);
+  const [totalInactivos, setTotalInactivos] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const { usuario , getServiciosPaseador, activarOdesactivarServicio} = useAuth();
+  const [seleccionoEstado, setSeleccionoEstado] = useState<boolean>(false);
   
-    // Mock data para servicios
-    const [services, setServices] = useState<any>([])
-    // Mock data para reservas
+  // Mock data para servicios
+  const [services, setServices] = useState<any>([])
     
   useEffect(() => {
      // Simula una carga de datos
-    const cargarServicios = async () => {
+      cargarServicios();
+      cargarTotales();
+      // Aquí podrías hacer una llamada a la API para obtener los servicios del veterinario
+  }, [page, activeTab,]);
+
+  const cargarTotales = async () => {
+    if (usuario && usuario.id) {
+      try {
+        // Cargar total de activos
+        const dataActivos = await getServiciosPaseador(usuario.id, 1, 'Activada');
+        setTotalActivos(dataActivos?.total || 0);
+        
+        // Cargar total de inactivos
+        const dataInactivos = await getServiciosPaseador(usuario.id, 1, 'Desactivada');
+        setTotalInactivos(dataInactivos?.total || 0);
+      } catch (error) {
+        console.error('Error al obtener totales:', error);
+      }
+    }
+  };
+
+  const cargarServicios = async () => {
         if (usuario && usuario.id) {
           try {
-            //setIsLoading(true);
-            //setError(null);
-            const data = await getServiciosPaseador(usuario.id , page);
+            setIsLoading(true);
+            const estado = activeTab === 'activos' ? 'Activada' : 'Desactivada';
+            const data = await getServiciosPaseador(usuario.id,  page, estado);
             setServices(data?.data || []); // Acceder a la propiedad data del objeto respuesta
+            setTotalPages(data?.total_pages || 0);
+            setTotal(data?.total || 0); 
+            if (data?.page !== page) {
+              setPage(data?.page || 1);
+            }
             console.log('Servicios obtenidos:', data);
           } catch (error) {
             console.error('Error al obtener servicios:', error);
-            //setError('Error al cargar los servicios');
             setServices([]); // Asegurar que sea un array vacío en caso de error
           } finally {
-            //setIsLoading(false);
+            setIsLoading(false);
           }
         } else {
-          //setIsLoading(false);
           setServices([]);
         }
       };
-  
-      cargarServicios();
-      // Aquí podrías hacer una llamada a la API para obtener los servicios del veterinario
-  }, [page, usuario, getServiciosPaseador]);
-    
-  
+
+    const handlePrevious = () => {
+      if (page > 1) {
+        setPage(page - 1);
+        // Hacer scroll hacia arriba suavemente
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    const handleNext = () => {
+      if (page < totalPages) {
+        setPage(page + 1);
+        // Hacer scroll hacia arriba suavemente
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
     const formatPrice = (price: number) => {
       return price.toLocaleString('es-CO', {
         style: 'currency',
@@ -53,8 +92,6 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
         minimumFractionDigits: 0
       });
     };
-  
-   
   
     const formatDayOfWeek = (day: string) => {
       const dayMap: { [key: string]: string } = {
@@ -69,15 +106,33 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
       return dayMap[day.toUpperCase()] || day;
     };
   
-    const toggleServiceStatus = (serviceId: string, estado: string) => {
-      setServices(prev => 
-        prev.map(service => 
-          service.id === serviceId 
-            ? { ...service, estado: estado === 'Activada' ? 'Desactivada' : 'Activada' }
-            : service
-        )
-      );
-    };
+    const activarDesactivarServicio = async (idServicio: string, estadoActual: string, tipoUsuario: string) => {
+      try {
+        // Determinar el nuevo estado (opuesto al actual)
+        const nuevoEstado = estadoActual === 'Activada' ? 'Desactivada' : 'Activada';
+        
+        console.log("Cambiando estado del servicio:", idServicio, "de", estadoActual, "a", nuevoEstado);
+        
+        // Llamar a la función del contexto con el nuevo estado
+        await activarOdesactivarServicio(idServicio, tipoUsuario, nuevoEstado);
+        
+        // Si era el único servicio en esta página, regresar a página 1
+        if (services.length === 1 && page > 1) {
+          setPage(1);
+        } else {
+          // Actualizar la lista de servicios después de la acción
+          await cargarServicios();
+        }
+        
+        // Recargar los totales para actualizar los contadores
+        await cargarTotales();
+        
+        console.log("Estado cambiado exitosamente");
+      } catch (error) {
+        console.error("Error al cambiar el estado del servicio:", error);
+        alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
+      }
+    }
   
     const deleteService = (serviceId: string) => {
       if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
@@ -141,35 +196,76 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
-                onClick={() => setActiveTab('services')}
+                onClick={() => {
+                  setActiveTab('activos');
+                  setPage(1); // Resetear página al cambiar tab
+                }}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'services'
+                  activeTab === 'activos'
                     ? 'border-green-500 text-green-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Mis Servicios ({services.length})
+                Activos ({totalActivos})
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('inactivos');
+                  setPage(1); // Resetear página al cambiar tab
+                }}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === 'inactivos'
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Inactivos ({totalInactivos})
               </button>
               
             </nav>
           </div>
 
           {/* Services Tab */}
-          {activeTab === 'services' && (
-            <div className="p-6">
-              {services.length === 0 ? (
-                <div className="text-center py-12">
-                  <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes servicios creados</h3>
-                  <p className="text-gray-600 mb-6">Crea tu primer servicio de paseo para comenzar a recibir reservas</p>
-                  <button className="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                    <Plus className="h-5 w-5" />
-                    <span>Crear Primer Servicio</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {services.map((service) => (
+          <div className="p-6">
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+                <span className="ml-3 text-gray-600">Cargando servicios...</span>
+              </div>
+            ) : (
+              <>
+                {(() => {
+                  const filteredServices = services.filter(service => 
+                    activeTab === 'activos' 
+                      ? service.estado === 'Activada' 
+                      : service.estado === 'Desactivada'
+                  );
+                  
+                  return filteredServices.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {activeTab === 'activos' 
+                          ? 'No tienes servicios activos' 
+                          : 'No tienes servicios inactivos'
+                        }
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        {activeTab === 'activos' 
+                          ? 'Crea tu primer servicio de paseo para comenzar a recibir reservas'
+                          : 'Todos tus servicios están activos'
+                        }
+                      </p>
+                      {activeTab === 'activos' && (
+                        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                          <Plus className="h-5 w-5" />
+                          <span>Crear Primer Servicio</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {filteredServices.map((service: any) => (
                     <div key={service.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
@@ -203,12 +299,11 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                               <p className="text-gray-600">{new Date(service.fechaCreacion).toLocaleDateString('es-ES')}</p>
                             </div>
                           </div>
-                          
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => toggleServiceStatus(service.id, service.esta)}
+                            onClick={() => activarDesactivarServicio(service.id, service.estado, userType)}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
                               service.estado === 'Activada'
                                 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
@@ -266,11 +361,42 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                     </div>
                   ))}
                 </div>
+              );
+            })()}
+          </>
+        )}
+      </div>
+
+          {/* Paginación - visible cuando hay más de una página */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 py-4 border-t border-gray-200">
+              {page > 1 && (
+                <button
+                  onClick={handlePrevious}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:block">Anterior</span>
+                </button>
+              )}
+              
+              <span className="text-gray-700 text-sm mx-4">
+                Página {page} de {totalPages}
+              </span>
+
+              {page < totalPages && (
+                <button
+                  onClick={handleNext}
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <span className="hidden sm:block">Siguiente</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               )}
             </div>
           )}
 
-          
+      
         </div>
       </div>
     </div>

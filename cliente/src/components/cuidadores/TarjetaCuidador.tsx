@@ -1,11 +1,10 @@
 import React from 'react';
-import { Clock, CheckCircle } from 'lucide-react';
+import { Clock, CheckCircle, MapPin } from 'lucide-react';
 import EstrellaCalificacion from '../comun/EstrellaCalificacion';
 import Boton from '../comun/Boton';
 import { CaregiverService } from '../../types';
 
 interface TarjetaCuidadorProps {
-  cuidador: CaregiverService;
   alContratar: (cuidador: CaregiverService) => void;
 }
 
@@ -18,23 +17,46 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
     });
   };
 
+  const formatDayOfWeek = (day: string) => {
+        const dayMap: { [key: string]: string } = {
+          'LUNES': 'Lunes',
+          'MARTES': 'Martes',
+          'MIERCOLES': 'Miércoles',
+          'JUEVES': 'Jueves',
+          'VIERNES': 'Viernes',
+          'SABADO': 'Sábado',
+          'DOMINGO': 'Domingo'
+        };
+        return dayMap[day.toUpperCase()] || day;
+      };
+
+       const formatearMascota = (mascota: string) => {
+      const mascotaMap: { [key: string]: string } = {
+        'PERRO': 'Perro',
+        'GATO': 'Gato',
+        'AVE': 'Ave',
+        'OTRO': 'Otro'
+            };
+      return mascotaMap[mascota.toUpperCase()] || mascota;
+    }
+
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden flex flex-col h-full">
       {/* Encabezado */}
       <div className="bg-gradient-to-br from-orange-400 to-red-500 p-6 text-white relative">
         <div className="absolute top-4 right-4">
           <div className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
-            {cuidador.experience} años
+            {/* {cuidador.experience} */} 4 años
           </div>
         </div>
         <h3 className="text-xl font-bold mb-2">
-          {cuidador.name}
+          {cuidador.nombreContacto}
         </h3>
         <div className="flex items-center space-x-2 mb-3">
-          <EstrellaCalificacion calificacion={cuidador.rating} />
+          <EstrellaCalificacion calificacion={3} />
         </div>
         <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-sm font-bold inline-block">
-          {formatearPrecio(cuidador.pricePerDay)}/día
+          {formatearPrecio(cuidador.precio)}/día
         </div>
       </div>
       
@@ -43,22 +65,24 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
         <div className="mb-4">
           <h4 className="text-lg font-semibold text-gray-900 mb-2">Servicio de Cuidado</h4>
           <p className="text-gray-600 text-sm">
-            Cuidado integral de tu mascota con atención personalizada, alimentación, paseos y compañía las 24 horas.
+            {cuidador.descripcion}
           </p>
         </div>
 
-        {/* Servicios incluidos */}
+        {/* Áreas de servicio */}
         <div className="mb-6 flex-1">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-            Servicios incluidos:
+          <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+            <MapPin className="h-4 w-4 mr-1" />
+            Mascotas aceptadas:
           </h4>
-          <div className="space-y-2">
-            {cuidador.services.map((servicio, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span className="text-sm text-gray-700">{servicio}</span>
-              </div>
+          <div className="flex flex-wrap gap-1">
+            {cuidador.mascotasAceptadas.map((area, index) => (
+              <span
+                key={index}
+                className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs"
+              >
+                {formatearMascota(area)}
+              </span>
             ))}
           </div>
         </div>
@@ -70,12 +94,12 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
             Disponibilidad:
           </h4>
           <div className="flex flex-wrap gap-1">
-            {cuidador.availability.map((periodo, index) => (
+            {cuidador.diasDisponibles.map((periodo, index) => (
               <span
                 key={index}
                 className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs"
               >
-                {periodo}
+                {formatDayOfWeek(periodo) }
               </span>
             ))}
           </div>

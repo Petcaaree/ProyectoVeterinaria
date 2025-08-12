@@ -32,13 +32,13 @@ export default function servicioCuidadorRoutes(getController) {
         getController(ServicioCuidadorController).cambiarEstadoCuidador(req, res, next)
     )
 
-    router.get("/petcare/serviciosCuidadores/activos", (req, res, next) => {
-        getController(ServicioCuidadorController).findActivos(req, res, next)
+    router.get("/petcare/cuidador/:id/serviciosCuidador/:estado", (req, res, next) => {
+        getController(ServicioCuidadorController).findByEstadoServicioCuidador(req, res, next)
     })
 
-    router.get("/petcare/serviciosCuidadores/inactivos", (req, res, next) => {
+    /* router.get("/petcare/serviciosCuidadores/inactivos", (req, res, next) => {
         getController(ServicioCuidadorController).findInactivos(req, res, next)
-    })
+    }) */
 
     return router
 }

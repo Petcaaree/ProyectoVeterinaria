@@ -19,12 +19,12 @@ export class ServicioPaseadorService {
         this.reservaRepository = reservaRepository;
     }
 
-    async findAll({page = 1, limit = 4}) {
+    async findAll({page = 1, limit = 6}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Buscar paseadores distintos
-        let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
+        /* let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
 
         // console.log("Paseadores encontrados:", paseadores.length)
 
@@ -52,16 +52,28 @@ export class ServicioPaseadorService {
 
         // Aplanar el array de servicios (solo de paseadores con servicios)
         const todosLosServicios = serviciosValidos
+ */
+
+        const todosLosServiciosPorPagina = await this.servicioPaseadorRepository.findByPage(pageNum, limitNum)
+        const todosLosServicios = await this.servicioPaseadorRepository.findAll()
+
+        // Obtener paseadores distintos de todos los servicios
+        const paseadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
+        const totalPaseadoresDistintos = paseadoresDistintosIds.size
+
+        // Obtener paseadores distintos de los servicios de esta página
+        const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
 
         const total = await this.paseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
-        const data = todosLosServicios.map(s => this.toDTO(s))
+        const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
             totalServicios: todosLosServicios.length,
-            totalPaseadores: paseadoresConServicios.length,
+            totalPaseadores: totalPaseadoresDistintos,
+            paseadoresPagina: paseadoresDistintosPagina.size,
             total_pages: total_pages,
             data: data
         };
@@ -286,11 +298,11 @@ async delete(id) {
         return this.toDTO(servicioActualizado)
     }
 
-    async findByEstado(estado, { page = 1, limit = 4 }) {
+    async findByEstado(estado, paseadorId, { page = 1, limit = 4 }) {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioPaseadorRepository.findByEstado(estado);
+        const servicios = await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId);
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

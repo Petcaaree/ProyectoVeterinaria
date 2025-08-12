@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import { obetenerServiciosCuidadores,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -155,12 +155,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getServiciosVeterinaria = async (id: string, page: number = 1) => {
+  const getServiciosVeterinaria = async (id: string, page: number = 1, estado: string) => {
     if (!id) {
       throw new Error('ID de veterinaria no proporcionado');
     }
     try {
-      const response = await getServiciosVeterinariaByUsuario(id, page);
+      const response = await getServiciosVeterinariaByUsuario(id, page, estado);
       return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
     } catch (error) {
       console.error('Error al obtener servicios de veterinaria:', error);
@@ -168,12 +168,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getServiciosPaseador = async (id: string, page: number = 1) => {
+  const getServiciosPaseador = async (id: string, page: number = 1, estado: string) => {
     if (!id) {
       throw new Error('ID de paseador no proporcionado');
     }
     try {
-      const response = await getServiciosPaseadorByUsuario(id, page);
+      const response = await getServiciosPaseadorByUsuario(id, page, estado);
       return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
     } catch (error) {
       console.error('Error al obtener servicios de paseador:', error);
@@ -181,12 +181,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const getServiciosCuidador = async (id: string, page: number = 1) => {
+  const getServiciosCuidador = async (id: string, page: number = 1, estado: string) => {
     if (!id) {
       throw new Error('ID de cuidador no proporcionado');
     }
     try {
-      const response = await getServiciosCuidadorByUsuario(id, page);
+      const response = await getServiciosCuidadorByUsuario(id, page, estado);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de cuidador:', error);
+      throw error;
+    }
+  };
+
+
+  // OBTENER LOS SERVICIOS EN LAS PAGINAS DE CADA TIPO DE USUARIO
+
+  const getServiciosCuidadores = async (page: number = 1, filtro: any) => {
+    
+    try {
+      const response = await obetenerServiciosCuidadores(page, filtro);
       return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
     } catch (error) {
       console.error('Error al obtener servicios de cuidador:', error);
@@ -244,7 +258,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (userType === 'veterinaria') {
         await cambiarEstadoServicio(serviceId, estado, 'servicioVet');
       } else if (userType === 'paseador') {
-        await cambiarEstadoServicio(serviceId, estado, 'servicioPaseo');
+        await cambiarEstadoServicio(serviceId, estado, 'servicioPaseador');
       } else if (userType === 'cuidador') {
         await cambiarEstadoServicio(serviceId, estado, 'servicioCuidador');
       }
@@ -269,6 +283,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getServiciosPaseador,
     getServiciosCuidador,
     activarOdesactivarServicio,
+    getServiciosCuidadores,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

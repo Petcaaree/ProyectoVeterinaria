@@ -141,7 +141,7 @@ export class ServicioCuidadorRepository {
     }
 
     async findByName(nombre) {
-        return await this.model.findOne({nombre})
+        return await this.model.findOne({nombre : nombreServicio})
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',
@@ -161,8 +161,8 @@ export class ServicioCuidadorRepository {
     }
 
 
-    async findByEstado(estado) {
-        return await this.model.find({ estado: estado })
+    async findByEstadoByCuidador(estado, cuidadorID) {
+        return await this.model.find({ estado: estado, usuarioProveedor: cuidadorID })
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',

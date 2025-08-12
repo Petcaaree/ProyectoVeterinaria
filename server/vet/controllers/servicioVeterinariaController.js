@@ -133,23 +133,16 @@ export class ServicioVeterinariaController {
         }
     }
 
-    async findServiciosActivos(req, res, next) {
+    async findByEstadoServicioVeterinaria(req, res, next) {
         try {
-            const { page = 1, limit = 4 } = req.query;
-            const result = await this.servicioVeterinariaService.findByEstado(EstadoServicio.ACTIVO, { page, limit });
+
+            const id = req.params.id;
+            const estado = req.params.estado;
+            const { page = 1, limit = 3 } = req.query;
+            const result = await this.servicioVeterinariaService.findByEstado(estado, id, { page, limit });
             res.json(result);
         } catch (error) {
             next(error);
-                }
-    }
-
-    async findInactivos(req, res, next) {
-        try {
-            const { page = 1, limit = 4 } = req.query;
-            const result = await this.servicioVeterinariaService.findByEstado(EstadoServicio.DESACTIVADA, { page, limit });
-            res.json(result);
-        } catch (error) {
-                next(error);
-            }
         }
+    }
 }

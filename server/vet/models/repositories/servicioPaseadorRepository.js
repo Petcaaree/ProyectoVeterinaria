@@ -100,8 +100,9 @@ export class ServicioPaseadorRepository {
                   const nombreServicio = r.nombreServicio
       
                   const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
-                  const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
-
+                  const coincideNombreServicio = filtro.nombre
+                  ? (nombreServicio || '').toLowerCase().includes(filtro.nombre.toLowerCase())
+                  : true;
                   // Filtrar por fecha: verificar si TODOS los horarios disponibles están ocupados
                   let disponibleEnFecha = true;
                   
@@ -193,14 +194,13 @@ export class ServicioPaseadorRepository {
     }
 
     async findByName(nombre) {
-        return await this.model.findOne({nombre})
-            .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.localidad',
-                populate: {path: 'ciudad'}
-            })
-            
-    }
+    return await this.model.findOne({ nombreServicio: nombre })
+        .populate('usuarioProveedor')
+        .populate({
+            path: 'direccion.localidad',
+            populate: { path: 'ciudad' }
+        });
+}
 
     async findAll() {
         return await this.model.find()
@@ -212,14 +212,16 @@ export class ServicioPaseadorRepository {
             
     }
 
-    async findByEstado(estado){
-        return await this.model.find({ estado: estado })
-            .populate('usuarioProveedor')
-            .populate({
-                path: 'direccion.localidad',
-                populate: {path: 'ciudad'}
-            });
-    }
+    async findByEstadoByPaseador(estado, paseadorId) {
+            return await this.model.find({ estado: estado, usuarioProveedor: paseadorId })
+                .populate('usuarioProveedor')
+                .populate({
+                    path: 'direccion.localidad',
+                    populate: { path: 'ciudad' }
+                });
+        }
+
+
 }
 
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Home, Clock, Star, Award, CheckCircle } from 'lucide-react';
+import { Shield, Home, Clock, Star, Award, CheckCircle, X } from 'lucide-react';
 import { caregiverServices } from '../data/mockData';
 import ModalReserva from './ModalReserva';
 
@@ -10,6 +10,7 @@ interface ServiciosCuidadoresProps {
 const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) => {
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [showAccessDeniedPopup, setShowAccessDeniedPopup] = useState(false);
 
   const formatPrice = (price: number) => {
     return price.toLocaleString('es-CO', {
@@ -20,6 +21,10 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
   };
 
   const handleBookCaregiver = (caregiver: any) => {
+    if (userType !== 'cliente') {
+      setShowAccessDeniedPopup(true);
+      return;
+    }
     setSelectedCaregiver(caregiver);
     setIsBookingOpen(true);
   };
@@ -235,6 +240,39 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
         serviceType="cuidador"
         userType={userType}
       />
+
+      {/* Access Denied Popup */}
+      {showAccessDeniedPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowAccessDeniedPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+            
+            <div className="text-center">
+              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Acceso Restringido
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Solo los dueños de mascotas pueden contratar servicios de cuidadores. 
+                Regístrate como cliente para acceder a esta funcionalidad.
+              </p>
+              <button
+                onClick={() => setShowAccessDeniedPopup(false)}
+                className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };

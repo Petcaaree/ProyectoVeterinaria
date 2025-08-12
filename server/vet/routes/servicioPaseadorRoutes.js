@@ -28,17 +28,13 @@ export default function servicioPaseadorRoutes(getController) {
         getController(ServicioPaseadorController).getByPaseador(req, res, next)
     })
 
-    router.put("/petcare/paseador/:id/servicioPaseo/:nuevoEstado", (req, res, next) =>
+    router.put("/petcare/paseador/:id/servicioPaseador/:nuevoEstado", (req, res, next) =>
         getController(ServicioPaseadorController).cambiarEstadoPaseador(req, res, next)
     )
 
-    router.get("/petcare/serviciosPaseadores/activos", (req, res, next) => {
-        getController(ServicioPaseadorController).findActivos(req, res, next)
+    router.get("/petcare/paseador/:id/serviciosPaseador/:estado", (req, res, next) => {
+            getController(ServicioPaseadorController).findByEstadoServicioPaseador(req, res, next)
     })
-
-    router.get("/petcare/serviciosPaseadores/inactivos", (req, res, next) => {
-        getController(ServicioPaseadorController).findInactivos(req, res, next)
-        })
 
     return router
 }

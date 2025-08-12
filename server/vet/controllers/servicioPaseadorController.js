@@ -113,24 +113,17 @@ export class ServicioPaseadorController {
         }
     }
 
-    async findActivos(req, res, next) {
-            try {
-                const { page = 1, limit = 4 } = req.query;
-                const result = await this.servicioPaseadorService.findByEstado(EstadoServicio.ACTIVO, { page, limit });
-                res.json(result);
-            } catch (error) {
-                next(error);
-            }
+    async findByEstadoServicioPaseador(req, res, next) {
+        try {
+
+            const id = req.params.id;
+            const estado = req.params.estado;
+            const { page = 1, limit = 4 } = req.query;
+            const result = await this.servicioPaseadorService.findByEstado(estado, id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
         }
-    
-        async findInactivos(req, res, next) {
-            try {
-                const { page = 1, limit = 4 } = req.query;
-                const result = await this.servicioPaseadorService.findByEstado(EstadoServicio.DESACTIVADA, { page, limit });
-                res.json(result);
-            } catch (error) {
-                next(error);
-            }
-        }
+    }
     
 }

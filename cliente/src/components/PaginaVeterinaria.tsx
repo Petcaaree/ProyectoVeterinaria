@@ -141,17 +141,7 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
               ))}
             </select>
 
-            {/* Location Filter */}
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            >
-              <option value="all">Todas las zonas</option>
-              {locations.map(location => (
-                <option key={location} value={location}>{location}</option>
-              ))}
-            </select>
+            
             </>
           }
         />

@@ -69,8 +69,9 @@ export interface AuthContextType {
   createServicioCuidador: (data: DatosServicioCuidador) => Promise<any>;
   getServiciosVeterinaria: (usuarioId: string, page: number) => Promise<any[]>;
    getServiciosPaseador: (usuarioId: string, page: number) => Promise<any[]>;
-  /* getServiciosCuidador: (usuarioId: string, page: number) => Promise<any[]>;
-  getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
+   getServiciosCuidador: (usuarioId: string, page: number) => Promise<any[]>;
+   activarOdesactivarServicio: (serviceId: string,  estado: string, tipoUsuario: string) => Promise<void>;
+  /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
   getReservasById: (reservaId: string) => Promise<any>;
   getReservasByMascota: (mascotaId: string) => Promise<any[]>;
   getReservasByServicio: (servicioId: string, tipoServicio: string) => Promise<any[]>;

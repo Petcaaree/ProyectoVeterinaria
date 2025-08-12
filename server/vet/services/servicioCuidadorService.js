@@ -131,7 +131,7 @@ export class ServicioCuidadorService {
         return this.toDTO(servicioCuidador)
     }
 
-    async findByCuidador(id, {page = 1, limit = 10}) {
+    async findByCuidador(id, {page = 1, limit = 3}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 

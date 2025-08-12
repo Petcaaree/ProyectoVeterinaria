@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario} from '../api/api.js';
+import { DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -181,6 +181,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getServiciosCuidador = async (id: string, page: number = 1) => {
+    if (!id) {
+      throw new Error('ID de cuidador no proporcionado');
+    }
+    try {
+      const response = await getServiciosCuidadorByUsuario(id, page);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de cuidador:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -226,6 +239,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }; 
 
+  const activarOdesactivarServicio = async (serviceId: string, userType: string, estado: string) => {
+    try {
+      if (userType === 'veterinaria') {
+        await cambiarEstadoServicio(serviceId, estado, 'servicioVet');
+      } else if (userType === 'paseador') {
+        await cambiarEstadoServicio(serviceId, estado, 'servicioPaseo');
+      } else if (userType === 'cuidador') {
+        await cambiarEstadoServicio(serviceId, estado, 'servicioCuidador');
+      }
+    } catch (error) {
+      console.error('Error al activar/desactivar servicio:', error);
+      throw error;
+    }
+  };
+
   const contextValue: AuthContextType = {
     usuario,
     login,
@@ -239,6 +267,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     createServicioCuidador,
     getServiciosVeterinaria,
     getServiciosPaseador,
+    getServiciosCuidador,
+    activarOdesactivarServicio,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

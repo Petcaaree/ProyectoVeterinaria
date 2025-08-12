@@ -1,188 +1,148 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Shield, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2, Home } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, Shield,ArrowRight, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2, Home } from 'lucide-react';
+import {useAuth} from '../../context/authContext.tsx';
 
 interface MisServiciosCuidadoresProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
 }
 
-interface CaregiverService {
-  id: string;
-  name: string;
-  description: string;
-  pricePerDay: number;
-  services: string[];
-  availability: string[];
-  areas: string[];
-  isActive: boolean;
-  createdDate: string;
-  bookingsCount: number;
-}
 
-interface Booking {
-  id: string;
-  startDate: string;
-  endDate: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  client: string;
-  pet: string;
-  phone: string;
-  pricePerDay: number;
-  totalDays: number;
-  totalPrice: number;
-  notes?: string;
-  serviceName: string;
-  area: string;
-}
 
 const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userType, onBack }) => {
-  const [activeTab, setActiveTab] = useState<'services' | 'bookings'>('services');
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+ 
+  const [activeTab, setActiveTab] = useState<'activos' | 'inactivos'>('activos');
+      const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0)
+  const [total , setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(false);
+      const { usuario , getServiciosCuidador, activarOdesactivarServicio} = useAuth();
+      // Mock data para información de la clínica
+      
+    
+      // Mock data para servicios
+      const [services, setServices] = useState<any>([])
+      // Mock data para reservas
+      
+    useEffect(() => {
+       // Simula una carga de datos
+      
+    
+        cargarServicios();
+        // Aquí podrías hacer una llamada a la API para obtener los servicios del veterinario
+    }, [page]);
 
+
+    const cargarServicios = async () => {
+          if (usuario && usuario.id) {
+            try {
+              setIsLoading(true);
+              const data = await getServiciosCuidador(usuario.id , page);
+              setServices(data?.data || []); // Acceder a la propiedad data del objeto respuesta
+              setTotalPages(data?.total_pages || 0);
+              setTotal(data?.total || 0); 
+              if (data?.page !== page) {
+                setPage(data?.page || 1);
+              }
+              console.log('Servicios obtenidos:', data);
+            } catch (error) {
+              console.error('Error al obtener servicios:', error);
+              setServices([]); // Asegurar que sea un array vacío en caso de error
+            } finally {
+              setIsLoading(false);
+            }
+          } else {
+            setServices([]);
+          }
+        };
+
+        const handlePrevious = () => {
+          if (page > 1) {
+            setPage(page - 1);
+            // Hacer scroll hacia arriba suavemente
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        };
+
+        const handleNext = () => {
+          if (page < totalPages) {
+            setPage(page + 1);
+            // Hacer scroll hacia arriba suavemente
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        };
+
+      const formatPrice = (price: number) => {
+        return price.toLocaleString('es-CO', {
+          style: 'currency',
+          currency: 'COP',
+          minimumFractionDigits: 0
+        });
+      };
+    
+     
+    
+      const formatDayOfWeek = (day: string) => {
+        const dayMap: { [key: string]: string } = {
+          'LUNES': 'Lunes',
+          'MARTES': 'Martes',
+          'MIERCOLES': 'Miércoles',
+          'JUEVES': 'Jueves',
+          'VIERNES': 'Viernes',
+          'SABADO': 'Sábado',
+          'DOMINGO': 'Domingo'
+        };
+        return dayMap[day.toUpperCase()] || day;
+      };
+    
+      const toggleServiceStatus = (serviceId: string, estado: string) => {
+        setServices(prev => 
+          prev.map(service => 
+            service.id === serviceId 
+              ? { ...service, estado: estado === 'Activada' ? 'Desactivada' : 'Activada' }
+              : service
+          )
+        );
+      };
+
+      const activarDesactivarServicio = async (idServicio: string, estadoActual: string, tipoUsuario: string) => {
+        try {
+          // Determinar el nuevo estado (opuesto al actual)
+          const nuevoEstado = estadoActual === 'Activada' ? 'Desactivada' : 'Activada';
+          
+          console.log("Cambiando estado del servicio:", idServicio, "de", estadoActual, "a", nuevoEstado);
+          
+          // Llamar a la función del contexto con el nuevo estado
+          await activarOdesactivarServicio(idServicio, tipoUsuario, nuevoEstado);
+          
+          // Actualizar la lista de servicios después de la acción
+          await cargarServicios();
+          
+          console.log("Estado cambiado exitosamente");
+        } catch (error) {
+          console.error("Error al cambiar el estado del servicio:", error);
+          alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
+        }
+      }
+          
+    
+      const deleteService = (serviceId: string) => {
+        if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
+          setServices(prev => prev.filter(service => service.id !== serviceId));
+        }
+      };  
+
+      const formatearMascota = (mascota: string) => {
+      const mascotaMap: { [key: string]: string } = {
+        'PERRO': 'Perro',
+        'GATO': 'Gato',
+        'AVE': 'Ave',
+        'OTRO': 'Otro'
+            };
+      return mascotaMap[mascota.toUpperCase()] || mascota;
+    }
   // Mock data para servicios
-  const [services, setServices] = useState<CaregiverService[]>([
-    {
-      id: '1',
-      name: 'Cuidado Premium 24/7',
-      description: 'Cuidado integral de tu mascota con atención personalizada las 24 horas del día',
-      pricePerDay: 80000,
-      services: ['Alimentación', 'Paseos', 'Medicación', 'Compañía 24/7', 'Reportes diarios'],
-      availability: ['Lunes a Domingo'],
-      areas: ['Chapinero', 'Zona Rosa', 'Chicó'],
-      isActive: true,
-      createdDate: '2024-01-10',
-      bookingsCount: 15
-    },
-    {
-      id: '2',
-      name: 'Cuidado Diurno',
-      description: 'Cuidado durante el día con paseos, alimentación y compañía',
-      pricePerDay: 50000,
-      services: ['Alimentación', 'Paseos', 'Juegos', 'Compañía diurna'],
-      availability: ['Lunes a Viernes'],
-      areas: ['Chapinero', 'Zona Rosa'],
-      isActive: true,
-      createdDate: '2024-01-05',
-      bookingsCount: 22
-    },
-    {
-      id: '3',
-      name: 'Cuidado de Fin de Semana',
-      description: 'Servicio especializado para fines de semana y días festivos',
-      pricePerDay: 65000,
-      services: ['Alimentación', 'Paseos', 'Medicación', 'Compañía'],
-      availability: ['Sábado', 'Domingo', 'Festivos'],
-      areas: ['Suba', 'Engativá'],
-      isActive: false,
-      createdDate: '2024-01-01',
-      bookingsCount: 8
-    }
-  ]);
-
-  // Mock data para reservas
-  const bookings: Booking[] = [
-    {
-      id: '1',
-      startDate: '2024-01-15',
-      endDate: '2024-01-18',
-      status: 'confirmed',
-      client: 'Ana García',
-      pet: 'Max (Golden Retriever)',
-      phone: '+57 300 123 4567',
-      pricePerDay: 80000,
-      totalDays: 4,
-      totalPrice: 320000,
-      serviceName: 'Cuidado Premium 24/7',
-      area: 'Chapinero',
-      notes: 'Mascota muy activa, necesita medicación para la artritis a las 8 AM'
-    },
-    {
-      id: '2',
-      startDate: '2024-01-20',
-      endDate: '2024-01-22',
-      status: 'pending',
-      client: 'Carlos Mendoza',
-      pet: 'Luna (Siamés)',
-      phone: '+57 301 234 5678',
-      pricePerDay: 50000,
-      totalDays: 3,
-      totalPrice: 150000,
-      serviceName: 'Cuidado Diurno',
-      area: 'Zona Rosa'
-    },
-    {
-      id: '3',
-      startDate: '2024-01-10',
-      endDate: '2024-01-12',
-      status: 'completed',
-      client: 'María López',
-      pet: 'Rocky (Bulldog Francés)',
-      phone: '+57 302 345 6789',
-      pricePerDay: 80000,
-      totalDays: 3,
-      totalPrice: 240000,
-      serviceName: 'Cuidado Premium 24/7',
-      area: 'Chicó'
-    }
-  ];
-
-  const filteredBookings = bookings.filter(booking => {
-    return filter === 'all' || booking.status === filter;
-  });
-
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return { color: 'yellow', icon: AlertCircle, text: 'Pendiente', bg: 'bg-yellow-100', textColor: 'text-yellow-800' };
-      case 'confirmed':
-        return { color: 'blue', icon: CheckCircle, text: 'Confirmado', bg: 'bg-blue-100', textColor: 'text-blue-800' };
-      case 'completed':
-        return { color: 'green', icon: CheckCircle, text: 'Completado', bg: 'bg-green-100', textColor: 'text-green-800' };
-      case 'cancelled':
-        return { color: 'red', icon: XCircle, text: 'Cancelado', bg: 'bg-red-100', textColor: 'text-red-800' };
-      default:
-        return { color: 'gray', icon: AlertCircle, text: 'Desconocido', bg: 'bg-gray-100', textColor: 'text-gray-800' };
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return `${start.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-  };
-
-  const toggleServiceStatus = (serviceId: string) => {
-    setServices(prev => 
-      prev.map(service => 
-        service.id === serviceId 
-          ? { ...service, isActive: !service.isActive }
-          : service
-      )
-    );
-  };
-
-  const deleteService = (serviceId: string) => {
-    if (confirm('¿Estás seguro de que quieres eliminar este servicio? Esta acción no se puede deshacer.')) {
-      setServices(prev => prev.filter(service => service.id !== serviceId));
-    }
-  };
+  
 
   if (userType !== 'cuidador') {
     return (
@@ -235,147 +195,142 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-orange-100 p-3 rounded-full">
-                <Shield className="h-6 w-6 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{services.filter(s => s.isActive).length}</p>
-                <p className="text-gray-600">Servicios Activos</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-green-100 p-3 rounded-full">
-                <Calendar className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{bookings.filter(b => b.status === 'confirmed').length}</p>
-                <p className="text-gray-600">Reservas Confirmadas</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="bg-blue-100 p-3 rounded-full">
-                <Home className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {services.reduce((acc, service) => acc + service.bookingsCount, 0)}
-                </p>
-                <p className="text-gray-600">Total Cuidados</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
-                onClick={() => setActiveTab('services')}
+                onClick={() => setActiveTab('activos')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'services'
+                  activeTab === 'activos'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Mis Servicios ({services.length})
+                Activos ({services.filter(service => service.estado === 'Activada').length})
               </button>
               <button
-                onClick={() => setActiveTab('bookings')}
+                onClick={() => setActiveTab('inactivos')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'bookings'
+                  activeTab === 'inactivos'
                     ? 'border-orange-500 text-orange-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Reservas de Cuidado ({filteredBookings.length})
+                Inactivos ({services.filter(service => service.estado === 'Desactivada').length})
               </button>
+              
             </nav>
           </div>
 
           {/* Services Tab */}
-          {activeTab === 'services' && (
-            <div className="p-6">
-              {services.length === 0 ? (
-                <div className="text-center py-12">
-                  <Shield className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes servicios creados</h3>
-                  <p className="text-gray-600 mb-6">Crea tu primer servicio de cuidado para comenzar a recibir reservas</p>
-                  <button className="inline-flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
-                    <Plus className="h-5 w-5" />
-                    <span>Crear Primer Servicio</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {services.map((service) => (
+          <div className="p-6">
+            {isLoading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+                <span className="ml-3 text-gray-600">Cargando servicios...</span>
+              </div>
+            ) : (
+              <>
+                {(() => {
+                  const filteredServices = services.filter(service => 
+                    activeTab === 'activos' 
+                      ? service.estado === 'Activada' 
+                      : service.estado === 'Desactivada'
+                  );
+                  
+                  return filteredServices.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Shield className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                        {activeTab === 'activos' 
+                          ? 'No tienes servicios activos' 
+                          : 'No tienes servicios inactivos'
+                        }
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        {activeTab === 'activos' 
+                          ? 'Crea tu primer servicio de cuidado para comenzar a recibir reservas'
+                          : 'Todos tus servicios están activos'
+                        }
+                      </p>
+                      {activeTab === 'activos' && (
+                        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                          <Plus className="h-5 w-5" />
+                          <span>Crear Primer Servicio</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {filteredServices.map((service) => (
                     <div key={service.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-xl font-bold text-gray-900">{service.name}</h3>
+                            <h3 className="text-xl font-bold text-gray-900">{service.nombreServicio}</h3>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               service.isActive 
                                 ? 'bg-green-100 text-green-800' 
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {service.isActive ? 'Activo' : 'Inactivo'}
+                              {service.estado === 'Activada' ? 'Activo' : 'Inactivo'}
                             </span>
                           </div>
-                          <p className="text-gray-600 mb-3">{service.description}</p>
-                          
+                          <p className="text-gray-600 mb-3">{service.descripcion}</p>
+
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                             <div>
                               <span className="font-medium text-gray-900">Precio:</span>
-                              <p className="text-orange-600 font-bold">{formatPrice(service.pricePerDay)}/día</p>
+                              <p className="text-orange-600 font-bold">{formatPrice(service.precio)}/día</p>
                             </div>
-                            <div>
-                              <span className="font-medium text-gray-900">Servicios:</span>
-                              <p className="text-gray-600">{service.services.length} incluidos</p>
-                            </div>
+                            
                             <div>
                               <span className="font-medium text-gray-900">Reservas:</span>
-                              <p className="text-gray-600">{service.bookingsCount} total</p>
+                              <p className="text-gray-600">{service.cantidadReservas} total</p>
                             </div>
                             <div>
                               <span className="font-medium text-gray-900">Creado:</span>
-                              <p className="text-gray-600">{new Date(service.createdDate).toLocaleDateString('es-ES')}</p>
+                              <p className="text-gray-600">{new Date(service.fechaCreacion).toLocaleDateString('es-ES')}</p>
                             </div>
                           </div>
+                            <div className="grid md:grid-cols-2 gap-4">
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Mascotas aceptadas:</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {service.mascotasAceptadas.map((mascota, index) => (
+                                  <span key={index} className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">
+                                    {formatearMascota(mascota)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
 
-                          {/* Services Included */}
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Servicios incluidos:</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {service.services.map((includedService, index) => (
-                                <span key={index} className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">
-                                  {includedService}
-                                </span>
-                              ))}
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Disponibilidad:</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {service.diasDisponibles.map((day, index) => (
+                                  <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                                    {formatDayOfWeek(day)}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
+                          
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
                           <button
-                            onClick={() => toggleServiceStatus(service.id)}
+                            onClick={() => activarDesactivarServicio(service.id, service.estado, userType)}
                             className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                              service.isActive
+                              service.estado === 'Activada'
                                 ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                                 : 'bg-green-100 text-green-800 hover:bg-green-200'
                             }`}
                           >
-                            {service.isActive ? 'Desactivar' : 'Activar'}
+                            {service.estado === 'Activada' ? 'Desactivar' : 'Activar'}
                           </button>
                           <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                             <Edit className="h-4 w-4" />
@@ -389,198 +344,46 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
                         </div>
                       </div>
 
-                      {/* Availability and Areas */}
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Disponibilidad:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {service.availability.map((period, index) => (
-                              <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                                {period}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Zonas de servicio:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {service.areas.map((area, index) => (
-                              <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
-                                {area}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
+                      
                     </div>
                   ))}
                 </div>
+              );
+            })()}
+          </>
+        )}
+      </div>
+
+          {/* Paginación - visible cuando hay más de una página */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 py-4 border-t border-gray-200">
+              {page > 1 && (
+                <button
+                  onClick={handlePrevious}
+                  className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:block">Anterior</span>
+                </button>
+              )}
+              
+              <span className="text-gray-700 text-sm mx-4">
+                Página {page} de {totalPages}
+              </span>
+
+              {page < totalPages && (
+                <button
+                  onClick={handleNext}
+                  className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  <span className="hidden sm:block">Siguiente</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               )}
             </div>
           )}
 
-          {/* Bookings Tab */}
-          {activeTab === 'bookings' && (
-            <div className="p-6">
-              {/* Filters */}
-              <div className="mb-6">
-                <div className="flex items-center space-x-3 mb-4">
-                  <Filter className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Filtrar por estado:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: 'all', label: 'Todas', count: bookings.length },
-                    { key: 'pending', label: 'Pendientes', count: bookings.filter(b => b.status === 'pending').length },
-                    { key: 'confirmed', label: 'Confirmadas', count: bookings.filter(b => b.status === 'confirmed').length },
-                    { key: 'completed', label: 'Completadas', count: bookings.filter(b => b.status === 'completed').length },
-                    { key: 'cancelled', label: 'Canceladas', count: bookings.filter(b => b.status === 'cancelled').length }
-                  ].map(({ key, label, count }) => (
-                    <button
-                      key={key}
-                      onClick={() => setFilter(key as any)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
-                        filter === key
-                          ? 'bg-orange-600 text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <span>{label}</span>
-                      {count > 0 && (
-                        <span className={`text-xs rounded-full px-2 py-0.5 ${
-                          filter === key 
-                            ? 'bg-white bg-opacity-20 text-white' 
-                            : 'bg-orange-100 text-orange-600'
-                        }`}>
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bookings List */}
-              {filteredBookings.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay reservas de cuidado</h3>
-                  <p className="text-gray-600">
-                    {filter === 'all' 
-                      ? 'Aún no tienes reservas de cuidado'
-                      : `No tienes reservas ${getStatusConfig(filter).text.toLowerCase()}`
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {filteredBookings.map((booking) => {
-                    const statusConfig = getStatusConfig(booking.status);
-                    const StatusIcon = statusConfig.icon;
-
-                    return (
-                      <div key={booking.id} className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-start space-x-4">
-                            <div className="bg-orange-100 p-3 rounded-full">
-                              <Shield className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-bold text-gray-900 mb-1">
-                                {booking.serviceName}
-                              </h3>
-                              <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
-                                <div className="flex items-center space-x-1">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{formatDateRange(booking.startDate, booking.endDate)}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Clock className="h-4 w-4" />
-                                  <span>{booking.totalDays} día{booking.totalDays > 1 ? 's' : ''}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{booking.area}</span>
-                                </div>
-                              </div>
-                              <p className="text-sm text-gray-600">
-                                <strong>Mascota:</strong> {booking.pet}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-3">
-                            <div className={`px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.textColor} flex items-center space-x-1`}>
-                              <StatusIcon className="h-4 w-4" />
-                              <span className="text-sm font-medium">{statusConfig.text}</span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-lg font-bold text-orange-600">{formatPrice(booking.totalPrice)}</div>
-                              <div className="text-xs text-gray-500">{formatPrice(booking.pricePerDay)}/día</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-4 mb-4">
-                          <div className="flex items-center space-x-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">Propietario: {booking.client}</span>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Phone className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{booking.phone}</span>
-                          </div>
-                        </div>
-
-                        {booking.notes && (
-                          <div className="bg-white p-3 rounded-lg mb-4">
-                            <p className="text-sm text-gray-700">
-                              <strong>Instrucciones especiales:</strong> {booking.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Actions */}
-                        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                          <div className="flex space-x-2">
-                            {booking.status === 'pending' && (
-                              <>
-                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                                  Aceptar Reserva
-                                </button>
-                                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                  Rechazar
-                                </button>
-                              </>
-                            )}
-                            {booking.status === 'confirmed' && (
-                              <>
-                                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                                  Iniciar Cuidado
-                                </button>
-                                <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
-                                  Ver Instrucciones
-                                </button>
-                              </>
-                            )}
-                            {booking.status === 'completed' && (
-                              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                                Ver Reporte Final
-                              </button>
-                            )}
-                          </div>
-                          
-                          <button className="text-orange-600 hover:text-orange-700 text-sm font-medium">
-                            Contactar Propietario
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Stethoscope, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Stethoscope, User, MapPin, Phone, Star, Plus, Edit, Trash2 } from 'lucide-react';
 import {useAuth} from '../../context/authContext.tsx';
 interface MisServiciosVeterinariosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
@@ -93,6 +93,18 @@ useEffect(() => {
       setServices(prev => prev.filter(service => service.id !== serviceId));
     }
   };
+
+
+  const formatearMascota = (mascota: string) => {
+      const mascotaMap: { [key: string]: string } = {
+        'PERRO': 'Perro',
+        'GATO': 'Gato',
+        'AVE': 'Ave',
+        'OTRO': 'Otro'
+            };
+      return mascotaMap[mascota.toUpperCase()] || mascota;
+    }
+
 
   if (userType !== 'veterinaria') {
     return (
@@ -238,6 +250,30 @@ useEffect(() => {
                               <p className="text-gray-600">{new Date(service.fechaCreacion).toLocaleDateString('es-ES')}</p>
                             </div>
                           </div>
+                          {/* Services Included */}
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Mascotas aceptadas:</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {service.mascotasAceptadas.map((mascota, index) => (
+                                  <span key={index} className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs">
+                                    {formatearMascota(mascota)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium text-gray-900 mb-2">Disponibilidad:</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {service.diasDisponibles.map((day, index) => (
+                                  <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                                    {formatDayOfWeek(day)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
@@ -264,21 +300,9 @@ useEffect(() => {
                       </div>
 
                       {/* Availability and Areas */}
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-2">Disponibilidad:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {service.diasDisponibles.map((day, index) => (
-                              <span key={index} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
-                                {formatDayOfWeek(day)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
                         
-                      </div>
 
-                      {/* Available Hours */}
+                        {/* Available Hours */}
                       <div className="mt-2">
                         <h4 className="text-sm font-medium text-gray-900 mb-2">Horarios disponibles:</h4>
                         <div className="flex flex-wrap gap-1">
@@ -289,14 +313,14 @@ useEffect(() => {
                           ))}
                         </div>
                       </div>
+
+                      
                     </div>
                   ))}
                 </div>
               )}
             </div>
           )}
-
-          
         </div>
       </div>
     </div>

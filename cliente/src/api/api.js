@@ -370,7 +370,10 @@ export const crearServicioCuidador = async (data) => {
 export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
     try {
         const response = await axios.get(`${API_URL}/serviciosVet/veterinaria/${usuarioId}`, {       
-            
+            params: { 
+                "page": page,
+                "limit": 3
+            }
         });
 
         return response.data;
@@ -383,7 +386,10 @@ export const getServiciosVeterinariaByUsuario = async (usuarioId, page) => {
 export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
     try {
         const response = await axios.get(`${API_URL}/serviciosPaseadores/paseador/${usuarioId}`, {       
-            
+            params: { 
+                "page": page,
+                "limit": 3
+            }
         });
 
         return response.data;
@@ -397,12 +403,27 @@ export const getServiciosPaseadorByUsuario = async (usuarioId, page) => {
 export const getServiciosCuidadorByUsuario = async (usuarioId, page) => {
     try {
         const response = await axios.get(`${API_URL}/serviciosCuidador/cuidador/${usuarioId}`, {       
-            
+            params: { 
+                "page": page,
+                "limit": 3
+            }
         });
 
         return response.data;
     } catch (error) {
         console.error("Error al obtener servicios de cuidador:", error);
+        throw error;
+    }
+};
+
+export const cambiarEstadoServicio = async (serviceId ,estado , tipoUsuario) => {
+    console.log("Cambiando estado del servicio:", serviceId, estado, tipoUsuario);
+
+    const usuario = tipoUsuario === 'servicioCuidador' ? 'cuidador' : tipoUsuario === 'servicioPaseador' ? 'paseador' : 'veterinaria';
+    try {
+        await axios.put(`${API_URL}/${usuario}/${serviceId}/${tipoUsuario}/${estado}`);
+    } catch (error) {
+        console.error("Error al cambiar el estado del servicio:", error);
         throw error;
     }
 };

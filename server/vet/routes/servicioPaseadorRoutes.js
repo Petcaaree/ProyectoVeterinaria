@@ -32,5 +32,13 @@ export default function servicioPaseadorRoutes(getController) {
         getController(ServicioPaseadorController).cambiarEstadoPaseador(req, res, next)
     )
 
+    router.get("/petcare/serviciosPaseadores/activos", (req, res, next) => {
+        getController(ServicioPaseadorController).findActivos(req, res, next)
+    })
+
+    router.get("/petcare/serviciosPaseadores/inactivos", (req, res, next) => {
+        getController(ServicioPaseadorController).findInactivos(req, res, next)
+        })
+
     return router
 }

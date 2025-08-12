@@ -211,6 +211,15 @@ export class ServicioPaseadorRepository {
             })
             
     }
+
+    async findByEstado(estado){
+        return await this.model.find({ estado: estado })
+            .populate('usuarioProveedor')
+            .populate({
+                path: 'direccion.localidad',
+                populate: {path: 'ciudad'}
+            });
+    }
 }
 
 

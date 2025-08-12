@@ -1,5 +1,6 @@
 import { FiltroPaseador } from "../models/entidades/FiltroPaseador.js";
 import { ObjectId } from "mongodb";
+import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js";
 
 export class ServicioPaseadorController {
     constructor(servicioPaseadorService) {
@@ -111,4 +112,25 @@ export class ServicioPaseadorController {
             next(error)
         }
     }
+
+    async findActivos(req, res, next) {
+            try {
+                const { page = 1, limit = 4 } = req.query;
+                const result = await this.servicioPaseadorService.findByEstado(EstadoServicio.ACTIVO, { page, limit });
+                res.json(result);
+            } catch (error) {
+                next(error);
+            }
+        }
+    
+        async findInactivos(req, res, next) {
+            try {
+                const { page = 1, limit = 4 } = req.query;
+                const result = await this.servicioPaseadorService.findByEstado(EstadoServicio.DESACTIVADA, { page, limit });
+                res.json(result);
+            } catch (error) {
+                next(error);
+            }
+        }
+    
 }

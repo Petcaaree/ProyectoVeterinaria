@@ -286,6 +286,29 @@ async delete(id) {
         return this.toDTO(servicioActualizado)
     }
 
+    async findByEstado(estado, { page = 1, limit = 4 }) {
+        const pageNum = Math.max(Number(page), 1);
+        const limitNum = Math.min(Math.max(Number(limit), 1), 100);
+
+        const servicios = await this.servicioPaseadorRepository.findByEstado(estado);
+
+        const total = servicios.length;
+        const startIndex = (pageNum - 1) * limitNum;
+        const endIndex = startIndex + limitNum;
+        const total_pages = Math.ceil(total / limitNum);
+
+        const data = servicios.slice(startIndex, endIndex).map(s => this.toDTO(s));
+
+        return {
+            page: pageNum,
+            per_page: limitNum,
+            total: total,
+            total_pages: total_pages,
+            data: data
+        };
+    }
+
+
 
     toDTO(servicoPaseador) {
         return {

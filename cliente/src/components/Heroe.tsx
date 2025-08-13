@@ -3,9 +3,15 @@ import { ArrowRight, Shield, Clock, Star, Heart } from 'lucide-react';
 
 interface HeroeProps {
   onRegisterPetClick: () => void;
+  onAddServiceClick: () => void;
+  userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 }
 
-const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
+const Heroe: React.FC<HeroeProps> = ({ 
+  onRegisterPetClick, 
+  onAddServiceClick,
+  userType 
+}) => {
   const handleExploreClick = () => {
     const serviciosSection = document.getElementById('veterinaria');
     if (serviciosSection) {
@@ -42,22 +48,18 @@ const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
 
   return (
     <section id="inicio" className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col md:flex-row items-center justify-between">
           {/* Left Content */}
-          <div className="space-y-8">
-            <div className="space-y-4">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                El mejor cuidado para tu
-                <span className="text-blue-600 block">mascota</span>
-              </h1>
-              <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-                Conectamos a tu mascota con profesionales expertos en veterinaria, 
-                paseos y cuidado. Todo en un solo lugar, con la confianza y calidad 
-                que tu mejor amigo merece.
-              </p>
-            </div>
-
+          <div className="md:w-1/2 mb-10 md:mb-0">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
+              Cuidamos a tus <span className="text-blue-600">mascotas</span> como se merecen
+            </h1>
+            <p className="text-lg text-gray-700 mb-8 max-w-lg">
+              Encuentra los mejores profesionales para el cuidado de tu mascota. 
+              Veterinarios, paseadores y cuidadores verificados cerca de ti.
+            </p>
+            
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={handleExploreClick}
@@ -66,13 +68,28 @@ const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
                 <span>Explorar Servicios</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
-              <button 
-                onClick={onRegisterPetClick}
-                className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
-              >
-                <Heart className="h-5 w-5" />
-                <span>Registrar Mascota</span>
-              </button>
+              
+              {userType && ['veterinaria', 'paseador', 'cuidador'].includes(userType) ? (
+                <button 
+                  onClick={onAddServiceClick}
+                  className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+                >
+                  <Heart className="h-5 w-5" />
+                  <span>
+                    {userType === 'veterinaria' && 'Agregar Servicio'}
+                    {userType === 'paseador' && 'Agregar Paseo'}
+                    {userType === 'cuidador' && 'Agregar Cuidado'}
+                  </span>
+                </button>
+              ) : (
+                <button 
+                  onClick={onRegisterPetClick}
+                  className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+                >
+                  <Heart className="h-5 w-5" />
+                  <span>Registrar Mascota</span>
+                </button>
+              )}
             </div>
 
             {/* Stats */}

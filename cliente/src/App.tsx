@@ -36,6 +36,19 @@ function App() {
     return mapeo[tipo];
   };
 
+    const handleAddService = () => {
+    if (tipoUsuario === 'veterinaria') {
+      setCurrentView('create-service');
+    } else if (tipoUsuario === 'paseador') {
+      setCurrentView('create-service');
+    } else if (tipoUsuario === 'cuidador') {
+      setCurrentView('create-service');
+    } else {
+      handleRegistrarMascota();
+    }
+  };
+
+
   // Función temporal para mapear servicios de español a inglés
   const mapearServicio = (servicio: 'overview' | 'veterinaria' | 'paseador' | 'cuidador'): 'overview' | 'veterinary' | 'walker' | 'caregiver' => {
     const mapeo = {
@@ -221,7 +234,11 @@ function App() {
       default:
         return (
           <>
-            <Heroe onRegisterPetClick={handleRegistrarMascota} />
+            <Heroe 
+              onRegisterPetClick={handleRegistrarMascota}
+              onAddServiceClick={handleAddService}
+              userType={tipoUsuario}
+            />
             <Servicios />
             <ServiciosVeterinarios userType={tipoUsuario} />
             <ServiciosPaseadores userType={tipoUsuario} />

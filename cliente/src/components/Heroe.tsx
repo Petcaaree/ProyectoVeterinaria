@@ -6,6 +6,39 @@ interface HeroeProps {
 }
 
 const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
+  const handleExploreClick = () => {
+    const serviciosSection = document.getElementById('veterinaria');
+    if (serviciosSection) {
+      smoothScrollTo(serviciosSection);
+    }
+  };
+
+  // Función personalizada para scroll suave
+  const smoothScrollTo = (target: HTMLElement) => {
+    const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    const duration = 1000; // Duración en milisegundos (1 segundo)
+    let startTime: number | null = null;
+
+    const animation = (currentTime: number) => {
+      if (startTime === null) startTime = currentTime;
+      const timeElapsed = currentTime - startTime;
+      const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+      window.scrollTo(0, run);
+      if (timeElapsed < duration) requestAnimationFrame(animation);
+    };
+
+    // Función de easing para un efecto más natural
+    const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
+      t /= d / 2;
+      if (t < 1) return c / 2 * t * t + b;
+      t--;
+      return -c / 2 * (t * (t - 2) - 1) + b;
+    };
+
+    requestAnimationFrame(animation);
+  };
 
   return (
     <section id="inicio" className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
@@ -26,7 +59,10 @@ const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold">
+              <button 
+                onClick={handleExploreClick}
+                className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+              >
                 <span>Explorar Servicios</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
@@ -112,5 +148,4 @@ const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick }) => {
   );
 };
 
-
-export default Heroe
+export default Heroe;

@@ -118,21 +118,23 @@ const Heroe: React.FC<HeroeProps> = ({
             </div>
           </div>
 
-          {/* Right Content - Hero Image */}
-          <div className="relative">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+           {/* Right Content - Imagen con mayor tamaño y parte inferior visible */}
+          <div className="relative w-full md:w-1/2 max-w-lg">
+            {/* Contenedor con altura aumentada y relación de aspecto */}
+            <div className="relative bg-white rounded-2xl shadow-2xl p-4 md:p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300 overflow-hidden aspect-[9/10]">
               <img
                 src="https://images.pexels.com/photos/4587998/pexels-photo-4587998.jpeg?auto=compress&cs=tinysrgb&w=600"
                 alt="Veterinario cuidando mascota"
-                className="w-full h-96 object-cover rounded-xl"
+                className="w-full h-full object-cover object-bottom rounded-xl"
               />
-              <div className="absolute -top-4 -right-4 bg-green-500 text-white p-3 rounded-full shadow-lg">
-                <Shield className="h-6 w-6" />
+              <div className="absolute top-4 right-4 bg-green-500 text-white p-2 md:p-3 rounded-full shadow-lg">
+                <Shield className="h-4 w-4 md:h-6 md:w-6" />
               </div>
-              <div className="absolute -bottom-4 -left-4 bg-blue-500 text-white p-3 rounded-full shadow-lg">
-                <Heart className="h-6 w-6" />
+              <div className="absolute bottom-4 left-4 bg-blue-500 text-white p-2 md:p-3 rounded-full shadow-lg">
+                <Heart className="h-4 w-4 md:h-6 md:w-6" />
               </div>
             </div>
+            
             
             {/* Floating Cards */}
             <div className="absolute top-10 -left-6 bg-white rounded-lg shadow-lg p-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">

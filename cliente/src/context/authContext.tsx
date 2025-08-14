@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { obetenerServiciosCuidadores,obetenerServiciosPaseadores,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import { obetenerServiciosCuidadores,obetenerServiciosPaseadores,obetenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -219,6 +219,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getServiciosVeterinarias = async (page: number = 1, filtro: any) => {
+    try {
+      const response = await obetenerServiciosVeterinarias(page, filtro);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de veterinarias:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -296,6 +306,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     activarOdesactivarServicio,
     getServiciosCuidadores,
     getServiciosPaseadores,
+    getServiciosVeterinarias,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

@@ -21,7 +21,34 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [selectedPetTypes, setSelectedPetTypes] = useState<string[]>([]);
+
+  // Tipos de mascotas disponibles
+  const petTypes = [
+    { value: 'dog', label: 'Perros' },
+    { value: 'cat', label: 'Gatos' },
+    { value: 'bird', label: 'Aves' },
+    { value: 'other', label: 'Otros' }
+  ];
+
+  // Función para manejar selección múltiple de tipos de mascotas
+  const handlePetTypeToggle = (petType: string) => {
+    setSelectedPetTypes(prev => {
+      const newSelection = prev.includes(petType) 
+        ? prev.filter(type => type !== petType)
+        : [...prev, petType];
+      
+      // Actualizar filtros para backend
+      setFiltros(prevFiltros => ({
+        ...prevFiltros,
+        mascotasAceptadas: newSelection
+      }));
+      
+      setPage(1);
+      return newSelection;
+    });
+  };
+
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
@@ -32,6 +59,11 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
   const [cuidadorServices, setCuidadorServicios] = useState<any[]>([]);
 
   const { usuario, getServiciosCuidadores } = useAuth();
+
+  // Extraer ubicaciones únicas de los servicios de cuidadores
+  const locations = [...new Set(cuidadorServices.map(cuidador => 
+    cuidador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
+  ).filter(ciudad => ciudad !== 'No especificado'))];
 
   // Helper para parsear fecha DD/MM/AAAA a Date object
   const parsearFecha = (fechaStr: string): Date | null => {
@@ -51,14 +83,20 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     nombreServicio: '',
     precioMin: '',
     precioMax: '',
-    mascotasAceptadas: [],
+    mascotasAceptadas: [] as string[],
     fechaInicio: '',
     fechaFin: '',
+    localidad: '',
   });
 
   useEffect(() => {
     cargarServicios();
-  }, [page]);
+        console.log('🔄 Estado completo de filtros cambió:', filtros);
+
+  }, [page, filtros]);
+
+  // Efecto para monitorear cambios en filtros
+  
 
     const cargarServicios = async () => {
     // Simular carga de servicios
@@ -145,19 +183,78 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             />
 
-            {/* Experience Filter */}
+            {/* Location Filter */}
             <select
-              value={experienceFilter}
-              onChange={(e) => setExperienceFilter(e.target.value)}
+              value={locationFilter}
+              onChange={(e) => {
+                console.log('📍 Localidad cambiada a:', e.target.value);
+                setLocationFilter(e.target.value);
+                setPage(1);
+                setFiltros(prev => {
+                  const nuevosFiltros = { ...prev, localidad: e.target.value === 'all' ? '' : e.target.value };
+                  console.log('📋 Filtros actualizados:', nuevosFiltros);
+                  return nuevosFiltros;
+                });
+              }}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             >
-              <option value="all">Todos los tipos</option>
-              <option value="dog">Perros</option>
-              <option value="cat">Gatos</option>
-              <option value="bird">Aves</option>
-              <option value="other">Otros</option>
+              <option value="all">Todas las zonas</option>
+              {locations.map(location => (
+                <option key={location} value={location}>{location}</option>
+              ))}
             </select>
 
+            {/* Pet Types Filter - Multi-select */}
+            <div className="col-span-full">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Tipos de mascotas
+                </label>
+                {selectedPetTypes.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedPetTypes([]);
+                      setFiltros(prev => ({ ...prev, mascotasAceptadas: [] }));
+                      setPage(1);
+                    }}
+                    className="text-xs text-orange-600 hover:text-orange-800 font-medium"
+                  >
+                    Limpiar selección
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {petTypes.map(petType => (
+                  <label
+                    key={petType.value}
+                    className={`flex items-center space-x-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                      selectedPetTypes.includes(petType.value)
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 bg-gray-50 hover:border-orange-300 hover:bg-orange-25'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPetTypes.includes(petType.value)}
+                      onChange={() => handlePetTypeToggle(petType.value)}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                      selectedPetTypes.includes(petType.value)
+                        ? 'border-orange-500 bg-orange-500'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedPetTypes.includes(petType.value) && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">{petType.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             {/* Date Range Filter */}
             <div className="col-span-full md:col-span-2">
@@ -234,6 +331,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           <p className="text-gray-600">
             Mostrando {cuidadorServices.length} cuidador{cuidadorServices.length !== 1 ? 'es' : ''} 
             {searchTerm && ` para "${searchTerm}"`}
+            {selectedPetTypes.length > 0 && ` para ${selectedPetTypes.map(type => petTypes.find(pt => pt.value === type)?.label).join(', ')}`}
             {fechaInicio && fechaFin && ` disponibles del ${fechaInicio} al ${fechaFin}`}
             {fechaInicio && !fechaFin && ` disponibles desde el ${fechaInicio}`}
           </p>

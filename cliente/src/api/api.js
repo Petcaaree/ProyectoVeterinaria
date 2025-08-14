@@ -474,3 +474,27 @@ export const obetenerServiciosPaseadores = async (pageNumber, filtros ) => {
     throw error;
   }
 };
+
+export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
+  try {
+    const filtrosLimpiados = Object.fromEntries(
+            Object.entries(filtros).filter(([_, v]) => {
+                if (Array.isArray(v)) return v.length > 0;
+                return v !== null && v !== undefined && v !== '';
+            })
+    );
+
+    const response = await axios.get(`${API_URL}/serviciosVet`, {
+      params: {
+                page: pageNumber,
+                ...filtrosLimpiados
+        },
+      paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
+    });
+
+    return response.data; // { page, per_page, total_pages, data, ... }
+  } catch (error) {
+    console.error("Error al obtener servicios de veterinarias:", error);
+    throw error;
+  }
+};

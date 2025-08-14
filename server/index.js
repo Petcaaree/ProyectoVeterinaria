@@ -12,8 +12,7 @@ import routes from "./vet/routes/routes.js";
 
 import { CiudadRepository } from "./vet/models/repositories/ciudadRepository.js";
 import { LocalidadRepository } from "./vet/models/repositories/localidadRepository.js";
-import { CiudadService } from "./vet/services/ciudadService.js";
-//import { CiudadController } from "./vet/controllers/ciudadController.js";
+import { CiudadController } from "./vet/controllers/ciudadController.js";
 
 import { ServicioVeterinariaRepository } from "./vet/models/repositories/servicioVeterinariaRepository.js";
 import { ServicioPaseadorRepository } from "./vet/models/repositories/servicioPaseadorRepository.js";
@@ -35,6 +34,7 @@ import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaSe
 import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
 import { ReservaService } from "./vet/services/reservaService.js";
+import { CiudadService } from "./vet/services/ciudadService.js";
 
 /* 
 */
@@ -70,6 +70,7 @@ const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeteri
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
+const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
 
 const clienteController = new ClienteController(clienteService, reservaService);
 const cuidadorController = new CuidadorController(cuidadorService, reservaService);
@@ -79,6 +80,7 @@ const servicioVeterinariaController = new ServicioVeterinariaController(servicio
 const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
 const reservaController = new ReservaController(reservaService);
+const ciudadController = new CiudadController(ciudadService);
 
 
 
@@ -124,6 +126,7 @@ server.setController(ServicioVeterinariaController, servicioVeterinariaControlle
 server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ReservaController, reservaController);
+server.setController(CiudadController, ciudadController);
 
 /* server.setController(CiudadController, ciudadController);
 

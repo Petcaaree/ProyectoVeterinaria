@@ -33,6 +33,20 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
 
   const { usuario, getServiciosCuidadores } = useAuth();
 
+  // Helper para parsear fecha DD/MM/AAAA a Date object
+  const parsearFecha = (fechaStr: string): Date | null => {
+    if (!fechaStr || fechaStr.length === 0) return null;
+    
+    // Si ya es formato DD/MM/AAAA
+    if (fechaStr.includes('/')) {
+      const [dia, mes, año] = fechaStr.split('/');
+      return new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    }
+    
+    // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
+    return new Date(fechaStr);
+  };
+
   const [filtros, setFiltros] = useState({
     nombreServicio: '',
     precioMin: '',
@@ -75,90 +89,21 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
-  };
+  
 
   const handleBookCuidador = (cuidador: any) => {
     setSelectedCuidador(cuidador);
     setIsBookingOpen(true);
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
+ 
 
   // Check if cuidador is available on selected date
-  const isAvailableOnDateRange = (cuidador: any, startDate: string, endDate: string) => {
-    if (!startDate && !endDate) return true;
-    
-    // Si solo hay fecha de inicio, verificar ese día
-    if (startDate && !endDate) {
-      const date = new Date(startDate);
-      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const dayName = dayNames[date.getDay()];
-      return cuidador.availability.some((period: string) => 
-        period.includes(dayName) || period.includes('Lunes a Domingo') || period.includes('Lunes a Viernes')
-      );
-    }
-    
-    // Para rangos de fechas, verificar disponibilidad general
-    return cuidador.availability.some((period: string) => 
-      period.includes('Lunes a Domingo') || 
-      (period.includes('Lunes a Viernes') && !isWeekendRange(startDate, endDate))
-    );
-  };
+  
 
-  const isWeekendRange = (startDate: string, endDate: string) => {
-    if (!startDate || !endDate) return false;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    // Verificar si el rango incluye solo fines de semana
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // No es domingo (0) ni sábado (6)
-        return false;
-      }
-    }
-    return true;
-  };
+  
 
-  // Filter cuidadors based on search and filters
-  /* const filteredCuidadors = cuidadorServices.filter(cuidador => {
-    const matchesSearch = cuidador.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cuidador.services.some(service => 
-                           service.toLowerCase().includes(searchTerm.toLowerCase())
-                         );
-    
-    const matchesPrice = (!minPrice && !maxPrice) ||
-                        (() => {
-                          const price = cuidador.pricePerDay;
-                          const min = minPrice ? parseInt(minPrice) : 0;
-                          const max = maxPrice ? parseInt(maxPrice) : Infinity;
-                          return price >= min && price <= max;
-                        })();
-    
-    const matchesExperience = experienceFilter === 'all' ||
-                             (experienceFilter === 'junior' && cuidador.experience <= 3) ||
-                             (experienceFilter === 'mid' && cuidador.experience > 3 && cuidador.experience <= 6) ||
-                             (experienceFilter === 'senior' && cuidador.experience > 6);
-    
-    const matchesDate = isAvailableOnDateRange(cuidador, fechaInicio, fechaFin);
-    
-    return matchesSearch && matchesPrice && matchesExperience && matchesDate;
-  }); */
+  
 
   const today = new Date().toISOString().split('T')[0];
   return (
@@ -233,11 +178,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
                     >
                       {fechaInicio 
-                        ? new Date(fechaInicio).toLocaleDateString('es-ES', { 
-                            day: '2-digit', 
-                            month: '2-digit', 
-                            year: 'numeric' 
-                          })
+                        ? fechaInicio
                         : 'Seleccionar fecha'
                       }
                     </button>
@@ -257,11 +198,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
                     >
                       {fechaFin 
-                        ? new Date(fechaFin).toLocaleDateString('es-ES', { 
-                            day: '2-digit', 
-                            month: '2-digit', 
-                            year: 'numeric' 
-                          })
+                        ? fechaFin
                         : 'Seleccionar fecha'
                       }
                     </button>
@@ -275,7 +212,14 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-orange-700">Duración del servicio:</span>
                     <span className="font-bold text-orange-800">
-                      {Math.ceil((new Date(fechaFin).getTime() - new Date(fechaInicio).getTime()) / (1000 * 60 * 60 * 24)) + 1} días
+                      {(() => {
+                        const fechaInicioDate = parsearFecha(fechaInicio);
+                        const fechaFinDate = parsearFecha(fechaFin);
+                        if (fechaInicioDate && fechaFinDate) {
+                          return Math.ceil((fechaFinDate.getTime() - fechaInicioDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        }
+                        return 0;
+                      })()} días
                     </span>
                   </div>
                 </div>
@@ -290,8 +234,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           <p className="text-gray-600">
             Mostrando {cuidadorServices.length} cuidador{cuidadorServices.length !== 1 ? 'es' : ''} 
             {searchTerm && ` para "${searchTerm}"`}
-            {fechaInicio && fechaFin && ` disponibles del ${new Date(fechaInicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} al ${new Date(fechaFin).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-            {fechaInicio && !fechaFin && ` disponibles desde el ${new Date(fechaInicio).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+            {fechaInicio && fechaFin && ` disponibles del ${fechaInicio} al ${fechaFin}`}
+            {fechaInicio && !fechaFin && ` disponibles desde el ${fechaInicio}`}
           </p>
         </div>
 

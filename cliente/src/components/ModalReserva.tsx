@@ -11,6 +11,29 @@ interface ModalReservaProps {
 }
 
 const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, serviceType, userType }) => {
+  // Helper para parsear fecha DD/MM/AAAA a Date object
+  const parsearFecha = (fechaStr: string): Date | null => {
+    if (!fechaStr || fechaStr.length === 0) return null;
+    
+    // Si ya es formato DD/MM/AAAA
+    if (fechaStr.includes('/')) {
+      const [dia, mes, año] = fechaStr.split('/');
+      return new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    }
+    
+    // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
+    return new Date(fechaStr);
+  };
+
+  // Helper para obtener fecha de hoy en formato DD/MM/AAAA
+  const obtenerFechaHoy = (): string => {
+    const hoy = new Date();
+    const dia = hoy.getDate().toString().padStart(2, '0');
+    const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+    const año = hoy.getFullYear();
+    return `${dia}/${mes}/${año}`;
+  };
+
   const [formData, setFormData] = useState({
     petName: '',
     petSpecies: 'dog',
@@ -248,12 +271,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     >
                       <span className={formData.date ? 'text-gray-900' : 'text-gray-500'}>
                         {formData.date 
-                          ? new Date(formData.date).toLocaleDateString('es-ES', { 
-                              weekday: 'long', 
-                              year: 'numeric', 
-                              month: 'long', 
-                              day: 'numeric' 
-                            })
+                          ? formData.date
                           : 'Seleccionar fecha'
                         }
                       </span>
@@ -381,11 +399,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                       >
                         <span className={formData.date ? 'text-gray-900' : 'text-gray-500'}>
                           {formData.date 
-                            ? new Date(formData.date).toLocaleDateString('es-ES', { 
-                                day: '2-digit', 
-                                month: '2-digit', 
-                                year: 'numeric' 
-                              })
+                            ? formData.date
                             : 'Seleccionar fecha'
                           }
                         </span>
@@ -407,11 +421,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                       >
                         <span className={formData.duration ? 'text-gray-900' : 'text-gray-500'}>
                           {formData.duration 
-                            ? new Date(formData.duration).toLocaleDateString('es-ES', { 
-                                day: '2-digit', 
-                                month: '2-digit', 
-                                year: 'numeric' 
-                              })
+                            ? formData.duration
                             : 'Seleccionar fecha'
                           }
                         </span>
@@ -427,7 +437,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-orange-700">Duración del servicio:</span>
                       <span className="font-bold text-orange-800">
-                        {Math.ceil((new Date(formData.duration).getTime() - new Date(formData.date).getTime()) / (1000 * 60 * 60 * 24)) + 1} días
+                        {(() => {
+                          const fechaInicio = parsearFecha(formData.date);
+                          const fechaFin = parsearFecha(formData.duration);
+                          if (fechaInicio && fechaFin) {
+                            return Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                          }
+                          return 0;
+                        })()} días
                       </span>
                     </div>
                   </div>
@@ -479,7 +496,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             setMostrarCalendario(false);
           }}
           onCerrar={() => setMostrarCalendario(false)}
-          fechaMinima={new Date().toISOString().split('T')[0]}
+          fechaMinima={obtenerFechaHoy()}
           colorTema={serviceType === 'walker' ? 'green' : 'blue'}
           titulo="Seleccionar fecha de la cita"
         />

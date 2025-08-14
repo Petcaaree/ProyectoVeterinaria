@@ -451,17 +451,20 @@ export const obetenerServiciosCuidadores = async (pageNumber, filtros) => {
     }
 };
 
-export const getServiciosPaseadores = async (pageNumber, filtros = {}) => {
+export const obetenerServiciosPaseadores = async (pageNumber, filtros ) => {
   try {
     const filtrosLimpiados = Object.fromEntries(
-      Object.entries(filtros).filter(([_, v]) => {
-        if (Array.isArray(v)) return v.length > 0;
-        return v !== null && v !== undefined && v !== '';
-      })
+            Object.entries(filtros).filter(([_, v]) => {
+                if (Array.isArray(v)) return v.length > 0;
+                return v !== null && v !== undefined && v !== '';
+            })
     );
 
     const response = await axios.get(`${API_URL}/serviciosPaseadores`, {
-      params: { page: pageNumber, limit: 6, ...filtrosLimpiados },
+      params: {
+                page: pageNumber,
+                ...filtrosLimpiados
+        },
       paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
     });
 

@@ -63,7 +63,7 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
       <div className="p-6 flex-1 flex flex-col">
         {/* Descripción del servicio */}
         <div className="mb-4">
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">Servicio de Cuidado</h4>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{cuidador.nombreServicio}</h4>
           <p className="text-gray-600 text-sm">
             {cuidador.descripcion}
           </p>

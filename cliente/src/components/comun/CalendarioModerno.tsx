@@ -126,8 +126,12 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
 
   const esFechaSeleccionada = (fecha: Date) => {
     if (!fechaSeleccionada) return false;
-    const fechaStr = fecha.toISOString().split('T')[0];
-    return fechaStr === fechaSeleccionada;
+    
+    // Parsear la fecha seleccionada (que puede estar en formato DD/MM/AAAA)
+    const fechaParsed = parsearFechaDDMMAAAA(fechaSeleccionada);
+    if (!fechaParsed) return false;
+    
+    return fechaAISO(fecha) === fechaAISO(fechaParsed);
   };
 
   const esHoy = (fecha: Date) => {
@@ -136,18 +140,58 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   };
 
   const esFechaDeshabilitada = (fecha: Date) => {
-    const fechaStr = fecha.toISOString().split('T')[0];
+    const fechaStr = fechaAISO(fecha);
     
-    if (fechaMinima && fechaStr < fechaMinima) return true;
-    if (fechaMaxima && fechaStr > fechaMaxima) return true;
+    // Convertir fechas mínima y máxima a ISO si están en formato DD/MM/AAAA
+    let fechaMinimaISO = fechaMinima;
+    let fechaMaximaISO = fechaMaxima;
+    
+    if (fechaMinima && fechaMinima.includes('/')) {
+      const fechaParsed = parsearFechaDDMMAAAA(fechaMinima);
+      fechaMinimaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMinima;
+    }
+    
+    if (fechaMaxima && fechaMaxima.includes('/')) {
+      const fechaParsed = parsearFechaDDMMAAAA(fechaMaxima);
+      fechaMaximaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMaxima;
+    }
+    
+    if (fechaMinimaISO && fechaStr < fechaMinimaISO) return true;
+    if (fechaMaximaISO && fechaStr > fechaMaximaISO) return true;
     
     return false;
+  };
+
+  const formatearFecha = (fecha: Date): string => {
+    const dia = fecha.getDate().toString().padStart(2, '0');
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+    const año = fecha.getFullYear();
+    return `${dia}/${mes}/${año}`;
+  };
+
+  // Helper para convertir DD/MM/AAAA a Date
+  const parsearFechaDDMMAAAA = (fechaStr: string): Date | null => {
+    if (!fechaStr) return null;
+    
+    // Si es formato DD/MM/AAAA
+    if (fechaStr.includes('/')) {
+      const [dia, mes, año] = fechaStr.split('/');
+      return new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    }
+    
+    // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
+    return new Date(fechaStr);
+  };
+
+  // Helper para convertir Date a formato ISO (para comparaciones)
+  const fechaAISO = (fecha: Date): string => {
+    return fecha.toISOString().split('T')[0];
   };
 
   const manejarClickFecha = (fecha: Date) => {
     if (esFechaDeshabilitada(fecha)) return;
     
-    const fechaStr = fecha.toISOString().split('T')[0];
+    const fechaStr = formatearFecha(fecha);
     onFechaSeleccionada(fechaStr);
     onCerrar();
   };
@@ -273,7 +317,7 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
             </button>
             <button
               onClick={() => {
-                const hoy = new Date().toISOString().split('T')[0];
+                const hoy = formatearFecha(new Date());
                 onFechaSeleccionada(hoy);
                 onCerrar();
               }}

@@ -9,7 +9,7 @@ export class ServicioPaseadorController {
 
     async findAll(req, res, next){
         try {
-            const { page = 1, limit = 4} = req.query
+            const { page = 1, limit = 6} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null,  fecha=null } = req.query

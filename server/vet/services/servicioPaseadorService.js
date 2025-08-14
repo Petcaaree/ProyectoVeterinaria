@@ -64,7 +64,7 @@ export class ServicioPaseadorService {
         // Obtener paseadores distintos de los servicios de esta página
         const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
 
-        const total = await this.paseadorRepository.countAll()
+        const total = await this.servicioPaseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
 

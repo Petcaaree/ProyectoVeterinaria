@@ -72,6 +72,7 @@ export interface AuthContextType {
    getServiciosCuidador: (usuarioId: string, page: number, estado: string) => Promise<any[]>;
    activarOdesactivarServicio: (serviceId: string,  estado: string, tipoUsuario: string) => Promise<void>;
    getServiciosCuidadores: (page: number, filtro: any) => Promise<any[]>;
+   getServiciosPaseadores: (page: number, filtro: any) => Promise<any[]>;
   /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
   getReservasById: (reservaId: string) => Promise<any>;
   getReservasByMascota: (mascotaId: string) => Promise<any[]>;

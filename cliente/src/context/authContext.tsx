@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { obetenerServiciosCuidadores,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import { obetenerServiciosCuidadores,obetenerServiciosPaseadores,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -208,6 +208,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+   const getServiciosPaseadores = async (page: number = 1, filtro: any) => {
+    
+    try {
+      const response = await obetenerServiciosPaseadores(page, filtro);
+      return response; // Asegúrate de que la API devuelve un objeto con una propiedad data
+    } catch (error) {
+      console.error('Error al obtener servicios de cuidador:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -284,6 +295,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getServiciosCuidador,
     activarOdesactivarServicio,
     getServiciosCuidadores,
+    getServiciosPaseadores,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

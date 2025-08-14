@@ -141,17 +141,9 @@ function App() {
   };
 
   const handleUserLogout = () => {
-    // Vistas que requieren autenticación
-    const vistasQueRequierenAutenticacion = [
-      'appointments', 'notifications', 'my-pets', 'register-pet', 
-      'my-walks', 'my-vet-services', 'my-care-services'
-    ];
-
-    // Si estamos en una vista que requiere autenticación, ir a home
-    if (vistasQueRequierenAutenticacion.includes(currentView)) {
-      setCurrentView('home');
-      setCurrentService('overview');
-    }
+    // Siempre redirigir a home cuando se desloguee, sin importar la vista actual
+    setCurrentView('home');
+    setCurrentService('overview');
   };
 
   const handleRegistrarMascota = () => {
@@ -163,6 +155,36 @@ function App() {
     } else {
       setModoAuth('registro');
       setEstaModalAbierto(true);
+    }
+  };
+
+  const handleExploreServices = () => {
+    // Determinar a qué sección hacer scroll según el tipo de usuario
+    let targetId = 'servicios'; // Por defecto, servicios generales
+    
+    if (tipoUsuario) {
+      switch (tipoUsuario) {
+        case 'veterinaria':
+          targetId = 'veterinaria';
+          break;
+        case 'paseador':
+          targetId = 'paseadores';
+          break;
+        case 'cuidador':
+          targetId = 'cuidadores';
+          break;
+        default:
+          targetId = 'servicios';
+      }
+    }
+    
+    // Hacer scroll a la sección correspondiente
+    const element = document.getElementById(targetId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
     }
   };
 
@@ -236,8 +258,12 @@ function App() {
           <>
             <Heroe 
               onRegisterPetClick={handleRegistrarMascota}
+              onLoginClick={() => {
+                setModoAuth('login');
+                setEstaModalAbierto(true);
+              }}
               onAddServiceClick={handleAddService}
-              userType={tipoUsuario}
+              onExploreServicesClick={handleExploreServices}
             />
             <Servicios />
             <ServiciosVeterinarios userType={tipoUsuario} />

@@ -6,174 +6,108 @@ import Filtros from './comun/Filtros';
 import SinResultados from './comun/SinResultados';
 import TarjetaPaseador from './paseadores/TarjetaPaseador';
 import CalendarioModerno from './comun/CalendarioModerno';
-import { getServiciosPaseadores } from '../api/api.js'; 
+import { useAuth } from '../context/authContext.tsx';
 
 
-/** ===== Tipos del back (DTO) ===== **/
-type ServicioPaseadorDTO = {
-  id: string;
-  usuarioProveedor: { nombre: string; email: string };
-  nombreServicio: string;
-  direccion: {
-    calle: string;
-    altura: string | number;
-    localidad?: { nombre: string; ciudad?: { nombre: string } };
-  };
-  precio: number;
-  descripcion: string;
-  duracionMinutos: number;
-  nombreContacto: string;
-  emailContacto: string;
-  telefonoContacto: string;
-  diasDisponibles: string[];
-  horariosDisponibles: string[];
-  fechasNoDisponibles?: Array<{ fecha: string | Date; horariosNoDisponibles?: string[] }>;
-  estado: 'Activada' | 'Desactivada';
-  fechaCreacion: string;
-  cantidadReservas?: number;
-};
-
-type PageResponse<T> = {
-  page: number;
-  per_page: number;
-  total?: number;
-  totalServicios?: number;
-  totalPaseadores?: number;
-  total_pages: number;
-  data: T[];
-};
-
-/** ===== Modelo que espera TarjetaPaseador (similar a tus mocks) ===== **/
-type WalkerCardModel = {
-  id: string;
-  name: string;
-  areas: string[];
-  pricePerHour: number;
-  description: string;
-  availability: string[]; // ["Lunes","Martes"...]
-  rating: number;         // placeholders para UI
-  experience: number;     // placeholders para UI
-  raw: ServicioPaseadorDTO;
-};
 
 interface PaginaPaseadoresProps {
   userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 }
 
-const dtoToCard = (dto: ServicioPaseadorDTO): WalkerCardModel => {
-  const area = dto?.direccion?.localidad?.nombre ?? 'Sin localidad';
-  return {
-    id: dto.id,
-    name: dto.usuarioProveedor?.nombre || dto.nombreServicio,
-    areas: [area].filter(Boolean),
-    pricePerHour: dto.precio,
-    description: dto.descripcion,
-    availability: dto.diasDisponibles ?? [],
-    rating: 4.6,       // placeholders para no romper UI
-    experience: 3,     // placeholders
-    raw: dto,
-  };
-};
-
 const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
-  const [selectedWalker, setSelectedWalker] = useState<WalkerCardModel | null>(null);
+  const [selectedPaseador, setSelectedPaseador] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   // filtros (mismo patrón que Cuidadores)
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('all'); // UI-only
-  const [locationFilter, setLocationFilter] = useState('all');
   const [fechaPaseo, setFechaPaseo] = useState(''); // una sola fecha para paseos
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+    const [locationFilter, setLocationFilter] = useState('all');
+
 
   // paginación
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   // datos
-  const [walkServices, setWalkServices] = useState<WalkerCardModel[]>([]);
+  const [walkServices, setWalkServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string|null>(null);
 
-  // carga desde back
+  const { usuario, getServiciosPaseadores } = useAuth();
+
+  const [filtros, setFiltros] = useState({
+    nombreServicio: '',
+    precioMin: '',
+    precioMax: '',
+    localidad: '',
+    fecha: '',
+  });
+
   useEffect(() => {
+        console.log('🔄 Estado completo de filtros cambió:', filtros);
+
     cargarServicios();
-    // scroll arriba suave como en cuidadores
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, searchTerm, minPrice, maxPrice, locationFilter, fechaPaseo]);
+  }, [page, filtros]);
+
+  // Efecto para monitorear cambios en filtros (sin enviar al API aún)
+ 
+
+  const locations = [...new Set(walkServices.map(paseador => 
+    paseador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
+  ).filter(ciudad => ciudad !== 'No especificado'))];
 
   const cargarServicios = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const filtros = {
-        nombre: searchTerm || undefined,                  // ver ajuste en repo: usar filtro.nombre
-        localidad: locationFilter !== 'all' ? locationFilter : undefined,
-        precioMin: minPrice || undefined,
-        precioMax: maxPrice || undefined,
-        fecha: fechaPaseo ? new Date(fechaPaseo).toLocaleDateString('es-AR') : undefined,
-      };
-
-      const resp = await getServiciosPaseadores(page, filtros);
-      const data = (resp?.data ?? []).map(dtoToCard);
-
-      setWalkServices(data);
-      setTotalPages(resp?.total_pages ?? 1);
-    } catch (e: any) {
-      setError(e?.message ?? 'Error al cargar servicios');
-    } finally {
-      setLoading(false);
+      //console.log('Cargando servicios con filtros:', filtros);
+      // Cargar servicios usando el método del contexto de autenticación
+      const servicios = await getServiciosPaseadores(page, filtros);
+      console.log('Datos de paseadores recibidos:', servicios);
+     
+      
+      // Verificar si servicios es un array directamente o un objeto con propiedades
+      
+        setWalkServices(servicios.data);  
+        setTotalPages(servicios?.total_pages || 1);
+      
+    } catch (error) {
+      console.error('Error al cargar servicios de paseadores:', error);
+      setWalkServices([]);
+      setTotalPages(1);
     }
   };
 
   // helpers UI
-  const formatPrice = (price: number) =>
-    price.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
-
-  const handleBookWalker = (walker: WalkerCardModel) => {
-    setSelectedWalker(walker);
-    setIsBookingOpen(true);
-  };
-
-  const renderStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-      />
-    ));
-
-  // áreas únicas (para combo “Zonas” si lo agregás luego; ahora no hay select explícito en Filtros)
-  const areas = useMemo(() => {
-    const set = new Set<string>();
-    walkServices.forEach(w => w.areas.forEach(a => a && set.add(a)));
-    return Array.from(set);
-  }, [walkServices]);
-
-  // Filtro adicional en memoria para “experienceFilter” (UI only)
-  const filteredWalkers = useMemo(() => {
-    return walkServices.filter(w => {
-      if (experienceFilter === 'junior' && w.experience > 2) return false;
-      if (experienceFilter === 'mid' && (w.experience <= 2 || w.experience > 4)) return false;
-      if (experienceFilter === 'senior' && w.experience <= 4) return false;
-      return true;
-    });
-  }, [walkServices, experienceFilter]);
-
-  // paginación like cuidadores
   const handlePreviousPage = () => {
-    if (page > 1) setPage(p => p - 1);
+    if (page > 1) {
+      setPage(page - 1);
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const handleNextPage = () => {
-    if (page < totalPages) setPage(p => p + 1);
+    if (page < totalPages) {
+      setPage(page + 1);
+      // Scroll suave hacia arriba
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  const goToPage = (pageNumber: number) => setPage(pageNumber);
+  const goToPage = (pageNumber: number) => {
+    setPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  
+
+  const handleBookPaseador = (paseador: any) => {
+    setSelectedPaseador(paseador);
+    setIsBookingOpen(true);
+  };
+
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -192,7 +126,15 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         {/* Filtros (mismo bloque visual que cuidadores, adaptado a paseadores) */}
         <Filtros
           busqueda={searchTerm}
-          alCambiarBusqueda={(v: string) => { setSearchTerm(v); setPage(1); }}
+          alCambiarBusqueda={(v: string) => { 
+            console.log('🔍 Filtro búsqueda cambiado a:', v);
+            setSearchTerm(v); 
+            setPage(1);
+            setFiltros(prev => {
+              const nuevosFiltros = { ...prev, nombreServicio: v };
+              return nuevosFiltros;
+            });
+          }}
           placeholderBusqueda="Buscar paseador o zona..."
           colorTema="green"
           filtrosAdicionales={
@@ -202,8 +144,16 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio mín/hora"
                 value={minPrice}
-                onChange={(e) => { setMinPrice(e.target.value); setPage(1); }}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                onChange={(e) => { 
+                  console.log('💰 Precio mínimo cambiado a:', e.target.value);
+                  setMinPrice(e.target.value); 
+                  setPage(1);
+                  setFiltros(prev => {
+                    const nuevosFiltros = { ...prev, precioMin: e.target.value };
+                    return nuevosFiltros;
+                  });
+                }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
 
               {/* Precio máx */}
@@ -211,28 +161,44 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio máx/hora"
                 value={maxPrice}
-                onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }}
+                onChange={(e) => { 
+                  console.log('💰 Precio máximo cambiado a:', e.target.value);
+                  setMaxPrice(e.target.value); 
+                  setPage(1);
+                  setFiltros(prev => {
+                    const nuevosFiltros = { ...prev, precioMax: e.target.value };
+                    return nuevosFiltros;
+                  });
+                }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
 
-              {/* Tipo/“experiencia” (UI solo) */}
-              <select
-                value={experienceFilter}
-                onChange={(e) => setExperienceFilter(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-              >
-                <option value="all">Todos los tipos</option>
-                <option value="junior">Junior</option>
-                <option value="mid">Mid</option>
-                <option value="senior">Senior</option>
-              </select>
+              {/* Location Filter */}
+            <select
+              value={locationFilter}
+              onChange={(e) => {
+                console.log('📍 Localidad cambiada a:', e.target.value);
+                setLocationFilter(e.target.value);
+                setPage(1);
+                setFiltros(prev => {
+                  const nuevosFiltros = { ...prev, localidad: e.target.value === 'all' ? '' : e.target.value };
+                  return nuevosFiltros;
+                });
+              }}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+            >
+              <option value="all">Todas las zonas</option>
+              {locations.map(location => (
+                <option key={location} value={location}>{location}</option>
+              ))}
+            </select>
 
-              {/* Fecha del paseo */}
-              <div className="col-span-full md:col-span-1">
+              {/* Fecha del paseo - En toda la fila para mejor layout */}
+              <div className="col-span-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-3">
                   Fecha del paseo
                 </label>
-                <div className="relative">
+                <div className="relative max-w-sm">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <button
                     type="button"
@@ -240,7 +206,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                     className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
                   >
                     {fechaPaseo 
-                      ? new Date(fechaPaseo).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      ? fechaPaseo
                       : 'Seleccionar fecha'
                     }
                   </button>
@@ -256,15 +222,15 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
           {error && <p className="text-red-600">Error: {error}</p>}
           {!loading && !error && (
             <p className="text-gray-600">
-              Mostrando {filteredWalkers.length} paseador{filteredWalkers.length !== 1 ? 'es' : ''} 
+              Mostrando {walkServices.length} paseador{walkServices.length !== 1 ? 'es' : ''} 
               {searchTerm && ` para "${searchTerm}"`}
-              {fechaPaseo && ` disponibles el ${new Date(fechaPaseo).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+              {fechaPaseo && ` disponibles el ${fechaPaseo}`}
             </p>
           )}
         </div>
 
         {/* grid */}
-        {!loading && !error && (filteredWalkers.length === 0 ? (
+        {!loading && !error && (walkServices.length === 0 ? (
           <SinResultados />
         ) : (
           <>
@@ -290,11 +256,11 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
 
                 {/* Grid de Tarjetas */}
                 <div className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-                  {filteredWalkers.map((walker) => (
+                  {walkServices.map((paseador, index) => (
                     <TarjetaPaseador
-                      key={walker.id}
-                      paseador={walker}
-                      alContratar={() => handleBookWalker(walker)}
+                      key={paseador._id || paseador.id || index}
+                      paseador={paseador}
+                      alContratar={() => handleBookPaseador(paseador)}
                     />
                   ))}
                 </div>
@@ -411,7 +377,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
       <ModalReserva
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
-        service={selectedWalker}
+        service={selectedPaseador}
         serviceType="paseador"
         userType={userType}
       />
@@ -421,9 +387,14 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         <CalendarioModerno
           fechaSeleccionada={fechaPaseo}
           onFechaSeleccionada={(fecha) => {
+            console.log('📅 Fecha seleccionada:', fecha);
             setFechaPaseo(fecha);
             setMostrarCalendario(false);
             setPage(1);
+            setFiltros(prev => {
+              const nuevosFiltros = { ...prev, fecha: fecha };
+              return nuevosFiltros;
+            });
           }}
           onCerrar={() => setMostrarCalendario(false)}
           fechaMinima={today}

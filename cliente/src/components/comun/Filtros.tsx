@@ -6,6 +6,7 @@ interface FiltrosProps {
   alCambiarBusqueda: (valor: string) => void;
   placeholderBusqueda?: string;
   filtrosAdicionales?: React.ReactNode;
+  elementoFijo?: React.ReactNode;
   colorTema?: 'blue' | 'green' | 'orange';
 }
 
@@ -14,6 +15,7 @@ const Filtros: React.FC<FiltrosProps> = ({
   alCambiarBusqueda,
   placeholderBusqueda = 'Buscar...',
   filtrosAdicionales,
+  elementoFijo,
   colorTema = 'blue'
 }) => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -128,6 +130,13 @@ const Filtros: React.FC<FiltrosProps> = ({
               Limpiar
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Elemento fijo siempre visible */}
+      {elementoFijo && (
+        <div className="px-6 pb-6">
+          {elementoFijo}
         </div>
       )}
     </div>

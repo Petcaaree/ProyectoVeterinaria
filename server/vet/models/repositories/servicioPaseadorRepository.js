@@ -50,7 +50,7 @@ export class ServicioPaseadorRepository {
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum
-        const alojamientos = await this.model.find()
+        const alojamientos = await this.model.find({ estado: "Activada" })
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
@@ -64,7 +64,7 @@ export class ServicioPaseadorRepository {
    async findByFilters(filtro) {
             // console.log("Filtro recibido:", filtro);
 
-           const query = {}
+           const query = { estado: "Activada" }  // Siempre filtrar por estado Activada
    
            if(filtro.precioMax != null) {
                   query.precio = {}
@@ -97,9 +97,19 @@ export class ServicioPaseadorRepository {
 
               const resultadosFinal = resultadosFiltro1.filter(r => {
                   const localidad = r.direccion?.localidad
+                  const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
+                  console.log('Comparando localidades en paseadores:', {
+                      filtroLocalidad: filtro.localidad,
+                      servicioLocalidad: localidad?.nombre,
+                      servicioCiudad: ciudad?.nombre,
+                      coincideConLocalidad: filtro.localidad ? localidad?.nombre === filtro.localidad : true,
+                      coincideConCiudad: filtro.localidad ? ciudad?.nombre === filtro.localidad : true
+                  });
+      
+                  // Cambiar para comparar con ciudad en lugar de localidad
+                  const coincideLocalidad = filtro.localidad ? ciudad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombre
                   ? (nombreServicio || '').toLowerCase().includes(filtro.nombre.toLowerCase())
                   : true;
@@ -203,7 +213,7 @@ export class ServicioPaseadorRepository {
 }
 
     async findAll() {
-        return await this.model.find()
+        return await this.model.find({ estado: "Activada" })
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',

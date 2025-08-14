@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
 
@@ -34,7 +34,15 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     return `${dia}/${mes}/${año}`;
   };
 
-  const [formData, setFormData] = useState({
+  // Función para cerrar el modal al hacer clic fuera
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Estado inicial del formulario (memoizado para evitar recreación)
+  const estadoInicialFormulario = useMemo(() => ({
     petName: '',
     petSpecies: 'dog',
     ownerName: '',
@@ -44,10 +52,22 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     time: '',
     duration: '',
     notes: ''
-  });
+  }), []);
+
+  const [formData, setFormData] = useState(estadoInicialFormulario);
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+
+  // Reiniciar formulario cuando se cierre el modal
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData(estadoInicialFormulario);
+      setMostrarCalendarioInicio(false);
+      setMostrarCalendarioFin(false);
+      setMostrarCalendario(false);
+    }
+  }, [isOpen, estadoInicialFormulario]);
 
   // Limpiar horario seleccionado cuando cambie la fecha
   useEffect(() => {
@@ -60,12 +80,44 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.date]);
 
+  // Validar fechas de cuidadores cuando cambien
+  useEffect(() => {
+    if (serviceType === 'cuidador' && formData.date && formData.duration) {
+      const { esValido } = validarFechas();
+      if (!esValido) {
+        // Si la fecha fin es inválida después de cambiar la fecha inicio, limpiar fecha fin
+        setFormData(prev => ({ ...prev, duration: '' }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.date, serviceType]);
+
   // Función para obtener el día de la semana en español y mayúsculas
   const obtenerDiaSemana = (fecha: string): string => {
     const [dia, mes, año] = fecha.split('/');
     const fechaObj = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
     const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
     return dias[fechaObj.getDay()];
+  };
+
+  // Función para validar fechas de cuidadores
+  const validarFechas = (): { esValido: boolean; mensaje: string } => {
+    if (!formData.date || !formData.duration) {
+      return { esValido: true, mensaje: '' };
+    }
+
+    const fechaInicio = parsearFecha(formData.date);
+    const fechaFin = parsearFecha(formData.duration);
+
+    if (!fechaInicio || !fechaFin) {
+      return { esValido: false, mensaje: 'Fechas inválidas' };
+    }
+
+    if (fechaInicio > fechaFin) {
+      return { esValido: false, mensaje: 'La fecha de inicio no puede ser posterior a la fecha de fin' };
+    }
+
+    return { esValido: true, mensaje: '' };
   };
 
   // Función para verificar si una fecha está disponible (día de la semana)
@@ -158,7 +210,10 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   // Verificar si el usuario es dueño
   if (userType !== 'cliente') {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        onClick={handleBackdropClick}
+      >
         <div className="bg-white rounded-2xl max-w-md w-full p-8">
           <div className="text-center">
             <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -237,7 +292,10 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      onClick={handleBackdropClick}
+    >
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -583,7 +641,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                         {(() => {
                           const fechaInicio = parsearFecha(formData.date);
                           const fechaFin = parsearFecha(formData.duration);
-                          if (fechaInicio && fechaFin) {
+                          if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
                             return Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                           }
                           return 0;
@@ -592,6 +650,19 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     </div>
                   </div>
                 )}
+
+                {/* Mensaje de validación de fechas */}
+                {formData.date && formData.duration && (() => {
+                  const { esValido, mensaje } = validarFechas();
+                  return !esValido ? (
+                    <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
+                      <p className="text-sm text-red-700 flex items-center">
+                        <span className="mr-2">⚠️</span>
+                        {mensaje}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
           </div>
@@ -621,8 +692,12 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             </button>
             <button
               type="submit"
-              disabled={(serviceType === 'veterinaria' && !formData.time) || (serviceType === 'paseador' && (!formData.time || !formData.duration))}
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+              disabled={
+                (serviceType === 'veterinaria' && !formData.time) || 
+                (serviceType === 'paseador' && (!formData.time || !formData.duration)) ||
+                (serviceType === 'cuidador' && (!formData.date || !formData.duration || !validarFechas().esValido))
+              }
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               Confirmar Reserva
             </button>

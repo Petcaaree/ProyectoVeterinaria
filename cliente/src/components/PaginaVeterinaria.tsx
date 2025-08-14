@@ -4,6 +4,7 @@ import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
 import Filtros from './comun/Filtros';
 import SinResultados from './comun/SinResultados';
+import CalendarioModerno from './comun/CalendarioModerno';
 import { useAuth } from '../context/authContext';
 
 interface PaginaVeterinariaProps {
@@ -13,6 +14,9 @@ interface PaginaVeterinariaProps {
 const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
   const { getServiciosVeterinarias } = useAuth();
   
+  // Variable para fecha actual
+  const today = new Date().toISOString().split('T')[0];
+  
   // Estados para la API
   const [veterinarias, setVeterinarias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -21,23 +25,27 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
   
   // Estados existentes  
   const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedClinic, setSelectedClinic] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('');
   const [selectedPetTypes, setSelectedPetTypes] = useState<string[]>([]);
+  
+  // Estados para filtro de fecha
+  const [fechaConsulta, setFechaConsulta] = useState('');
+  const [mostrarCalendario, setMostrarCalendario] = useState(false);
 
   // Estados para filtros
   const [filtros, setFiltros] = useState({
     terminoBusqueda: '',
-    tipoMascota: [] as string[],
+    mascotasAceptadas: [] as string[],
     precioMin: '',
     precioMax: '',
-    ubicacion: 'all',
-    tipoServicio: 'all'
+    localidad: '',
+    tipoServicio: '',
+    fecha: ''
   });
 
   // Tipos de mascotas disponibles
@@ -96,12 +104,14 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     return Array.from(veterinariasMap.values());
   };
 
+  
   // Función para cargar servicios veterinarios
-  const cargarVeterinarias = async (pagina: number = 1) => {
+  const cargarVeterinarias = async (pagina: number = 1, filtrosPersonalizados?: any) => {
     setLoading(true);
     try {
-      console.log('Filtros aplicados:', filtros);
-      const resultado = await getServiciosVeterinarias(pagina, filtros);
+      const filtrosAUsar = filtrosPersonalizados || filtros;
+      console.log('Filtros aplicados:', filtrosAUsar);
+      const resultado = await getServiciosVeterinarias(pagina, filtrosAUsar);
       console.log('Servicios veterinarios cargados:', resultado);
       
       // Agrupar servicios por veterinaria
@@ -138,33 +148,66 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
 
   // Función para aplicar filtros
   const aplicarFiltros = () => {
+    // Mapeo de inglés a español para tipos de mascotas
+    const mapeoTiposMascotas = {
+      'dog': 'PERRO',
+      'cat': 'GATO', 
+      'bird': 'AVE',
+      'other': 'OTROS'
+    };
+
     const nuevosFiltros = {
       terminoBusqueda: searchTerm,
-      tipoMascota: selectedPetTypes,
+      mascotasAceptadas: selectedPetTypes.map(tipo => mapeoTiposMascotas[tipo as keyof typeof mapeoTiposMascotas] || tipo.toUpperCase()),
       precioMin: minPrice,
       precioMax: maxPrice,
-      ubicacion: locationFilter,
-      tipoServicio: serviceTypeFilter
+      localidad: locationFilter === 'all' ? '' : locationFilter,  // Convertir 'all' a cadena vacía
+      tipoServicio: serviceTypeFilter,
+      fecha: fechaConsulta
     };
     
     console.log('Aplicando filtros:', nuevosFiltros);
     setFiltros(nuevosFiltros);
-    cargarVeterinarias(1);
+    // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
+    cargarVeterinarias(1, nuevosFiltros);
   };
 
-  // Cargar datos iniciales
+  // Cargar datos iniciales al montar el componente
   useEffect(() => {
-    cargarVeterinarias();
-  }, [filtros]);
+    const cargarDatosIniciales = async () => {
+      setLoading(true);
+      try {
+        // Usar filtros vacíos para la carga inicial
+        const filtrosIniciales = {
+          terminoBusqueda: '',
+          mascotasAceptadas: [],
+          precioMin: '',
+          precioMax: '',
+          localidad: '',
+          tipoServicio: '',
+          fecha: ''
+        };
+        const resultado = await getServiciosVeterinarias(1, filtrosIniciales);
+        const veterinariasAgrupadas = agruparServiciosPorVeterinaria(resultado.data || []);
+        setVeterinarias(veterinariasAgrupadas);
+        setTotalPaginas(resultado.total_pages || 1);
+        setPaginaActual(1);
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+        setVeterinarias([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    cargarDatosIniciales();
+  }, [getServiciosVeterinarias]);
 
-  // Actualizar filtros cuando cambien los estados individuales
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      aplicarFiltros();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedPetTypes, minPrice, maxPrice, locationFilter, serviceTypeFilter]);
+  // Función para buscar con filtros
+  const buscarConFiltros = () => {
+    
+    aplicarFiltros();
+  };
 
   const handlePetTypeToggle = (petType: string) => {
     setSelectedPetTypes(prev => {
@@ -184,9 +227,8 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     });
   };
 
-  const handleBookService = (service: any, clinic: any) => {
+  const handleBookService = (service: any) => {
     setSelectedService(service);
-    setSelectedClinic(clinic);
     setIsBookingOpen(true);
   };
 
@@ -318,8 +360,38 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
               </div>
             </div>
 
-            
+            {/* Fecha de consulta - En toda la fila para mejor layout */}
+            <div className="col-span-full">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Fecha de consulta
+              </label>
+              <div className="relative max-w-sm">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <button
+                  type="button"
+                  onClick={() => setMostrarCalendario(true)}
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
+                >
+                  {fechaConsulta 
+                    ? fechaConsulta
+                    : 'Seleccionar fecha'
+                  }
+                </button>
+              </div>
+            </div>
+
             </>
+          }
+          elementoFijo={
+            /* Botón de búsqueda siempre visible */
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={buscarConFiltros}
+                className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                🔍 Aplicar filtros
+              </button>
+            </div>
           }
         />
 
@@ -329,6 +401,7 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
             Mostrando {filteredClinics.length} clínica{filteredClinics.length !== 1 ? 's' : ''} 
             {searchTerm && ` para "${searchTerm}"`}
             {selectedPetTypes.length > 0 && ` para ${selectedPetTypes.map(type => petTypes.find(pt => pt.value === type)?.label).join(', ')}`}
+            {fechaConsulta && ` disponibles el ${fechaConsulta}`}
           </p>
         </div>
 
@@ -471,7 +544,7 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                           </div>
                           
                           <button
-                            onClick={() => handleBookService(servicio, clinic)}
+                            onClick={() => handleBookService(servicio)}
                             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-all duration-300 font-semibold transform hover:scale-105 mt-auto"
                           >
                             Reservar Cita
@@ -559,6 +632,22 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
         serviceType="veterinaria"
         userType={userType}
       />
+      
+      {/* Calendario */}
+      {mostrarCalendario && (
+        <CalendarioModerno
+          fechaSeleccionada={fechaConsulta}
+          onFechaSeleccionada={(fecha) => {
+            console.log('📅 Fecha seleccionada:', fecha);
+            setFechaConsulta(fecha);
+            setMostrarCalendario(false);
+          }}
+          onCerrar={() => setMostrarCalendario(false)}
+          fechaMinima={today}
+          colorTema="blue"
+          titulo="Seleccionar fecha de consulta"
+        />
+      )}
     </div>
   );
 };

@@ -83,50 +83,34 @@ export class ServicioPaseadorService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        /* let paseadores = await this.paseadorRepository.findByPage(pageNum, limit)
-        const paseadorIds = paseadores.map(v => v.id) */
-
+        // Obtener todos los servicios que cumplen con los filtros
         let serviciosPaseadores = await this.servicioPaseadorRepository.findByFilters(filtro);
 
-        // Verificar que serviciosPaseadores sea un array válido
-        
+        // Calcular totales basándose en los servicios encontrados
+        const totalServicios = serviciosPaseadores.length;
+        const total_pages = Math.ceil(totalServicios / limitNum);
 
-        let paseadorIds = [];
-        for (let i = 0; i < serviciosPaseadores.length; i++) {
-            const servicio = serviciosPaseadores[i];
-            if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
-                // Asegurarse de que el ID del paseador esté en formato ObjectId
-                if (!mongoose.Types.ObjectId.isValid(servicio.usuarioProveedor.id)) {
-                    throw new ValidationError(`El ID de paseador ${servicio.usuarioProveedor.id} no es válido`);
-                }
-                // Solo agregar si no está ya en el array
-                if (!paseadorIds.includes(servicio.usuarioProveedor.id)) {
-                    paseadorIds.push(servicio.usuarioProveedor.id);
-                }
-            }
-        }
-
-        //console.log("Paseadores IDs encontrados:", paseadorIds)
+        // Aplicar paginación directamente a los servicios
         const startIndex = (pageNum - 1) * limitNum;
         const endIndex = startIndex + limitNum;
-        const paseadoresPaginasID = paseadorIds.slice(startIndex, endIndex);
-       // console.log("Paseadores Paginas ID despues:", paseadoresPaginasID)
-        let todosLosServiciosFiltradosDeEstosPaseadores = serviciosPaseadores.filter(s => paseadoresPaginasID.includes(s.usuarioProveedor.id))
+        const serviciosPaginados = serviciosPaseadores.slice(startIndex, endIndex);
 
-        // Calcular totales basándose en los servicios después del filtro por veterinarias distintas
-        const total = todosLosServiciosFiltradosDeEstosPaseadores.length;
-        const total_pages = Math.ceil(paseadoresPaginasID.length / limitNum);
-        
-        // Aplicar paginación
-       
-    
-        const data = todosLosServiciosFiltradosDeEstosPaseadores.map(a => this.toDTO(a));
+        // Obtener paseadores únicos de los servicios paginados
+        const paseadoresUnicosIds = new Set(serviciosPaginados.map(s => s.usuarioProveedor.id));
+        const totalPaseadoresEnPagina = paseadoresUnicosIds.size;
+
+        // Obtener total de paseadores únicos en todos los resultados filtrados
+        const todosPaseadoresUnicos = new Set(serviciosPaseadores.map(s => s.usuarioProveedor.id));
+        const totalPaseadoresUnicos = todosPaseadoresUnicos.size;
+
+        const data = serviciosPaginados.map(a => this.toDTO(a));
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: total,
-            totalPaseadores: paseadoresPaginasID.length ,  // Total real de servicios disponibles
+            totalServicios: totalServicios,
+            totalPaseadores: totalPaseadoresUnicos,  // Total de paseadores únicos en todos los resultados
+            paseadoresEnPagina: totalPaseadoresEnPagina, // Paseadores únicos en esta página
             total_pages: total_pages,
             data: data
         };

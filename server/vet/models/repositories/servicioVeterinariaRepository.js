@@ -47,7 +47,7 @@ export class ServicioVeterinariaRepository {
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum
-        const servicios = await this.model.find()
+        const servicios = await this.model.find({ estado: "Activada" })
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
@@ -59,7 +59,7 @@ export class ServicioVeterinariaRepository {
     }
 
    async findByFilters(filtro) {
-              const query = {}
+              const query = { estado: "Activada" }  // Siempre filtrar por estado Activada
 
       
               if(filtro.precioMax != null) {
@@ -93,11 +93,24 @@ export class ServicioVeterinariaRepository {
                       populate: {path: 'ciudad'}
                   })
               
+              console.log('Filtro recibido en repository:', filtro);
+              console.log('Total resultados antes de filtrar por localidad:', resultadosFiltro1.length);
+              
               const resultadosFinal = resultadosFiltro1.filter(r => {
                   const localidad = r.direccion?.localidad
+                  const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
+                  console.log('Comparando localidades:', {
+                      filtroLocalidad: filtro.localidad,
+                      servicioLocalidad: localidad?.nombre,
+                      servicioCiudad: ciudad?.nombre,
+                      coincideConLocalidad: filtro.localidad ? localidad?.nombre === filtro.localidad : true,
+                      coincideConCiudad: filtro.localidad ? ciudad?.nombre === filtro.localidad : true
+                  });
+      
+                  // Cambiar para comparar con ciudad en lugar de localidad
+                  const coincideLocalidad = filtro.localidad ? ciudad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
 
                   // Filtrar por fecha: verificar si TODOS los horarios disponibles están ocupados
@@ -197,7 +210,7 @@ export class ServicioVeterinariaRepository {
     }
 
     async findAll() {
-        return await this.model.find()
+        return await this.model.find({ estado: "Activada" })
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',

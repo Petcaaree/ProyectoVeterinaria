@@ -89,18 +89,54 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     localidad: '',
   });
 
+  // Función para aplicar filtros manualmente
+  const aplicarFiltros = () => {
+    // Mapeo de inglés a español para tipos de mascotas
+    const mapeoTiposMascotas = {
+      'dog': 'PERRO',
+      'cat': 'GATO', 
+      'bird': 'AVE',
+      'other': 'OTROS'
+    };
+
+    const nuevosFiltros = {
+      nombreServicio: searchTerm,
+      precioMin: minPrice,
+      precioMax: maxPrice,
+      localidad: locationFilter === 'all' ? '' : locationFilter,
+      mascotasAceptadas: selectedPetTypes.map(tipo => mapeoTiposMascotas[tipo as keyof typeof mapeoTiposMascotas] || tipo.toUpperCase()),
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin
+    };
+    
+    console.log('Aplicando filtros manualmente:', nuevosFiltros);
+    setFiltros(nuevosFiltros);
+    setPage(1);
+    // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
+    cargarServicios(nuevosFiltros);
+  };
+
+  // Función para buscar con filtros
+  const buscarConFiltros = () => {
+    aplicarFiltros();
+  };
+
+  // Cargar servicios iniciales al montar el componente
   useEffect(() => {
     cargarServicios();
-        console.log('🔄 Estado completo de filtros cambió:', filtros);
+  }, [page]);
 
-  }, [page, filtros]);
+  // Efecto para actualizar filtros cuando cambien las fechas (solo actualiza estado, no busca)
+  useEffect(() => {
+    // Solo actualizamos el estado, no disparamos búsqueda automática
+    console.log('📅 Fechas actualizadas - Inicio:', fechaInicio, 'Fin:', fechaFin);
+  }, [fechaInicio, fechaFin]);
 
-  // Efecto para monitorear cambios en filtros
-  
-
-    const cargarServicios = async () => {
+    const cargarServicios = async (filtrosPersonalizados?: any) => {
     // Simular carga de servicios
-    const servicios = await getServiciosCuidadores(page, filtros);
+    const filtrosAUsar = filtrosPersonalizados || filtros;
+    console.log('Cargando servicios con filtros:', filtrosAUsar);
+    const servicios = await getServiciosCuidadores(page, filtrosAUsar);
     setCuidadorServicios(servicios.data);
     setTotalPages(servicios.total_pages); // Suponiendo 10 servicios por página
   };
@@ -324,6 +360,17 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
             </div>
             </>
           }
+          elementoFijo={
+            /* Botón de búsqueda siempre visible */
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={buscarConFiltros}
+                className="px-8 py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                🔍 Buscar Cuidadores
+              </button>
+            </div>
+          }
         />
 
         {/* Results Count */}
@@ -497,6 +544,17 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           fechaSeleccionada={fechaInicio}
           onFechaSeleccionada={(fecha) => {
             setFechaInicio(fecha);
+            
+            // Si hay una fecha fin seleccionada y la nueva fecha inicio es posterior, limpiar fecha fin
+            if (fechaFin) {
+              const fechaInicioDate = parsearFecha(fecha);
+              const fechaFinDate = parsearFecha(fechaFin);
+              
+              if (fechaInicioDate && fechaFinDate && fechaInicioDate > fechaFinDate) {
+                setFechaFin('');
+              }
+            }
+            
             setMostrarCalendarioInicio(false);
           }}
           onCerrar={() => setMostrarCalendarioInicio(false)}

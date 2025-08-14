@@ -24,7 +24,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   const [maxPrice, setMaxPrice] = useState('');
   const [fechaPaseo, setFechaPaseo] = useState(''); // una sola fecha para paseos
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
-    const [locationFilter, setLocationFilter] = useState('all');
+    const [locationFilter, setLocationFilter] = useState('');
 
 
   // paginación
@@ -47,10 +47,33 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   });
 
   useEffect(() => {
-        console.log('🔄 Estado completo de filtros cambió:', filtros);
+    console.log('🔄 Página cambió a:', page);
+    // Solo cargar servicios cuando cambie la página
+    // Si hay filtros activos, los aplicaremos desde aplicarFiltros
+    const filtrosActuales = {
+      nombreServicio: searchTerm,
+      precioMin: minPrice,
+      precioMax: maxPrice,
+      localidad: locationFilter === 'all' ? '' : locationFilter,
+      fecha: fechaPaseo
+    };
+    
+    // Verificar si hay filtros activos
+    const hayFiltrosActivos = Object.values(filtrosActuales).some(valor => valor !== '');
+    
+    if (hayFiltrosActivos) {
+      // Si hay filtros activos, usar esos filtros
+      cargarServicios(filtrosActuales);
+    } else {
+      // Si no hay filtros, cargar servicios normales
+      cargarServicios();
+    }
+  }, [page]);
 
+  // Efecto para cargar servicios al montar el componente
+  useEffect(() => {
     cargarServicios();
-  }, [page, filtros]);
+  }, []);
 
   // Efecto para monitorear cambios en filtros (sin enviar al API aún)
  
@@ -59,24 +82,62 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
     paseador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
   ).filter(ciudad => ciudad !== 'No especificado'))];
 
-  const cargarServicios = async () => {
+  const cargarServicios = async (filtrosPersonalizados?: any) => {
     try {
-      //console.log('Cargando servicios con filtros:', filtros);
+      const filtrosAUsar = filtrosPersonalizados || filtros;
+      console.log('Cargando servicios con filtros:', filtrosAUsar);
       // Cargar servicios usando el método del contexto de autenticación
-      const servicios = await getServiciosPaseadores(page, filtros);
+      const servicios = await getServiciosPaseadores(page, filtrosAUsar);
       console.log('Datos de paseadores recibidos:', servicios);
-     
+      console.log('Estructura de respuesta:', {
+        esArray: Array.isArray(servicios),
+        tieneData: servicios && servicios.data,
+        tieneTotalPages: servicios && servicios.total_pages,
+        claves: servicios ? Object.keys(servicios) : 'sin claves'
+      });
       
       // Verificar si servicios es un array directamente o un objeto con propiedades
-      
+      if (Array.isArray(servicios)) {
+        // Si es un array directamente (sin filtros)
+        setWalkServices(servicios);
+        setTotalPages(1);
+      } else if (servicios && servicios.data) {
+        // Si es un objeto con propiedades data y total_pages (con filtros)
         setWalkServices(servicios.data);  
-        setTotalPages(servicios?.total_pages || 1);
+        setTotalPages(servicios.total_pages || 1);
+      } else {
+        // Fallback
+        setWalkServices([]);
+        setTotalPages(1);
+      }
       
     } catch (error) {
       console.error('Error al cargar servicios de paseadores:', error);
       setWalkServices([]);
       setTotalPages(1);
     }
+  };
+
+  // Función para aplicar filtros manualmente
+  const aplicarFiltros = () => {
+    const nuevosFiltros = {
+      nombreServicio: searchTerm,
+      precioMin: minPrice,
+      precioMax: maxPrice,
+      localidad: locationFilter === 'all' ? '' : locationFilter,
+      fecha: fechaPaseo
+    };
+    
+    console.log('Aplicando filtros:', nuevosFiltros);
+    setFiltros(nuevosFiltros);
+    setPage(1);
+    // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
+    cargarServicios(nuevosFiltros);
+  };
+
+  // Función para buscar con filtros
+  const buscarConFiltros = () => {
+    aplicarFiltros();
   };
 
   // helpers UI
@@ -129,11 +190,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
           alCambiarBusqueda={(v: string) => { 
             console.log('🔍 Filtro búsqueda cambiado a:', v);
             setSearchTerm(v); 
-            setPage(1);
-            setFiltros(prev => {
-              const nuevosFiltros = { ...prev, nombreServicio: v };
-              return nuevosFiltros;
-            });
           }}
           placeholderBusqueda="Buscar paseador o zona..."
           colorTema="green"
@@ -147,11 +203,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 onChange={(e) => { 
                   console.log('💰 Precio mínimo cambiado a:', e.target.value);
                   setMinPrice(e.target.value); 
-                  setPage(1);
-                  setFiltros(prev => {
-                    const nuevosFiltros = { ...prev, precioMin: e.target.value };
-                    return nuevosFiltros;
-                  });
                 }}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
@@ -164,11 +215,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 onChange={(e) => { 
                   console.log('💰 Precio máximo cambiado a:', e.target.value);
                   setMaxPrice(e.target.value); 
-                  setPage(1);
-                  setFiltros(prev => {
-                    const nuevosFiltros = { ...prev, precioMax: e.target.value };
-                    return nuevosFiltros;
-                  });
                 }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
@@ -179,11 +225,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
               onChange={(e) => {
                 console.log('📍 Localidad cambiada a:', e.target.value);
                 setLocationFilter(e.target.value);
-                setPage(1);
-                setFiltros(prev => {
-                  const nuevosFiltros = { ...prev, localidad: e.target.value === 'all' ? '' : e.target.value };
-                  return nuevosFiltros;
-                });
               }}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             >
@@ -212,7 +253,19 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                   </button>
                 </div>
               </div>
+
             </>
+          }
+          elementoFijo={
+            /* Botón de búsqueda siempre visible */
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={buscarConFiltros}
+                className="px-8 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                🔍 Aplicar filtros
+              </button>
+            </div>
           }
         />
 
@@ -390,11 +443,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
             console.log('📅 Fecha seleccionada:', fecha);
             setFechaPaseo(fecha);
             setMostrarCalendario(false);
-            setPage(1);
-            setFiltros(prev => {
-              const nuevosFiltros = { ...prev, fecha: fecha };
-              return nuevosFiltros;
-            });
           }}
           onCerrar={() => setMostrarCalendario(false)}
           fechaMinima={today}

@@ -79,6 +79,14 @@ export class VeterinariaRepository {
         return veterinarias
     }
 
+    async findAll() {
+        return await this.model.find()
+            .populate({
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
+            })
+    }
+
     async countAll() {
         return await this.model.countDocuments()
     }

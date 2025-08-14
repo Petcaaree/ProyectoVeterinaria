@@ -53,9 +53,9 @@ export class VeterinariaService {
     }
 
     async create(veterinaria) {
-        const { nombreUsuario, email, contrasenia, telefono, direccion } = veterinaria
+        const { nombreUsuario, nombreClinica, email, contrasenia, telefono, direccion } = veterinaria
 
-        if(!nombreUsuario || !email || !contrasenia || !telefono || !direccion) {
+        if(!nombreUsuario || !nombreClinica || !email || !contrasenia || !telefono || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -86,7 +86,7 @@ export class VeterinariaService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoVeterinaria = new Veterinaria(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
+        const nuevoVeterinaria = new Veterinaria(nombreUsuario, nombreClinica, email, objectDireccion, telefono, contrasenia)
 
         const veterinariaGuardada = await this.veterinariaRepository.save(nuevoVeterinaria)
 
@@ -224,6 +224,7 @@ export class VeterinariaService {
         return {
             id: veterinaria.id,
             nombreUsuario: veterinaria.nombreUsuario,
+            nombreClinica: veterinaria.nombreClinica,
             telefono: veterinaria.telefono,
             email: veterinaria.email,
             notificaciones: veterinaria.notificaciones,

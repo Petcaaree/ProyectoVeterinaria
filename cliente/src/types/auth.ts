@@ -37,6 +37,7 @@ export interface Usuario {
   direccion: Direccion;
   notificaciones: Notificacion[];
   mascotas?: Mascota[]; // Solo para clientes
+  nombreClinica?: string; // Solo para veterinarias
 }
 
 export interface AuthContextType {
@@ -59,7 +60,8 @@ export interface AuthContextType {
         }
       };
     }, 
-    tipoUsuario: string
+    tipoUsuario: string,
+    nombreClinica?: string // Parámetro opcional para veterinarias
   ) => Promise<Usuario>;
   registroMascota: ((usuarioId: string, datosMascota: DatosMascota) => Promise<Mascota>);
   getMascotas: (usuarioId: string) => Promise<Mascota[]>;

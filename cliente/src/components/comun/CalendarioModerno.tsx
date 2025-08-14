@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
 
 interface CalendarioModernoProps {
@@ -9,6 +9,7 @@ interface CalendarioModernoProps {
   fechaMaxima?: string;
   colorTema?: 'blue' | 'green' | 'orange';
   titulo?: string;
+  diasDisponibles?: string[]; // Nuevo: Array de días disponibles en español mayúsculas
 }
 
 const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
@@ -18,13 +19,64 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   fechaMinima,
   fechaMaxima,
   colorTema = 'blue',
-  titulo = 'Seleccionar fecha'
+  titulo = 'Seleccionar fecha',
+  diasDisponibles
 }) => {
-  const [mesActual, setMesActual] = useState(() => {
-    if (fechaSeleccionada) {
-      return new Date(fechaSeleccionada);
+  // Función helper para parsear fechas DD/MM/AAAA
+  const parsearFechaDDMMAAAA = (fechaStr: string): Date | null => {
+    if (!fechaStr) return null;
+    
+    try {
+      // Si es formato DD/MM/AAAA
+      if (fechaStr.includes('/')) {
+        const [dia, mes, año] = fechaStr.split('/');
+        const diaNum = parseInt(dia);
+        const mesNum = parseInt(mes);
+        const añoNum = parseInt(año);
+        
+        // Validar que los números sean válidos
+        if (isNaN(diaNum) || isNaN(mesNum) || isNaN(añoNum)) return null;
+        if (mesNum < 1 || mesNum > 12) return null;
+        if (diaNum < 1 || diaNum > 31) return null;
+        if (añoNum < 1900 || añoNum > 2100) return null;
+        
+        const fecha = new Date(añoNum, mesNum - 1, diaNum);
+        
+        // Verificar que la fecha sea válida (no se "corrija" automáticamente)
+        if (fecha.getDate() !== diaNum || fecha.getMonth() !== mesNum - 1 || fecha.getFullYear() !== añoNum) {
+          return null;
+        }
+        
+        return fecha;
+      }
+      
+      // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
+      const fecha = new Date(fechaStr);
+      return isNaN(fecha.getTime()) ? null : fecha;
+    } catch (error) {
+      console.warn('Error parsing date:', fechaStr, error);
+      return null;
     }
-    return new Date();
+  };
+
+  const [mesActual, setMesActual] = useState(() => {
+    try {
+      // Intentar usar la fecha seleccionada si es válida
+      if (fechaSeleccionada) {
+        const fechaParsed = parsearFechaDDMMAAAA(fechaSeleccionada);
+        if (fechaParsed && !isNaN(fechaParsed.getTime())) {
+          return new Date(fechaParsed.getFullYear(), fechaParsed.getMonth(), 1);
+        }
+      }
+      
+      // Si no hay fecha válida, usar el mes actual
+      const hoy = new Date();
+      return new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    } catch (error) {
+      console.warn('Error initializing calendar month:', error);
+      const hoy = new Date();
+      return new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    }
   });
 
   const colores = {
@@ -62,6 +114,18 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
 
   const tema = colores[colorTema];
 
+  // Efecto para validar el estado del calendario
+  useEffect(() => {
+    // Validar que mesActual sea una fecha válida
+    setMesActual(current => {
+      if (!current || isNaN(current.getTime())) {
+        const hoy = new Date();
+        return new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      }
+      return current;
+    });
+  }, []);
+
   const meses = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -70,48 +134,74 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
   const obtenerDiasDelMes = () => {
-    const año = mesActual.getFullYear();
-    const mes = mesActual.getMonth();
-    
-    const primerDia = new Date(año, mes, 1);
-    const ultimoDia = new Date(año, mes + 1, 0);
-    const diasEnMes = ultimoDia.getDate();
-    const diaInicioSemana = primerDia.getDay();
+    try {
+      if (!mesActual || isNaN(mesActual.getTime())) {
+        console.warn('Invalid mesActual, resetting to current date');
+        setMesActual(new Date());
+        return [];
+      }
 
-    const dias = [];
+      const año = mesActual.getFullYear();
+      const mes = mesActual.getMonth();
+      
+      // Validar año y mes
+      if (año < 1900 || año > 2200 || mes < 0 || mes > 11) {
+        console.warn('Invalid year or month, resetting calendar');
+        setMesActual(new Date());
+        return [];
+      }
+      
+      const primerDia = new Date(año, mes, 1);
+      const ultimoDia = new Date(año, mes + 1, 0);
+      const diasEnMes = ultimoDia.getDate();
+      const diaInicioSemana = primerDia.getDay();
 
-    // Días del mes anterior
-    for (let i = diaInicioSemana - 1; i >= 0; i--) {
-      const fecha = new Date(año, mes, -i);
-      dias.push({
-        fecha: fecha,
-        esDelMesActual: false,
-        numero: fecha.getDate()
-      });
+      const dias = [];
+
+      // Días del mes anterior
+      for (let i = diaInicioSemana - 1; i >= 0; i--) {
+        const fecha = new Date(año, mes, -i);
+        if (!isNaN(fecha.getTime())) {
+          dias.push({
+            fecha: fecha,
+            esDelMesActual: false,
+            numero: fecha.getDate()
+          });
+        }
+      }
+
+      // Días del mes actual
+      for (let dia = 1; dia <= diasEnMes; dia++) {
+        const fecha = new Date(año, mes, dia);
+        if (!isNaN(fecha.getTime())) {
+          dias.push({
+            fecha: fecha,
+            esDelMesActual: true,
+            numero: dia
+          });
+        }
+      }
+
+      // Días del mes siguiente
+      const diasRestantes = 42 - dias.length;
+      for (let dia = 1; dia <= diasRestantes; dia++) {
+        const fecha = new Date(año, mes + 1, dia);
+        if (!isNaN(fecha.getTime())) {
+          dias.push({
+            fecha: fecha,
+            esDelMesActual: false,
+            numero: fecha.getDate()
+          });
+        }
+      }
+
+      return dias;
+    } catch (error) {
+      console.error('Error in obtenerDiasDelMes:', error);
+      // Resetear a fecha actual en caso de error
+      setMesActual(new Date());
+      return [];
     }
-
-    // Días del mes actual
-    for (let dia = 1; dia <= diasEnMes; dia++) {
-      const fecha = new Date(año, mes, dia);
-      dias.push({
-        fecha: fecha,
-        esDelMesActual: true,
-        numero: dia
-      });
-    }
-
-    // Días del mes siguiente
-    const diasRestantes = 42 - dias.length;
-    for (let dia = 1; dia <= diasRestantes; dia++) {
-      const fecha = new Date(año, mes + 1, dia);
-      dias.push({
-        fecha: fecha,
-        esDelMesActual: false,
-        numero: dia
-      });
-    }
-
-    return dias;
   };
 
   const navegarMes = (direccion: 'anterior' | 'siguiente') => {
@@ -125,13 +215,21 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   };
 
   const esFechaSeleccionada = (fecha: Date) => {
-    if (!fechaSeleccionada) return false;
+    if (!fechaSeleccionada || !fecha || isNaN(fecha.getTime())) return false;
     
-    // Parsear la fecha seleccionada (que puede estar en formato DD/MM/AAAA)
-    const fechaParsed = parsearFechaDDMMAAAA(fechaSeleccionada);
-    if (!fechaParsed) return false;
-    
-    return fechaAISO(fecha) === fechaAISO(fechaParsed);
+    try {
+      // Parsear la fecha seleccionada (que puede estar en formato DD/MM/AAAA)
+      const fechaParsed = parsearFechaDDMMAAAA(fechaSeleccionada);
+      if (!fechaParsed || isNaN(fechaParsed.getTime())) return false;
+      
+      const fechaISOActual = fechaAISO(fecha);
+      const fechaISOSeleccionada = fechaAISO(fechaParsed);
+      
+      return fechaISOActual && fechaISOSeleccionada && fechaISOActual === fechaISOSeleccionada;
+    } catch (error) {
+      console.warn('Error comparing dates:', { fecha, fechaSeleccionada, error });
+      return false;
+    }
   };
 
   const esHoy = (fecha: Date) => {
@@ -139,27 +237,52 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
     return fecha.toDateString() === hoy.toDateString();
   };
 
+  // Función para obtener el día de la semana en español y mayúsculas
+  const obtenerDiaSemana = (fecha: Date): string => {
+    const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+    return dias[fecha.getDay()];
+  };
+
+  // Función para verificar si un día de la semana está disponible
+  const esDiaDisponible = (fecha: Date): boolean => {
+    if (!diasDisponibles || diasDisponibles.length === 0) return true;
+    
+    const diaSemana = obtenerDiaSemana(fecha);
+    return diasDisponibles.includes(diaSemana);
+  };
+
   const esFechaDeshabilitada = (fecha: Date) => {
-    const fechaStr = fechaAISO(fecha);
-    
-    // Convertir fechas mínima y máxima a ISO si están en formato DD/MM/AAAA
-    let fechaMinimaISO = fechaMinima;
-    let fechaMaximaISO = fechaMaxima;
-    
-    if (fechaMinima && fechaMinima.includes('/')) {
-      const fechaParsed = parsearFechaDDMMAAAA(fechaMinima);
-      fechaMinimaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMinima;
+    try {
+      if (!fecha || isNaN(fecha.getTime())) return true;
+      
+      // Primero verificar si el día de la semana está disponible
+      if (!esDiaDisponible(fecha)) return true;
+      
+      const fechaStr = fechaAISO(fecha);
+      if (!fechaStr) return true;
+      
+      // Convertir fechas mínima y máxima a ISO si están en formato DD/MM/AAAA
+      let fechaMinimaISO = fechaMinima;
+      let fechaMaximaISO = fechaMaxima;
+      
+      if (fechaMinima && fechaMinima.includes('/')) {
+        const fechaParsed = parsearFechaDDMMAAAA(fechaMinima);
+        fechaMinimaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMinima;
+      }
+      
+      if (fechaMaxima && fechaMaxima.includes('/')) {
+        const fechaParsed = parsearFechaDDMMAAAA(fechaMaxima);
+        fechaMaximaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMaxima;
+      }
+      
+      if (fechaMinimaISO && fechaStr < fechaMinimaISO) return true;
+      if (fechaMaximaISO && fechaStr > fechaMaximaISO) return true;
+      
+      return false;
+    } catch (error) {
+      console.warn('Error checking if date is disabled:', fecha, error);
+      return true; // Si hay error, mejor deshabilitar la fecha
     }
-    
-    if (fechaMaxima && fechaMaxima.includes('/')) {
-      const fechaParsed = parsearFechaDDMMAAAA(fechaMaxima);
-      fechaMaximaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMaxima;
-    }
-    
-    if (fechaMinimaISO && fechaStr < fechaMinimaISO) return true;
-    if (fechaMaximaISO && fechaStr > fechaMaximaISO) return true;
-    
-    return false;
   };
 
   const formatearFecha = (fecha: Date): string => {
@@ -169,23 +292,18 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
     return `${dia}/${mes}/${año}`;
   };
 
-  // Helper para convertir DD/MM/AAAA a Date
-  const parsearFechaDDMMAAAA = (fechaStr: string): Date | null => {
-    if (!fechaStr) return null;
-    
-    // Si es formato DD/MM/AAAA
-    if (fechaStr.includes('/')) {
-      const [dia, mes, año] = fechaStr.split('/');
-      return new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
-    }
-    
-    // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
-    return new Date(fechaStr);
-  };
-
   // Helper para convertir Date a formato ISO (para comparaciones)
   const fechaAISO = (fecha: Date): string => {
-    return fecha.toISOString().split('T')[0];
+    try {
+      if (!fecha || isNaN(fecha.getTime())) {
+        console.warn('Invalid date passed to fechaAISO:', fecha);
+        return '';
+      }
+      return fecha.toISOString().split('T')[0];
+    } catch (error) {
+      console.warn('Error converting date to ISO:', fecha, error);
+      return '';
+    }
   };
 
   const manejarClickFecha = (fecha: Date) => {
@@ -279,6 +397,9 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
               const esHoyDia = esHoy(dia.fecha);
               const estaDeshabilitada = esFechaDeshabilitada(dia.fecha);
               
+              // Validar que dia.numero sea un número válido
+              const numeroValido = typeof dia.numero === 'number' && !isNaN(dia.numero) ? dia.numero : '?';
+              
               return (
                 <button
                   key={index}
@@ -294,7 +415,7 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
                     ${!dia.esDelMesActual ? 'opacity-40' : ''}
                   `}
                 >
-                  {dia.numero}
+                  {numeroValido}
                   
                   {/* Indicador para hoy */}
                   {esHoyDia && !esSeleccionada && (

@@ -49,7 +49,7 @@ const NavegacionServicios: React.FC<NavegacionServiciosProps> = ({ currentServic
   };
 
   return (
-    <div className="bg-white shadow-sm border-b sticky top-16 z-40">
+    <div className="bg-white shadow-sm border-b sticky top-20 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-1 py-4 overflow-x-auto">

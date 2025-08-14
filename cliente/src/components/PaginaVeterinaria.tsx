@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Stethoscope, Clock, Calendar, Star, MapPin, Phone } from 'lucide-react';
+import { Stethoscope, Clock, Calendar, Star, MapPin, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
 import Filtros from './comun/Filtros';
@@ -53,16 +53,16 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     const veterinariasMap = new Map();
     
     servicios.forEach(servicio => {
-      // Usar el email del usuarioProveedor como ID único de la veterinaria
-      const veterinariaId = servicio.usuarioProveedor?.email;
+      // Usar el nombreClinica como ID único de agrupación
+      const clinicaId = servicio.nombreClinica;
       
-      if (!veterinariaId) return; // Skip si no hay usuarioProveedor
+      if (!clinicaId) return; // Skip si no hay nombreClinica
       
-      if (!veterinariasMap.has(veterinariaId)) {
-        // Crear nueva veterinaria con los datos del usuarioProveedor
-        veterinariasMap.set(veterinariaId, {
-          _id: veterinariaId,
-          nombreUsuario: servicio.usuarioProveedor?.nombre || servicio.nombreClinica || 'Veterinaria',
+      if (!veterinariasMap.has(clinicaId)) {
+        // Crear nueva veterinaria con los datos del servicio
+        veterinariasMap.set(clinicaId, {
+          _id: clinicaId,
+          nombreUsuario: servicio.nombreClinica, // Usar nombreClinica como nombre principal
           email: servicio.usuarioProveedor?.email || servicio.emailClinica || '',
           telefono: servicio.telefonoClinica || '',
           direccion: servicio.direccion || {},
@@ -71,7 +71,7 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
       }
       
       // Agregar servicio a la veterinaria
-      const veterinaria = veterinariasMap.get(veterinariaId);
+      const veterinaria = veterinariasMap.get(clinicaId);
       veterinaria.servicios.push({
         _id: servicio.id,
         nombre: servicio.nombreServicio,
@@ -82,7 +82,14 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
         estado: servicio.estado,
         diasDisponibles: servicio.diasDisponibles,
         horariosDisponibles: servicio.horariosDisponibles,
-        mascotasAceptadas: servicio.mascotasAceptadas
+        mascotasAceptadas: servicio.mascotasAceptadas,
+        fechasNoDisponibles: servicio.fechasNoDisponibles, // ¡CAMPO FALTANTE!
+        // Agregar otros campos que podrían ser necesarios
+        emailClinica: servicio.emailClinica,
+        telefonoClinica: servicio.telefonoClinica,
+        nombreClinica: servicio.nombreClinica,
+        cantidadReservas: servicio.cantidadReservas,
+        fechaCreacion: servicio.fechaCreacion
       });
     });
     
@@ -110,6 +117,23 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Funciones de paginación
+  const handlePreviousPage = () => {
+    if (paginaActual > 1) {
+      cargarVeterinarias(paginaActual - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (paginaActual < totalPaginas) {
+      cargarVeterinarias(paginaActual + 1);
+    }
+  };
+
+  const goToPage = (page: number) => {
+    cargarVeterinarias(page);
   };
 
   // Función para aplicar filtros
@@ -316,8 +340,28 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
         ) : filteredClinics.length === 0 ? (
           <SinResultados />
         ) : (
-          <div className="space-y-8">
-            {filteredClinics.map((clinic: any, index: number) => (
+          <div className="relative">
+            {/* Contenedor con botones laterales */}
+            <div className="relative">
+              {/* Botón Anterior - Lado Izquierdo */}
+              {totalPaginas > 1 && (
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={paginaActual === 1}
+                  className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    paginaActual === 1 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-xl'
+                  }`}
+                  style={{ left: '-60px' }}
+                >
+                  <ChevronLeft className="h-6 w-6 mx-auto" />
+                </button>
+              )}
+
+              {/* Grid de Veterinarias */}
+              <div className="w-full space-y-8">
+                {filteredClinics.map((clinic: any, index: number) => (
               <div key={clinic._id || index} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                 {/* Clinic Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
@@ -381,17 +425,46 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                           </div>
                           
                           {/* Available Hours */}
-                          <div className="mb-6">
+                          <div className="mb-4">
                             <h5 className="text-sm font-semibold text-gray-900 mb-2">
                               Horarios Disponibles:
                             </h5>
-                            <div className="grid grid-cols-3 gap-1 min-h-[80px]">
-                              {(servicio.horariosDisponibles || []).slice(0, 9).map((hour: string, hourIndex: number) => (
+                            <div className="h-20 overflow-hidden">
+                              <div className="grid grid-cols-3 gap-1 h-full">
+                                {(servicio.horariosDisponibles || []).slice(0, 8).map((hour: string, hourIndex: number) => (
+                                  <div
+                                    key={hourIndex}
+                                    className="px-1 py-1 rounded text-xs text-center font-medium bg-blue-50 text-blue-700 flex items-center justify-center h-6"
+                                  >
+                                    {hour}
+                                  </div>
+                                ))}
+                                {/* Mostrar cajita de "más horarios" si hay más de 8 */}
+                                {(servicio.horariosDisponibles?.length || 0) > 8 && (
+                                  <div className="px-1 py-1 rounded text-xs text-center font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center h-6 shadow-sm">
+                                    +{(servicio.horariosDisponibles?.length || 0) - 8}
+                                  </div>
+                                )}
+                                {/* Rellenar espacios vacíos si hay menos de 9 horarios */}
+                                {Array.from({ length: Math.max(0, 9 - Math.min(9, servicio.horariosDisponibles?.length || 0)) }).map((_, emptyIndex) => (
+                                  <div key={`empty-${emptyIndex}`} className="h-6"></div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Available Days */}
+                          <div className="mb-6">
+                            <h5 className="text-sm font-semibold text-gray-900 mb-2">
+                              Días Disponibles:
+                            </h5>
+                            <div className="flex flex-wrap gap-1">
+                              {(servicio.diasDisponibles || []).map((day: string, dayIndex: number) => (
                                 <div
-                                  key={hourIndex}
-                                  className="px-2 py-1 rounded text-xs text-center font-medium bg-blue-50 text-blue-700"
+                                  key={dayIndex}
+                                  className="px-2 py-1 rounded text-xs font-medium bg-green-50 text-green-700 capitalize"
                                 >
-                                  {hour}
+                                  {day.toLowerCase()}
                                 </div>
                               ))}
                             </div>
@@ -416,46 +489,64 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                 </div>
               </div>
             ))}
-          </div>
-        )}
+              </div>
 
-        {/* Paginación */}
-        {totalPaginas > 1 && (
-          <div className="flex justify-center items-center mt-12 space-x-2">
-            <button
-              onClick={() => cargarVeterinarias(Math.max(1, paginaActual - 1))}
-              disabled={paginaActual === 1}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Anterior
-            </button>
-            
-            <div className="flex space-x-1">
-              {Array.from({ length: Math.min(5, totalPaginas) }, (_, i) => {
-                const pageNumber = i + 1;
-                return (
-                  <button
-                    key={pageNumber}
-                    onClick={() => cargarVeterinarias(pageNumber)}
-                    className={`px-4 py-2 rounded-lg ${
-                      paginaActual === pageNumber
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
+              {/* Botón Siguiente - Lado Derecho */}
+              {totalPaginas > 1 && (
+                <button
+                  onClick={handleNextPage}
+                  disabled={paginaActual === totalPaginas}
+                  className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    paginaActual === totalPaginas 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-xl'
+                  }`}
+                  style={{ right: '-60px' }}
+                >
+                  <ChevronRight className="h-6 w-6 mx-auto" />
+                </button>
+              )}
             </div>
-            
-            <button
-              onClick={() => cargarVeterinarias(Math.min(totalPaginas, paginaActual + 1))}
-              disabled={paginaActual === totalPaginas}
-              className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Siguiente
-            </button>
+
+            {/* Indicadores de páginas - Centrados debajo */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-center space-x-2 mt-8">
+                {Array.from({ length: Math.min(totalPaginas, 7) }, (_, i) => {
+                  let pageNumber;
+                  if (totalPaginas <= 7) {
+                    pageNumber = i + 1;
+                  } else if (paginaActual <= 4) {
+                    pageNumber = i + 1;
+                  } else if (paginaActual >= totalPaginas - 3) {
+                    pageNumber = totalPaginas - 6 + i;
+                  } else {
+                    pageNumber = paginaActual - 3 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => goToPage(pageNumber)}
+                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                        paginaActual === pageNumber
+                          ? 'bg-blue-600 scale-125'
+                          : 'bg-gray-300 hover:bg-blue-300'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Información de páginas */}
+            {totalPaginas > 1 && (
+              <div className="text-center mt-4">
+                <p className="text-gray-600 text-sm">
+                  Página <span className="font-semibold text-blue-600">{paginaActual}</span> de{' '}
+                  <span className="font-semibold text-blue-600">{totalPaginas}</span>
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

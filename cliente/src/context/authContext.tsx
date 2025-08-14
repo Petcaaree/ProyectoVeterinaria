@@ -90,10 +90,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       };
     },
-    tipoUsuario: string
+    tipoUsuario: string,
+    nombreClinica?: string // Parámetro opcional para veterinarias
   ): Promise<Usuario> => {
     try {
-      const response = await signinUsuario({ nombreUsuario, email, contrasenia, telefono, direccion }, tipoUsuario);
+      const datosRegistro: any = { nombreUsuario, email, contrasenia, telefono, direccion };
+      
+      // Si es veterinaria y se proporciona nombreClinica, agregarlo
+      if (tipoUsuario === 'veterinaria' && nombreClinica) {
+        datosRegistro.nombreClinica = nombreClinica;
+      }
+
+      const response = await signinUsuario(datosRegistro, tipoUsuario);
       const usuarioCompleto = response.data;
 
       console.log('Usuario registrado:', usuarioCompleto);

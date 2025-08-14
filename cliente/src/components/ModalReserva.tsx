@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
 
@@ -49,6 +49,101 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
 
+  // Limpiar horario seleccionado cuando cambie la fecha
+  useEffect(() => {
+    if (formData.date && formData.time) {
+      const horariosDisponibles = obtenerHorariosDisponibles(formData.date);
+      if (!horariosDisponibles.includes(formData.time)) {
+        setFormData(prev => ({ ...prev, time: '' }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.date]);
+
+  // Función para obtener el día de la semana en español y mayúsculas
+  const obtenerDiaSemana = (fecha: string): string => {
+    const [dia, mes, año] = fecha.split('/');
+    const fechaObj = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    const dias = ['DOMINGO', 'LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES', 'SABADO'];
+    return dias[fechaObj.getDay()];
+  };
+
+  // Función para verificar si una fecha está disponible (día de la semana)
+  const esFechaDisponible = (fecha: string): boolean => {
+    // Obtener días disponibles desde diferentes estructuras posibles
+    const diasDisponibles = service?.diasDisponibles || service?.servicioReservado?.diasDisponibles;
+    
+    if (!diasDisponibles || !Array.isArray(diasDisponibles)) return false;
+    
+    const diaSemana = obtenerDiaSemana(fecha);
+    return diasDisponibles.includes(diaSemana);
+  };
+
+  // Función para obtener todos los horarios con su estado (disponible/ocupado)
+  const obtenerHorariosConEstado = (fecha: string): { horario: string; disponible: boolean }[] => {
+    if (!fecha) return [];
+    
+    // Verificar si el día de la semana está disponible
+    if (!esFechaDisponible(fecha)) return [];
+    
+    // Obtener horarios base del servicio
+    const horariosBase = service?.horariosDisponibles || service?.servicioReservado?.horariosDisponibles || [];
+    
+    if (!horariosBase || horariosBase.length === 0) {
+      return [];
+    }
+    
+    // Convertir fecha DD/MM/YYYY a formato para comparar
+    const [dia, mes, año] = fecha.split('/');
+    const fechaParaComparar = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    
+    // Obtener fechas no disponibles
+    const fechasNoDisponibles = service?.fechasNoDisponibles || service?.servicioReservado?.fechasNoDisponibles;
+    
+    let horariosOcupados: string[] = [];
+    
+    // Buscar horarios ocupados para esta fecha específica
+    if (fechasNoDisponibles && Array.isArray(fechasNoDisponibles)) {
+      const fechaNoDisponible = fechasNoDisponibles.find((item: { fecha: string; horariosNoDisponibles: string[] }) => {
+        if (!item.fecha) return false;
+        
+        const fechaISO = new Date(item.fecha);
+        const fechaComparar = new Date(fechaISO.getFullYear(), fechaISO.getMonth(), fechaISO.getDate());
+        const fechaLocal = new Date(fechaParaComparar.getFullYear(), fechaParaComparar.getMonth(), fechaParaComparar.getDate());
+        
+        return fechaComparar.getTime() === fechaLocal.getTime();
+      });
+      
+      if (fechaNoDisponible?.horariosNoDisponibles) {
+        horariosOcupados = fechaNoDisponible.horariosNoDisponibles;
+      }
+    }
+    
+    // Crear array con todos los horarios y su estado, ordenados cronológicamente
+    const horariosConEstado = horariosBase
+      .map((horario: string) => ({
+        horario,
+        disponible: !horariosOcupados.includes(horario)
+      }))
+      .sort((a: { horario: string; disponible: boolean }, b: { horario: string; disponible: boolean }) => {
+        // Ordenar por hora (convertir HH:MM a minutos para comparar)
+        const timeA = a.horario.split(':').map(Number);
+        const timeB = b.horario.split(':').map(Number);
+        const minutesA = timeA[0] * 60 + timeA[1];
+        const minutesB = timeB[0] * 60 + timeB[1];
+        return minutesA - minutesB;
+      });
+    
+    return horariosConEstado;
+  };
+
+  // Función para obtener horarios disponibles para una fecha específica (mantener para compatibilidad)
+  const obtenerHorariosDisponibles = (fecha: string): string[] => {
+    return obtenerHorariosConEstado(fecha)
+      .filter(item => item.disponible)
+      .map(item => item.horario);
+  };
+
   const getUserTypeLabel = (tipo: string) => {
     switch (tipo) {
       case 'veterinaria': return 'Veterinario/a';
@@ -73,7 +168,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             <p className="text-gray-600 mb-6">
               Solo los dueños de mascotas pueden hacer reservas de servicios.
               {!userType && ' Por favor, inicia sesión como dueño de mascota.'}
-              {userType && userType !== 'cliente' && ` Tu cuenta actual es de tipo: ${getUserTypeLabel(userType)}.`}
+              {userType && userType !== 'cliente' && userType in ['veterinaria', 'paseador', 'cuidador'] && ` Tu cuenta actual es de tipo: ${getUserTypeLabel(userType)}.`}
             </p>
             <div className="flex space-x-3">
               <button
@@ -106,6 +201,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   };
 
   const formatPrice = (price: number) => {
+    if (!price || isNaN(price)) return 'Precio no disponible';
     return price.toLocaleString('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -114,13 +210,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   };
 
   const getServiceTitle = () => {
+    const serviceName = service?.nombre || service?.name || 'Servicio';
     switch (serviceType) {
-      case 'veterinary':
-        return `Reservar: ${service.name}`;
-      case 'walker':
-        return `Contratar Paseador: ${service.name}`;
-      case 'caregiver':
-        return `Contratar Cuidador: ${service.name}`;
+      case 'veterinaria':
+        return `Reservar: ${serviceName}`;
+      case 'paseador':
+        return `Contratar Paseador: ${serviceName}`;
+      case 'cuidador':
+        return `Contratar Cuidador: ${serviceName}`;
       default:
         return 'Reservar Servicio';
     }
@@ -128,12 +225,12 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   const getServicePrice = () => {
     switch (serviceType) {
-      case 'veterinary':
-        return formatPrice(service.price);
-      case 'walker':
-        return `${formatPrice(service.pricePerHour)}/hora`;
-      case 'caregiver':
-        return `${formatPrice(service.pricePerDay)}/día`;
+      case 'veterinaria':
+        return formatPrice(service?.precio || service?.price);
+      case 'paseador':
+        return `${formatPrice(service?.pricePerHour)}/hora`;
+      case 'cuidador':
+        return `${formatPrice(service?.pricePerDay)}/día`;
       default:
         return '';
     }
@@ -256,7 +353,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
               <Calendar className="h-5 w-5 mr-2" />
               Detalles del Servicio
             </h3>
-            {(serviceType === 'veterinary' || serviceType === 'walker') && (
+            {(serviceType === 'veterinaria' || serviceType === 'paseador') && (
               <div className="space-y-4">
                 {/* Fecha */}
                 <div>
@@ -281,77 +378,123 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 </div>
 
                 {/* Horarios Disponibles - Para Veterinarios */}
-                {serviceType === 'veterinary' && (
+                {serviceType === 'veterinaria' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Horarios Disponibles *
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['8:00', '9:00', '10:00', '10:30', '11:00', '14:00', '15:00', '15:30', '16:00', '17:00'].map((hour) => {
-                        const isAvailable = service.availableHours?.includes(hour);
-                        return (
-                          <button
-                            key={hour}
-                            type="button"
-                            onClick={() => isAvailable && setFormData({ ...formData, time: hour })}
-                            disabled={!isAvailable}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              formData.time === hour && isAvailable
-                                ? 'bg-blue-500 text-white shadow-lg'
-                                : isAvailable
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
-                            }`}
-                          >
-                            {hour}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {!formData.time && (
-                      <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
+                    {!formData.date ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-yellow-700">
+                          Por favor selecciona una fecha primero para ver los horarios disponibles
+                        </p>
+                      </div>
+                    ) : !esFechaDisponible(formData.date) ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-red-700">
+                          Este día no está disponible para citas. Días disponibles: {service?.diasDisponibles?.join(', ')}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-4 gap-2">
+                          {obtenerHorariosConEstado(formData.date).map((horarioItem) => (
+                            <button
+                              key={horarioItem.horario}
+                              type="button"
+                              onClick={() => horarioItem.disponible && setFormData({ ...formData, time: horarioItem.horario })}
+                              disabled={!horarioItem.disponible}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                formData.time === horarioItem.horario
+                                  ? 'bg-blue-500 text-white shadow-lg'
+                                  : horarioItem.disponible
+                                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+                                    : 'bg-red-50 text-red-400 cursor-not-allowed opacity-50 line-through'
+                              }`}
+                              title={horarioItem.disponible ? 'Disponible' : 'Horario ocupado'}
+                            >
+                              {horarioItem.horario}
+                              {!horarioItem.disponible && (
+                                <span className="ml-1 text-xs">🚫</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        {obtenerHorariosDisponibles(formData.date).length === 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                            <p className="text-sm text-red-700">
+                              No hay horarios disponibles para esta fecha
+                            </p>
+                          </div>
+                        )}
+                        {!formData.time && obtenerHorariosDisponibles(formData.date).length > 0 && (
+                          <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
 
                 {/* Horarios Disponibles - Para Paseadores */}
-                {serviceType === 'walker' && (
+                {serviceType === 'paseador' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Horarios Disponibles *
                     </label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {['8:00', '9:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00', '18:00'].map((hour) => {
-                        // Para paseadores, verificamos si está en su disponibilidad general
-                        // En un caso real, esto vendría de una API que verifique disponibilidad por fecha
-                        const isAvailable = true; // Por ahora todos están disponibles
-                        return (
-                          <button
-                            key={hour}
-                            type="button"
-                            onClick={() => isAvailable && setFormData({ ...formData, time: hour })}
-                            disabled={!isAvailable}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              formData.time === hour && isAvailable
-                                ? 'bg-green-500 text-white shadow-lg'
-                                : isAvailable
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                : 'bg-gray-50 text-gray-400 cursor-not-allowed opacity-50'
-                            }`}
-                          >
-                            {hour}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {!formData.time && (
-                      <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
+                    {!formData.date ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-yellow-700">
+                          Por favor selecciona una fecha primero para ver los horarios disponibles
+                        </p>
+                      </div>
+                    ) : !esFechaDisponible(formData.date) ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+                        <p className="text-sm text-red-700">
+                          Este día no está disponible para paseos. Días disponibles: {service?.diasDisponibles?.join(', ')}
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-4 gap-2">
+                          {obtenerHorariosConEstado(formData.date).map((horarioItem) => (
+                            <button
+                              key={horarioItem.horario}
+                              type="button"
+                              onClick={() => horarioItem.disponible && setFormData({ ...formData, time: horarioItem.horario })}
+                              disabled={!horarioItem.disponible}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                formData.time === horarioItem.horario
+                                  ? 'bg-green-500 text-white shadow-lg'
+                                  : horarioItem.disponible
+                                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+                                    : 'bg-red-50 text-red-400 cursor-not-allowed opacity-50 line-through'
+                              }`}
+                              title={horarioItem.disponible ? 'Disponible' : 'Horario ocupado'}
+                            >
+                              {horarioItem.horario}
+                              {!horarioItem.disponible && (
+                                <span className="ml-1 text-xs">🚫</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        {obtenerHorariosDisponibles(formData.date).length === 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                            <p className="text-sm text-red-700">
+                              No hay horarios disponibles para esta fecha
+                            </p>
+                          </div>
+                        )}
+                        {!formData.time && obtenerHorariosDisponibles(formData.date).length > 0 && (
+                          <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
 
                 {/* Duración - Solo para Paseadores */}
-                {serviceType === 'walker' && (
+                {serviceType === 'paseador' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Duración del Paseo *
@@ -380,7 +523,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
               </div>
             )}
               
-            {serviceType === 'caregiver' && (
+            {serviceType === 'cuidador' && (
               <div className="col-span-full">
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Período de cuidado *
@@ -478,7 +621,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             </button>
             <button
               type="submit"
-              disabled={(serviceType === 'veterinary' && !formData.time) || (serviceType === 'walker' && (!formData.time || !formData.duration))}
+              disabled={(serviceType === 'veterinaria' && !formData.time) || (serviceType === 'paseador' && (!formData.time || !formData.duration))}
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
               Confirmar Reserva
@@ -488,23 +631,30 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       </div>
       
       {/* Calendario Modal */}
-      {mostrarCalendario && (serviceType === 'veterinary' || serviceType === 'walker') && (
-        <CalendarioModerno
-          fechaSeleccionada={formData.date}
-          onFechaSeleccionada={(fecha) => {
-            setFormData({ ...formData, date: fecha });
-            setMostrarCalendario(false);
-          }}
-          onCerrar={() => setMostrarCalendario(false)}
-          fechaMinima={obtenerFechaHoy()}
-          colorTema={serviceType === 'walker' ? 'green' : 'blue'}
-          titulo="Seleccionar fecha de la cita"
-        />
-      )}
+      {mostrarCalendario && (serviceType === 'veterinaria' || serviceType === 'paseador') && (() => {
+        console.log('Abriendo calendario con service:', service);
+        console.log('service?.diasDisponibles:', service?.diasDisponibles);
+        return (
+          <CalendarioModerno
+            key={`calendario-${Date.now()}`} // Forzar recreación del componente
+            fechaSeleccionada={formData.date}
+            onFechaSeleccionada={(fecha) => {
+              setFormData({ ...formData, date: fecha });
+              setMostrarCalendario(false);
+            }}
+            onCerrar={() => setMostrarCalendario(false)}
+            fechaMinima={obtenerFechaHoy()}
+            colorTema={serviceType === 'paseador' ? 'green' : 'blue'}
+            titulo="Seleccionar fecha de la cita"
+            diasDisponibles={service?.diasDisponibles || service?.servicioReservado?.diasDisponibles}
+          />
+        );
+      })()}
       
       {/* Calendarios para cuidadores */}
-      {mostrarCalendarioInicio && serviceType === 'caregiver' && (
+      {mostrarCalendarioInicio && serviceType === 'cuidador' && (
         <CalendarioModerno
+          key={`calendario-inicio-${Date.now()}`}
           fechaSeleccionada={formData.date}
           onFechaSeleccionada={(fecha) => {
             setFormData({ ...formData, date: fecha });
@@ -514,11 +664,13 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           fechaMinima={new Date().toISOString().split('T')[0]}
           colorTema="orange"
           titulo="Fecha de inicio del cuidado"
+          diasDisponibles={service?.diasDisponibles}
         />
       )}
       
-      {mostrarCalendarioFin && serviceType === 'caregiver' && (
+      {mostrarCalendarioFin && serviceType === 'cuidador' && (
         <CalendarioModerno
+          key={`calendario-fin-${Date.now()}`}
           fechaSeleccionada={formData.duration}
           onFechaSeleccionada={(fecha) => {
             setFormData({ ...formData, duration: fecha });
@@ -528,6 +680,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           fechaMinima={formData.date || new Date().toISOString().split('T')[0]}
           colorTema="orange"
           titulo="Fecha de fin del cuidado"
+          diasDisponibles={service?.diasDisponibles}
         />
       )}
     </div>

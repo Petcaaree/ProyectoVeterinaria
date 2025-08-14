@@ -81,7 +81,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
     horariosDisponibles: [] as string[],
     diasDisponibles: [] as string[],
     mascotasAceptadas: [] as string[],
-    nombreClinica: '',
+    nombreClinica: usuario?.nombreClinica || '', // Usar nombreClinica del usuario
     direccion: {
       calle: '',
       altura: '',
@@ -589,6 +589,43 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
     );
   }
 
+  // Para veterinarias, verificar que tengan nombreClinica
+  if (userType === 'veterinaria' && !usuario?.nombreClinica) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8">
+            <button
+              onClick={onBack}
+              className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 mb-4 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>Volver</span>
+            </button>
+            
+            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+              <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Stethoscope className="h-10 w-10 text-red-600" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Perfil Incompleto</h1>
+              <p className="text-gray-600 mb-6">
+                Para crear servicios veterinarios, necesitas completar el nombre de tu clínica en tu perfil de usuario.
+              </p>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-red-800 text-sm">
+                  <strong>¿Cómo completar tu perfil?</strong><br />
+                  • Ve a tu perfil de usuario<br />
+                  • Agrega el nombre de tu clínica veterinaria<br />
+                  • Guarda los cambios y vuelve a intentar
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const timeSlots = ['8:00', '9:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
   const weekDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
@@ -716,11 +753,13 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
                         type="text"
                         name="nombreClinica"
                         value={formDataVeterinaria.nombreClinica}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                         placeholder="Nombre de tu clínica"
-                        required
+                        readOnly
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Este campo se obtiene automáticamente de tu perfil de usuario
+                      </p>
                     </div>
 
                     <div>

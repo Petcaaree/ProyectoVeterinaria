@@ -10,7 +10,7 @@ export class ServicioVeterinariaController {
     async findAll(req, res, next){
         try {
             console.log("🚀 INICIO ServicioVeterinariaController.findAll");
-            const { page = 1, limit = 4} = req.query
+            const { page = 1, limit = 3} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null, tipoServicio=null, fecha=null, mascotasAceptadas=[]} = req.query

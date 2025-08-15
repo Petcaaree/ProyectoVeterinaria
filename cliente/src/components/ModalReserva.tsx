@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
+import { useAuth } from '../context/authContext.tsx';
+
 
 interface ModalReservaProps {
   isOpen: boolean;
@@ -12,6 +14,12 @@ interface ModalReservaProps {
 
 const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, serviceType, userType }) => {
   // Helper para parsear fecha DD/MM/AAAA a Date object
+
+  const {usuario, crearReserva, getMascotas} = useAuth();
+  
+  // Estado para mascotas del usuario
+  const [mascotasUsuario, setMascotasUsuario] = useState<any[]>([]);
+  const [cargandoMascotas, setCargandoMascotas] = useState(false);
   const parsearFecha = (fechaStr: string): Date | null => {
     if (!fechaStr || fechaStr.length === 0) return null;
     
@@ -24,6 +32,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
     return new Date(fechaStr);
   };
+
+  
 
   // Helper para obtener fecha de hoy en formato DD/MM/AAAA
   const obtenerFechaHoy = (): string => {
@@ -43,21 +53,32 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   // Estado inicial del formulario (memoizado para evitar recreación)
   const estadoInicialFormulario = useMemo(() => ({
-    petName: '',
-    petSpecies: 'dog',
-    ownerName: '',
-    phone: '',
-    email: '',
-    date: '',
-    time: '',
-    duration: '',
-    notes: ''
-  }), []);
+    clienteId: usuario?.id || '',
+    serviciOfrecido: serviceType === 'veterinaria' ? 'ServicioVeterinaria' : serviceType === 'paseador' ? 'ServicioPaseador' : 'ServicioCuidador',
+    mascota: '',
+    servicioReservadoId: service?._id || service?.id,
+    rangoFechas: {
+      fechaInicio: '',
+      fechaFin: (serviceType === 'veterinaria' || serviceType === 'paseador') ? '' : '' // Se configurará automáticamente
+    },
+    horario: serviceType === 'cuidador' ? null : '',
+    notaAdicional: '',
+    nombreDeContacto: '',
+    telefonoContacto: '',
+    emailContacto: '',
+  }), [usuario?.id, serviceType, service?._id, service?.id]);
+
+
 
   const [formData, setFormData] = useState(estadoInicialFormulario);
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  
+  // Estado local para duración (solo para UI, no se envía al backend)
+  const [duracionSeleccionada, setDuracionSeleccionada] = useState('');
+
+  
 
   // Reiniciar formulario cuando se cierre el modal
   useEffect(() => {
@@ -66,31 +87,111 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       setMostrarCalendarioInicio(false);
       setMostrarCalendarioFin(false);
       setMostrarCalendario(false);
+      setDuracionSeleccionada(''); // Resetear duración
+    } else {
+      // Cuando se abre el modal, resetear estado si es necesario
     }
-  }, [isOpen, estadoInicialFormulario]);
+  }, [isOpen, estadoInicialFormulario, service]);
+
+  // Cargar mascotas del usuario cuando se abra el modal
+  useEffect(() => {
+    const cargarMascotas = async () => {
+      if (isOpen && usuario?.id) {
+        setCargandoMascotas(true);
+        try {
+          const mascotas = await getMascotas(usuario.id);
+          setMascotasUsuario(mascotas || []);
+        } catch (error) {
+          console.error('Error al cargar mascotas:', error);
+          setMascotasUsuario([]);
+        } finally {
+          setCargandoMascotas(false);
+        }
+      }
+    };
+
+    cargarMascotas();
+  }, [isOpen, usuario?.id, getMascotas]);
+
+  // Calcular mascotas filtradas según el servicio
+  const mascotasFiltradas = useMemo(() => {
+    if (!mascotasUsuario.length || !service) return [];
+    
+    // Los paseadores solo trabajan con perros
+    if (serviceType === 'paseador') {
+      return mascotasUsuario.filter(mascota => {
+        const tipoMascota = mascota.tipo?.toUpperCase();
+        return tipoMascota === 'PERRO';
+      });
+    }
+    
+    const mascotasAceptadas = service.mascotasAceptadas || service.servicioReservado?.mascotasAceptadas;
+    
+    // Si el servicio no tiene restricciones de mascotas, mostrar todas
+    if (!mascotasAceptadas || !Array.isArray(mascotasAceptadas) || mascotasAceptadas.length === 0) {
+      return mascotasUsuario;
+    }
+    
+    return mascotasUsuario.filter(mascota => {
+      const tipoMascota = mascota.tipo?.toUpperCase();
+      const estaAceptada = mascotasAceptadas.includes(tipoMascota);
+      return estaAceptada;
+    });
+  }, [mascotasUsuario, service, serviceType]);
 
   // Limpiar horario seleccionado cuando cambie la fecha
   useEffect(() => {
-    if (formData.date && formData.time) {
-      const horariosDisponibles = obtenerHorariosDisponibles(formData.date);
-      if (!horariosDisponibles.includes(formData.time)) {
-        setFormData(prev => ({ ...prev, time: '' }));
+    if (formData.rangoFechas.fechaInicio && formData.horario) {
+      const horariosDisponibles = obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio);
+      if (!horariosDisponibles.includes(formData.horario)) {
+        setFormData(prev => ({ ...prev, horario: '' }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.date]);
+  }, [formData.rangoFechas.fechaInicio]);
+
+  // Configurar fechaFin automáticamente para veterinarias y paseadores
+  useEffect(() => {
+    if ((serviceType === 'veterinaria' || serviceType === 'paseador') && formData.rangoFechas.fechaInicio) {
+      // Para veterinarias y paseadores, fechaFin = fechaInicio
+      if (formData.rangoFechas.fechaFin !== formData.rangoFechas.fechaInicio) {
+        setFormData(prev => ({
+          ...prev,
+          rangoFechas: {
+            ...prev.rangoFechas,
+            fechaFin: prev.rangoFechas.fechaInicio
+          }
+        }));
+      }
+    }
+  }, [formData.rangoFechas.fechaInicio, formData.rangoFechas.fechaFin, serviceType]);
+
+  // Actualizar servicioReservadoId cuando el servicio esté disponible
+  useEffect(() => {
+    const serviceId = service?._id || service?.id;
+    
+    if (serviceId && formData.servicioReservadoId !== serviceId) {
+      setFormData(prev => ({
+        ...prev,
+        servicioReservadoId: serviceId
+      }));
+    }
+  }, [service, formData.servicioReservadoId]);
 
   // Validar fechas de cuidadores cuando cambien
   useEffect(() => {
-    if (serviceType === 'cuidador' && formData.date && formData.duration) {
+    if (serviceType === 'cuidador' && formData.rangoFechas.fechaInicio && formData.rangoFechas.fechaFin) {
       const { esValido } = validarFechas();
       if (!esValido) {
         // Si la fecha fin es inválida después de cambiar la fecha inicio, limpiar fecha fin
-        setFormData(prev => ({ ...prev, duration: '' }));
+        setFormData(prev => ({ 
+          ...prev, 
+          rangoFechas: { ...prev.rangoFechas, fechaFin: '' }
+        }));
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.date, serviceType]);
+  }, [formData.rangoFechas.fechaInicio, serviceType]);
 
   // Función para obtener el día de la semana en español y mayúsculas
   const obtenerDiaSemana = (fecha: string): string => {
@@ -102,12 +203,12 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   // Función para validar fechas de cuidadores
   const validarFechas = (): { esValido: boolean; mensaje: string } => {
-    if (!formData.date || !formData.duration) {
+    if (!formData.rangoFechas.fechaInicio || !formData.rangoFechas.fechaFin) {
       return { esValido: true, mensaje: '' };
     }
 
-    const fechaInicio = parsearFecha(formData.date);
-    const fechaFin = parsearFecha(formData.duration);
+    const fechaInicio = parsearFecha(formData.rangoFechas.fechaInicio);
+    const fechaFin = parsearFecha(formData.rangoFechas.fechaFin);
 
     if (!fechaInicio || !fechaFin) {
       return { esValido: false, mensaje: 'Fechas inválidas' };
@@ -223,7 +324,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             <p className="text-gray-600 mb-6">
               Solo los dueños de mascotas pueden hacer reservas de servicios.
               {!userType && ' Por favor, inicia sesión como dueño de mascota.'}
-              {userType && userType !== 'cliente' && userType in ['veterinaria', 'paseador', 'cuidador'] && ` Tu cuenta actual es de tipo: ${getUserTypeLabel(userType)}.`}
+              {userType && userType !== 'cliente' && ['veterinaria', 'paseador', 'cuidador'].includes(userType) && ` Tu cuenta actual es de tipo: ${getUserTypeLabel(userType)}.`}
             </p>
             <div className="flex space-x-3">
               <button
@@ -249,8 +350,22 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Encontrar la mascota seleccionada para mostrar información completa
+    const mascotaSeleccionada = mascotasFiltradas.find(m => m._id === formData.mascota);
+    
+    // Mostrar el formData completo
+    console.log('=== DATOS DEL FORMULARIO ===');
+    console.log('FormData completo:', formData);
+    console.log('Mascota seleccionada:', mascotaSeleccionada);
+    if (serviceType === 'paseador') {
+      console.log('Duración seleccionada (solo UI):', duracionSeleccionada);
+    }
+    console.log('Service:', service);
+    console.log('ServiceType:', serviceType);
+    console.log('============================');
+    
     // Handle booking submission
-    console.log('Booking submitted:', { service, formData, serviceType });
     alert('¡Reserva enviada exitosamente! Te contactaremos pronto para confirmar.');
     onClose();
   };
@@ -323,35 +438,51 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
               <Dog className="h-5 w-5 mr-2" />
               Información de tu Mascota
             </h3>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre de la Mascota *
+                  Selecciona tu Mascota *
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.petName}
-                  onChange={(e) => setFormData({ ...formData, petName: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: Max"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Mascota *
-                </label>
-                <select
-                  required
-                  value={formData.petSpecies}
-                  onChange={(e) => setFormData({ ...formData, petSpecies: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="dog">Perro</option>
-                  <option value="cat">Gato</option>
-                  <option value="bird">Ave</option>
-                  <option value="other">Otro</option>
-                </select>
+                {cargandoMascotas ? (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500">
+                    Cargando mascotas...
+                  </div>
+                ) : mascotasFiltradas.length > 0 ? (
+                  <select
+                    required
+                    value={formData.mascota}
+                    onChange={(e) => {
+                      const mascotaId = e.target.value;
+                      setFormData({ ...formData, mascota: mascotaId });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Selecciona una mascota</option>
+                    {mascotasFiltradas.map((mascota) => {
+                      const mascotaId = mascota._id || mascota.id;
+                      return (
+                        <option key={mascotaId} value={mascotaId}>
+                          {mascota.nombre} ({mascota.tipo})
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <div className="w-full px-3 py-2 border border-red-300 rounded-lg bg-red-50 text-red-700">
+                    {mascotasUsuario.length === 0 ? (
+                      'No tienes mascotas registradas.'
+                    ) : (
+                      <>
+                        No tienes mascotas compatibles con este servicio.
+                        {service?.mascotasAceptadas && service.mascotasAceptadas.length > 0 && (
+                          <span className="block text-sm mt-1">
+                            Este servicio acepta: {service.mascotasAceptadas.join(', ')}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -370,8 +501,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 <input
                   type="text"
                   required
-                  value={formData.ownerName}
-                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                  value={formData.nombreDeContacto}
+                  onChange={(e) => setFormData({ ...formData, nombreDeContacto: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Tu nombre completo"
                 />
@@ -383,8 +514,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 <input
                   type="tel"
                   required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  value={formData.telefonoContacto}
+                  onChange={(e) => setFormData({ ...formData, telefonoContacto: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="+57 300 123 4567"
                 />
@@ -397,8 +528,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
               <input
                 type="email"
                 required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={formData.emailContacto}
+                onChange={(e) => setFormData({ ...formData, emailContacto: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="tu@email.com"
               />
@@ -424,9 +555,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                       onClick={() => setMostrarCalendario(true)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between"
                     >
-                      <span className={formData.date ? 'text-gray-900' : 'text-gray-500'}>
-                        {formData.date 
-                          ? formData.date
+                      <span className={formData.rangoFechas.fechaInicio ? 'text-gray-900' : 'text-gray-500'}>
+                        {formData.rangoFechas.fechaInicio 
+                          ? formData.rangoFechas.fechaInicio
                           : 'Seleccionar fecha'
                         }
                       </span>
@@ -441,13 +572,13 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Horarios Disponibles *
                     </label>
-                    {!formData.date ? (
+                    {!formData.rangoFechas.fechaInicio ? (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                         <p className="text-sm text-yellow-700">
                           Por favor selecciona una fecha primero para ver los horarios disponibles
                         </p>
                       </div>
-                    ) : !esFechaDisponible(formData.date) ? (
+                    ) : !esFechaDisponible(formData.rangoFechas.fechaInicio) ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
                         <p className="text-sm text-red-700">
                           Este día no está disponible para citas. Días disponibles: {service?.diasDisponibles?.join(', ')}
@@ -456,14 +587,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     ) : (
                       <>
                         <div className="grid grid-cols-4 gap-2">
-                          {obtenerHorariosConEstado(formData.date).map((horarioItem) => (
+                          {obtenerHorariosConEstado(formData.rangoFechas.fechaInicio).map((horarioItem) => (
                             <button
                               key={horarioItem.horario}
                               type="button"
-                              onClick={() => horarioItem.disponible && setFormData({ ...formData, time: horarioItem.horario })}
+                              onClick={() => horarioItem.disponible && setFormData({ ...formData, horario: horarioItem.horario })}
                               disabled={!horarioItem.disponible}
                               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                formData.time === horarioItem.horario
+                                formData.horario === horarioItem.horario
                                   ? 'bg-blue-500 text-white shadow-lg'
                                   : horarioItem.disponible
                                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
@@ -478,14 +609,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                             </button>
                           ))}
                         </div>
-                        {obtenerHorariosDisponibles(formData.date).length === 0 && (
+                        {obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio).length === 0 && (
                           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
                             <p className="text-sm text-red-700">
                               No hay horarios disponibles para esta fecha
                             </p>
                           </div>
                         )}
-                        {!formData.time && obtenerHorariosDisponibles(formData.date).length > 0 && (
+                        {!formData.horario && obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio).length > 0 && (
                           <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
                         )}
                       </>
@@ -499,13 +630,13 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Horarios Disponibles *
                     </label>
-                    {!formData.date ? (
+                    {!formData.rangoFechas.fechaInicio ? (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                         <p className="text-sm text-yellow-700">
                           Por favor selecciona una fecha primero para ver los horarios disponibles
                         </p>
                       </div>
-                    ) : !esFechaDisponible(formData.date) ? (
+                    ) : !esFechaDisponible(formData.rangoFechas.fechaInicio) ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
                         <p className="text-sm text-red-700">
                           Este día no está disponible para paseos. Días disponibles: {service?.diasDisponibles?.join(', ')}
@@ -514,14 +645,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                     ) : (
                       <>
                         <div className="grid grid-cols-4 gap-2">
-                          {obtenerHorariosConEstado(formData.date).map((horarioItem) => (
+                          {obtenerHorariosConEstado(formData.rangoFechas.fechaInicio).map((horarioItem) => (
                             <button
                               key={horarioItem.horario}
                               type="button"
-                              onClick={() => horarioItem.disponible && setFormData({ ...formData, time: horarioItem.horario })}
+                              onClick={() => horarioItem.disponible && setFormData({ ...formData, horario: horarioItem.horario })}
                               disabled={!horarioItem.disponible}
                               className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                formData.time === horarioItem.horario
+                                formData.horario === horarioItem.horario
                                   ? 'bg-green-500 text-white shadow-lg'
                                   : horarioItem.disponible
                                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
@@ -536,14 +667,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                             </button>
                           ))}
                         </div>
-                        {obtenerHorariosDisponibles(formData.date).length === 0 && (
+                        {obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio).length === 0 && (
                           <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
                             <p className="text-sm text-red-700">
                               No hay horarios disponibles para esta fecha
                             </p>
                           </div>
                         )}
-                        {!formData.time && obtenerHorariosDisponibles(formData.date).length > 0 && (
+                        {!formData.horario && obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio).length > 0 && (
                           <p className="text-sm text-red-600 mt-2">Por favor selecciona un horario disponible</p>
                         )}
                       </>
@@ -551,33 +682,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                   </div>
                 )}
 
-                {/* Duración - Solo para Paseadores */}
-                {serviceType === 'paseador' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Duración del Paseo *
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['1', '2', '3'].map((duration) => (
-                        <button
-                          key={duration}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, duration })}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            formData.duration === duration
-                              ? 'bg-green-500 text-white shadow-lg'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {duration} hora{duration !== '1' ? 's' : ''}
-                        </button>
-                      ))}
-                    </div>
-                    {!formData.duration && (
-                      <p className="text-sm text-red-600 mt-2">Por favor selecciona la duración del paseo</p>
-                    )}
-                  </div>
-                )}
+                
               </div>
             )}
               
@@ -598,9 +703,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                         onClick={() => setMostrarCalendarioInicio(true)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-left flex items-center justify-between"
                       >
-                        <span className={formData.date ? 'text-gray-900' : 'text-gray-500'}>
-                          {formData.date 
-                            ? formData.date
+                        <span className={formData.rangoFechas.fechaInicio ? 'text-gray-900' : 'text-gray-500'}>
+                          {formData.rangoFechas.fechaInicio 
+                            ? formData.rangoFechas.fechaInicio
                             : 'Seleccionar fecha'
                           }
                         </span>
@@ -620,9 +725,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                         onClick={() => setMostrarCalendarioFin(true)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-left flex items-center justify-between"
                       >
-                        <span className={formData.duration ? 'text-gray-900' : 'text-gray-500'}>
-                          {formData.duration 
-                            ? formData.duration
+                        <span className={formData.rangoFechas.fechaFin ? 'text-gray-900' : 'text-gray-500'}>
+                          {formData.rangoFechas.fechaFin 
+                            ? formData.rangoFechas.fechaFin
                             : 'Seleccionar fecha'
                           }
                         </span>
@@ -633,14 +738,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 </div>
                 
                 {/* Información de duración */}
-                {formData.date && formData.duration && (
+                {formData.rangoFechas.fechaInicio && formData.rangoFechas.fechaFin && (
                   <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-orange-700">Duración del servicio:</span>
                       <span className="font-bold text-orange-800">
                         {(() => {
-                          const fechaInicio = parsearFecha(formData.date);
-                          const fechaFin = parsearFecha(formData.duration);
+                          const fechaInicio = parsearFecha(formData.rangoFechas.fechaInicio);
+                          const fechaFin = parsearFecha(formData.rangoFechas.fechaFin);
                           if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
                             return Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
                           }
@@ -652,7 +757,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 )}
 
                 {/* Mensaje de validación de fechas */}
-                {formData.date && formData.duration && (() => {
+                {formData.rangoFechas.fechaInicio && formData.rangoFechas.fechaFin && (() => {
                   const { esValido, mensaje } = validarFechas();
                   return !esValido ? (
                     <div className="mt-3 p-3 bg-red-50 rounded-lg border border-red-200">
@@ -674,8 +779,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             </label>
             <textarea
               rows={4}
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              value={formData.notaAdicional}
+              onChange={(e) => setFormData({ ...formData, notaAdicional: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Información adicional sobre tu mascota, necesidades especiales, etc."
             />
@@ -693,9 +798,11 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             <button
               type="submit"
               disabled={
-                (serviceType === 'veterinaria' && !formData.time) || 
-                (serviceType === 'paseador' && (!formData.time || !formData.duration)) ||
-                (serviceType === 'cuidador' && (!formData.date || !formData.duration || !validarFechas().esValido))
+                !formData.mascota ||
+                !formData.rangoFechas.fechaInicio ||
+                (serviceType === 'veterinaria' && !formData.horario) || 
+                (serviceType === 'paseador' && !formData.horario) ||
+                (serviceType === 'cuidador' && (!formData.rangoFechas.fechaFin || !validarFechas().esValido))
               }
               className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
@@ -706,33 +813,41 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       </div>
       
       {/* Calendario Modal */}
-      {mostrarCalendario && (serviceType === 'veterinaria' || serviceType === 'paseador') && (() => {
-        console.log('Abriendo calendario con service:', service);
-        console.log('service?.diasDisponibles:', service?.diasDisponibles);
-        return (
-          <CalendarioModerno
-            key={`calendario-${Date.now()}`} // Forzar recreación del componente
-            fechaSeleccionada={formData.date}
-            onFechaSeleccionada={(fecha) => {
-              setFormData({ ...formData, date: fecha });
-              setMostrarCalendario(false);
-            }}
-            onCerrar={() => setMostrarCalendario(false)}
-            fechaMinima={obtenerFechaHoy()}
-            colorTema={serviceType === 'paseador' ? 'green' : 'blue'}
-            titulo="Seleccionar fecha de la cita"
-            diasDisponibles={service?.diasDisponibles || service?.servicioReservado?.diasDisponibles}
-          />
-        );
-      })()}
+      {mostrarCalendario && (serviceType === 'veterinaria' || serviceType === 'paseador') && (
+        <CalendarioModerno
+          key={`calendario-${Date.now()}`} // Forzar recreación del componente
+          fechaSeleccionada={formData.rangoFechas.fechaInicio}
+          onFechaSeleccionada={(fecha) => {
+            setFormData(prev => ({ 
+              ...prev, 
+              rangoFechas: { ...prev.rangoFechas, fechaInicio: fecha }
+            }));
+            setMostrarCalendario(false);
+          }}
+          onCerrar={() => setMostrarCalendario(false)}
+          fechaMinima={obtenerFechaHoy()}
+          colorTema={serviceType === 'paseador' ? 'green' : 'blue'}
+          titulo="Seleccionar fecha de la cita"
+          diasDisponibles={service?.diasDisponibles || service?.servicioReservado?.diasDisponibles}
+        />
+      )}
       
       {/* Calendarios para cuidadores */}
       {mostrarCalendarioInicio && serviceType === 'cuidador' && (
         <CalendarioModerno
           key={`calendario-inicio-${Date.now()}`}
-          fechaSeleccionada={formData.date}
+          fechaSeleccionada={formData.rangoFechas.fechaInicio}
           onFechaSeleccionada={(fecha) => {
-            setFormData({ ...formData, date: fecha });
+            const fechaFin = formData.rangoFechas.fechaFin;
+            const nuevaFechaInicio = fecha; // Ya es string
+            
+            setFormData(prev => ({
+              ...prev,
+              rangoFechas: {
+                fechaInicio: nuevaFechaInicio,
+                fechaFin: fechaFin && new Date(fechaFin) < new Date(nuevaFechaInicio) ? nuevaFechaInicio : fechaFin
+              }
+            }));
             setMostrarCalendarioInicio(false);
           }}
           onCerrar={() => setMostrarCalendarioInicio(false)}
@@ -746,13 +861,16 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       {mostrarCalendarioFin && serviceType === 'cuidador' && (
         <CalendarioModerno
           key={`calendario-fin-${Date.now()}`}
-          fechaSeleccionada={formData.duration}
+          fechaSeleccionada={formData.rangoFechas.fechaFin}
           onFechaSeleccionada={(fecha) => {
-            setFormData({ ...formData, duration: fecha });
+            setFormData(prev => ({ 
+              ...prev, 
+              rangoFechas: { ...prev.rangoFechas, fechaFin: fecha }
+            }));
             setMostrarCalendarioFin(false);
           }}
           onCerrar={() => setMostrarCalendarioFin(false)}
-          fechaMinima={formData.date || new Date().toISOString().split('T')[0]}
+          fechaMinima={formData.rangoFechas.fechaInicio || new Date().toISOString().split('T')[0]}
           colorTema="orange"
           titulo="Fecha de fin del cuidado"
           diasDisponibles={service?.diasDisponibles}

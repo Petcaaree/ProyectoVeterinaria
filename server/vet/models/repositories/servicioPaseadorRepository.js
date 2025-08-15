@@ -100,15 +100,6 @@ export class ServicioPaseadorRepository {
                   const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
-                  console.log('Comparando localidades en paseadores:', {
-                      filtroLocalidad: filtro.localidad,
-                      servicioLocalidad: localidad?.nombre,
-                      servicioCiudad: ciudad?.nombre,
-                      coincideConLocalidad: filtro.localidad ? localidad?.nombre === filtro.localidad : true,
-                      coincideConCiudad: filtro.localidad ? ciudad?.nombre === filtro.localidad : true
-                  });
-      
-                  // Cambiar para comparar con ciudad en lugar de localidad
                   const coincideLocalidad = filtro.localidad ? ciudad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombre
                   ? (nombreServicio || '').toLowerCase().includes(filtro.nombre.toLowerCase())

@@ -8,10 +8,11 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 
 
 export class ClienteService {
-    constructor(clienteRepository, ciudadRepository, localidadRepository) {
+    constructor(clienteRepository, ciudadRepository, localidadRepository, reservaRepository) {
         this.clienteRepository = clienteRepository
         this.ciudadRepository = ciudadRepository
         this.localidadRepository = localidadRepository
+        this.reservaRepository = reservaRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -305,6 +306,11 @@ export class ClienteService {
         const mascota = cliente.mascotas.find(m => m._id.toString() == idMascota)
         if(!mascota) {
             throw new NotFoundError(`Mascota con id ${idMascota} no encontrada`)
+        }
+
+        const totalReservas = await this.reservaRepository.findAllByMacota(idMascota)
+        if (totalReservas.length > 0) {
+            throw new ConflictError(`No se puede eliminar la mascota porque tiene reservas activas`)
         }
 
         cliente.eliminarMascota(mascota)

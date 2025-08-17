@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield } from 'lucide-react';
+import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield, CheckCircle, Heart } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
 import { useAuth } from '../context/authContext.tsx';
 
@@ -61,7 +61,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       fechaInicio: '',
       fechaFin: (serviceType === 'veterinaria' || serviceType === 'paseador') ? '' : '' // Se configurará automáticamente
     },
-    horario: serviceType === 'cuidador' ? null : '',
+    horario: serviceType === 'cuidador' ? "null" : '',
     notaAdicional: '',
     nombreDeContacto: '',
     telefonoContacto: '',
@@ -74,44 +74,41 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   
   // Estado local para duración (solo para UI, no se envía al backend)
   const [duracionSeleccionada, setDuracionSeleccionada] = useState('');
 
   
 
-  // Reiniciar formulario cuando se cierre el modal
+  // Gestión del modal y carga inicial de datos
   useEffect(() => {
     if (!isOpen) {
+      // Limpiar estado cuando se cierra el modal
       setFormData(estadoInicialFormulario);
       setMostrarCalendarioInicio(false);
       setMostrarCalendarioFin(false);
       setMostrarCalendario(false);
-      setDuracionSeleccionada(''); // Resetear duración
+      setDuracionSeleccionada('');
     } else {
-      // Cuando se abre el modal, resetear estado si es necesario
-    }
-  }, [isOpen, estadoInicialFormulario, service]);
-
-  // Cargar mascotas del usuario cuando se abra el modal
-  useEffect(() => {
-    const cargarMascotas = async () => {
-      if (isOpen && usuario?.id) {
-        setCargandoMascotas(true);
-        try {
-          const mascotas = await getMascotas(usuario.id);
-          setMascotasUsuario(mascotas || []);
-        } catch (error) {
-          console.error('Error al cargar mascotas:', error);
-          setMascotasUsuario([]);
-        } finally {
-          setCargandoMascotas(false);
+      // Cargar mascotas cuando se abre el modal
+      const cargarMascotas = async () => {
+        if (usuario?.id) {
+          setCargandoMascotas(true);
+          try {
+            const mascotas = await getMascotas(usuario.id);
+            setMascotasUsuario(mascotas || []);
+          } catch (error) {
+            console.error('Error al cargar mascotas:', error);
+            setMascotasUsuario([]);
+          } finally {
+            setCargandoMascotas(false);
+          }
         }
-      }
-    };
-
-    cargarMascotas();
-  }, [isOpen, usuario?.id, getMascotas]);
+      };
+      cargarMascotas();
+    }
+  }, [isOpen, estadoInicialFormulario, service, usuario?.id, getMascotas]);
 
   // Calcular mascotas filtradas según el servicio
   const mascotasFiltradas = useMemo(() => {
@@ -139,21 +136,18 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     });
   }, [mascotasUsuario, service, serviceType]);
 
-  // Limpiar horario seleccionado cuando cambie la fecha
+  // Gestión de fechas y formulario
   useEffect(() => {
+    // Limpiar horario si no está disponible para la fecha seleccionada
     if (formData.rangoFechas.fechaInicio && formData.horario) {
       const horariosDisponibles = obtenerHorariosDisponibles(formData.rangoFechas.fechaInicio);
       if (!horariosDisponibles.includes(formData.horario)) {
         setFormData(prev => ({ ...prev, horario: '' }));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.rangoFechas.fechaInicio]);
 
-  // Configurar fechaFin automáticamente para veterinarias y paseadores
-  useEffect(() => {
+    // Configurar fechaFin automáticamente para veterinarias y paseadores
     if ((serviceType === 'veterinaria' || serviceType === 'paseador') && formData.rangoFechas.fechaInicio) {
-      // Para veterinarias y paseadores, fechaFin = fechaInicio
       if (formData.rangoFechas.fechaFin !== formData.rangoFechas.fechaInicio) {
         setFormData(prev => ({
           ...prev,
@@ -164,34 +158,35 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
         }));
       }
     }
-  }, [formData.rangoFechas.fechaInicio, formData.rangoFechas.fechaFin, serviceType]);
 
-  // Actualizar servicioReservadoId cuando el servicio esté disponible
-  useEffect(() => {
-    const serviceId = service?._id || service?.id;
-    
-    if (serviceId && formData.servicioReservadoId !== serviceId) {
-      setFormData(prev => ({
-        ...prev,
-        servicioReservadoId: serviceId
-      }));
-    }
-  }, [service, formData.servicioReservadoId]);
-
-  // Validar fechas de cuidadores cuando cambien
-  useEffect(() => {
+    // Validar fechas de cuidadores
     if (serviceType === 'cuidador' && formData.rangoFechas.fechaInicio && formData.rangoFechas.fechaFin) {
       const { esValido } = validarFechas();
       if (!esValido) {
-        // Si la fecha fin es inválida después de cambiar la fecha inicio, limpiar fecha fin
         setFormData(prev => ({ 
           ...prev, 
           rangoFechas: { ...prev.rangoFechas, fechaFin: '' }
         }));
       }
     }
+
+    // Actualizar servicioReservadoId cuando esté disponible
+    const serviceId = service?._id || service?.id;
+    if (serviceId && formData.servicioReservadoId !== serviceId) {
+      setFormData(prev => ({
+        ...prev,
+        servicioReservadoId: serviceId
+      }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.rangoFechas.fechaInicio, serviceType]);
+  }, [
+    formData.rangoFechas.fechaInicio, 
+    formData.rangoFechas.fechaFin, 
+    formData.horario, 
+    formData.servicioReservadoId,
+    serviceType, 
+    service
+  ]);
 
   // Función para obtener el día de la semana en español y mayúsculas
   const obtenerDiaSemana = (fecha: string): string => {
@@ -348,7 +343,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     );
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     
     // Encontrar la mascota seleccionada para mostrar información completa
@@ -358,16 +353,19 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     console.log('=== DATOS DEL FORMULARIO ===');
     console.log('FormData completo:', formData);
     console.log('Mascota seleccionada:', mascotaSeleccionada);
-    if (serviceType === 'paseador') {
+    if (serviceType === 'paseador' || serviceType === 'veterinaria') {
       console.log('Duración seleccionada (solo UI):', duracionSeleccionada);
     }
     console.log('Service:', service);
-    console.log('ServiceType:', serviceType);
     console.log('============================');
     
     // Handle booking submission
-    alert('¡Reserva enviada exitosamente! Te contactaremos pronto para confirmar.');
-    onClose();
+    await crearReserva(formData); 
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      onClose();
+    }, 2500);
   };
 
   const formatPrice = (price: number) => {
@@ -380,7 +378,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   };
 
   const getServiceTitle = () => {
-    const serviceName = service?.nombre || service?.name || 'Servicio';
+    const serviceName = service?.nombreServicio || service?.tipoServicio || 'Servicio';
     switch (serviceType) {
       case 'veterinaria':
         return `Reservar: ${serviceName}`;
@@ -875,6 +873,97 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           titulo="Fecha de fin del cuidado"
           diasDisponibles={service?.diasDisponibles}
         />
+      )}
+
+      {/* Popup de éxito */}
+      {showSuccess && (
+        <>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 mx-4 max-w-md w-full transform animate-bounce-in border border-green-200">
+              <div className="text-center">
+                {/* Icono de éxito animado */}
+                <div className="relative mx-auto w-20 h-20 mb-6">
+                  <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
+                  <div className="absolute inset-2 bg-green-200 rounded-full animate-pulse"></div>
+                  <div className="relative bg-gradient-to-r from-green-500 to-emerald-500 rounded-full w-20 h-20 flex items-center justify-center shadow-lg">
+                    <CheckCircle className="h-10 w-10 text-white animate-pulse" />
+                  </div>
+                </div>
+                
+                {/* Título */}
+                <h3 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-3">
+                  ¡Reserva Confirmada!
+                </h3>
+                
+                {/* Mensaje principal */}
+                <p className="text-gray-700 mb-2 text-lg">
+                  Tu solicitud de <span className="font-bold text-purple-600">{getServiceTitle().replace('Reservar: ', '').replace('Contratar Paseador: ', '').replace('Contratar Cuidador: ', '')}</span>
+                </p>
+                <p className="text-gray-600 mb-6 text-sm">
+                  ha sido enviada exitosamente
+                </p>
+                
+                {/* Información adicional con iconos */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 mb-6 border border-green-100">
+                  <div className="flex items-center justify-center space-x-2 text-green-700 mb-2">
+                    <Heart className="h-5 w-5 animate-pulse" />
+                    <span className="text-sm font-semibold">
+                      ¡Te contactaremos pronto!
+                    </span>
+                  </div>
+                  <p className="text-xs text-green-600">
+                    Recibirás la confirmación por email y teléfono
+                  </p>
+                </div>
+                
+                {/* Barra de progreso mejorada */}
+                <div className="relative">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full animate-progress shadow-sm"></div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Cerrando automáticamente...
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Estilos CSS para las animaciones */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              @keyframes progress {
+                from { width: 100%; }
+                to { width: 0%; }
+              }
+              
+              @keyframes bounce-in {
+                0% { 
+                  transform: scale(0.3); 
+                  opacity: 0; 
+                }
+                50% { 
+                  transform: scale(1.05); 
+                }
+                70% { 
+                  transform: scale(0.9); 
+                }
+                100% { 
+                  transform: scale(1); 
+                  opacity: 1; 
+                }
+              }
+              
+              .animate-bounce-in {
+                animation: bounce-in 0.5s ease-out;
+              }
+              
+              .animate-progress {
+                animation: progress 2.5s linear forwards;
+              }
+            `
+          }} />
+        </>
       )}
     </div>
   );

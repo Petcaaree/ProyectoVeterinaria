@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Heart, Clock, Star, Award, Shield, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
@@ -15,6 +15,9 @@ interface PaginaPaseadoresProps {
 }
 
 const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
+  // Referencia para el scroll hacia las cards
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  
   const [selectedPaseador, setSelectedPaseador] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
 
@@ -140,26 +143,47 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
     aplicarFiltros();
   };
 
+  // Estado para controlar el scroll después de cargar datos
+  const [shouldScrollToCards, setShouldScrollToCards] = useState(false);
+
+  // Función para hacer scroll hacia las cards
+  const scrollToCards = () => {
+    setTimeout(() => {
+      if (cardsContainerRef.current) {
+        cardsContainerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 100); // Pequeño delay para asegurar que el contenido se haya renderizado
+  };
+
+  // useEffect para hacer scroll cuando se carguen nuevos datos
+  useEffect(() => {
+    if (shouldScrollToCards && walkServices.length > 0) {
+      scrollToCards();
+      setShouldScrollToCards(false);
+    }
+  }, [walkServices, shouldScrollToCards]);
+
   // helpers UI
   const handlePreviousPage = () => {
     if (page > 1) {
       setPage(page - 1);
-      // Scroll suave hacia arriba
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setShouldScrollToCards(true); // Activar scroll después de cargar datos
     }
   };
 
   const handleNextPage = () => {
     if (page < totalPages) {
       setPage(page + 1);
-      // Scroll suave hacia arriba
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setShouldScrollToCards(true); // Activar scroll después de cargar datos
     }
   };
 
   const goToPage = (pageNumber: number) => {
     setPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShouldScrollToCards(true); // Activar scroll después de cargar datos
   };
 
   
@@ -289,79 +313,77 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
           <>
             {/* Carrusel de Paseadores */}
             <div className="relative mb-16">
-              {/* Contenedor del carrusel */}
-              <div className="flex items-center">
-                {/* Botón Anterior - Lado Izquierdo */}
-                {totalPages > 1 && (
+              {/* Grid de Tarjetas */}
+              <div ref={cardsContainerRef} className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                {walkServices.map((paseador, index) => (
+                  <TarjetaPaseador
+                    key={paseador._id || paseador.id || index}
+                    paseador={paseador}
+                    alContratar={() => handleBookPaseador(paseador)}
+                  />
+                ))}
+              </div>
+
+              {/* Navegación de páginas centrada */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-4 mt-8">
+                  {/* Botón Anterior */}
                   <button
                     onClick={handlePreviousPage}
                     disabled={page === 1}
-                    className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                       page === 1 
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                        : 'bg-green-600 text-white hover:bg-green-700 hover:scale-110 shadow-xl'
+                        : 'bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg'
                     }`}
-                    style={{ left: '-60px' }}
                   >
-                    <ChevronLeft className="h-6 w-6 mx-auto" />
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="text-sm font-medium">Anterior</span>
                   </button>
-                )}
 
-                {/* Grid de Tarjetas */}
-                <div className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-                  {walkServices.map((paseador, index) => (
-                    <TarjetaPaseador
-                      key={paseador._id || paseador.id || index}
-                      paseador={paseador}
-                      alContratar={() => handleBookPaseador(paseador)}
-                    />
-                  ))}
-                </div>
+                  {/* Indicadores de páginas */}
+                  <div className="flex items-center space-x-2">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNumber;
+                      if (totalPages <= 7) {
+                        pageNumber = i + 1;
+                      } else if (page <= 4) {
+                        pageNumber = i + 1;
+                      } else if (page >= totalPages - 3) {
+                        pageNumber = totalPages - 6 + i;
+                      } else {
+                        pageNumber = page - 3 + i;
+                      }
 
-                {/* Botón Siguiente - Lado Derecho */}
-                {totalPages > 1 && (
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => goToPage(pageNumber)}
+                          className={`w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium ${
+                            page === pageNumber
+                              ? 'bg-green-600 text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-green-100 hover:text-green-600'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Botón Siguiente */}
                   <button
                     onClick={handleNextPage}
                     disabled={page === totalPages}
-                    className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                       page === totalPages 
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                        : 'bg-green-600 text-white hover:bg-green-700 hover:scale-110 shadow-xl'
+                        : 'bg-green-600 text-white hover:bg-green-700 shadow-md hover:shadow-lg'
                     }`}
-                    style={{ right: '-60px' }}
                   >
-                    <ChevronRight className="h-6 w-6 mx-auto" />
+                    <span className="text-sm font-medium">Siguiente</span>
+                    <ChevronRight className="h-4 w-4" />
                   </button>
-                )}
-              </div>
-
-              {/* Indicadores de páginas - Centrados debajo */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center space-x-2 mt-8">
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    let pageNumber;
-                    if (totalPages <= 7) {
-                      pageNumber = i + 1;
-                    } else if (page <= 4) {
-                      pageNumber = i + 1;
-                    } else if (page >= totalPages - 3) {
-                      pageNumber = totalPages - 6 + i;
-                    } else {
-                      pageNumber = page - 3 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => goToPage(pageNumber)}
-                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                          page === pageNumber
-                            ? 'bg-green-600 scale-125'
-                            : 'bg-gray-300 hover:bg-green-300'
-                        }`}
-                      />
-                    );
-                  })}
                 </div>
               )}
 
@@ -371,7 +393,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                   <p className="text-gray-600 text-sm">
                     Página <span className="font-semibold text-green-600">{page}</span> de{' '}
                     <span className="font-semibold text-green-600">{totalPages}</span>
-                    
                   </p>
                 </div>
               )}

@@ -270,8 +270,20 @@ export class ReservaRepository {
         return reservas;
     }
 
-
-    
+    findAllByMacota(mascotaId) {
+        return this.model.find({ mascota: mascotaId })
+            .populate('cliente')
+            .populate({
+                path: 'servicioReservado',
+                populate: [
+                    { path: 'usuarioProveedor' },
+                    {
+                        path: 'direccion.localidad',
+                        populate: { path: 'ciudad' }
+                    }
+                ]
+            });
+    }
 
     
     async countAll() {

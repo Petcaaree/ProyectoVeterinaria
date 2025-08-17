@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Stethoscope, Clock, Calendar, Star, MapPin, Phone, ChevronLeft, ChevronRight } from 'lucide-react';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
@@ -13,6 +13,9 @@ interface PaginaVeterinariaProps {
 
 const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
   const { getServiciosVeterinarias } = useAuth();
+  
+  // Referencia para el scroll hacia las cards
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
   
   // Variable para fecha actual
   const today = new Date().toISOString().split('T')[0];
@@ -129,21 +132,36 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     }
   };
 
+  // Función para hacer scroll hacia las cards
+  const scrollToCards = () => {
+    setTimeout(() => {
+      if (cardsContainerRef.current) {
+        cardsContainerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 100); // Pequeño delay para asegurar que el contenido se haya renderizado
+  };
+
   // Funciones de paginación
-  const handlePreviousPage = () => {
+  const handlePreviousPage = async () => {
     if (paginaActual > 1) {
-      cargarVeterinarias(paginaActual - 1);
+      await cargarVeterinarias(paginaActual - 1);
+      scrollToCards(); // Scroll después de cargar
     }
   };
 
-  const handleNextPage = () => {
+  const handleNextPage = async () => {
     if (paginaActual < totalPaginas) {
-      cargarVeterinarias(paginaActual + 1);
+      await cargarVeterinarias(paginaActual + 1);
+      scrollToCards(); // Scroll después de cargar
     }
   };
 
-  const goToPage = (page: number) => {
-    cargarVeterinarias(page);
+  const goToPage = async (page: number) => {
+    await cargarVeterinarias(page);
+    scrollToCards(); // Scroll después de cargar
   };
 
   // Función para aplicar filtros
@@ -414,27 +432,9 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
           <SinResultados />
         ) : (
           <div className="relative">
-            {/* Contenedor con botones laterales */}
-            <div className="relative">
-              {/* Botón Anterior - Lado Izquierdo */}
-              {totalPaginas > 1 && (
-                <button
-                  onClick={handlePreviousPage}
-                  disabled={paginaActual === 1}
-                  className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
-                    paginaActual === 1 
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-xl'
-                  }`}
-                  style={{ left: '-60px' }}
-                >
-                  <ChevronLeft className="h-6 w-6 mx-auto" />
-                </button>
-              )}
-
-              {/* Grid de Veterinarias */}
-              <div className="w-full space-y-8">
-                {filteredClinics.map((clinic: any, index: number) => (
+            {/* Grid de Veterinarias */}
+            <div ref={cardsContainerRef} className="w-full space-y-8">
+              {filteredClinics.map((clinic: any, index: number) => (
               <div key={clinic._id || index} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                 {/* Clinic Header */}
                 <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
@@ -497,37 +497,10 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                             </div>
                           </div>
                           
-                          {/* Available Hours */}
-                          <div className="mb-4">
-                            <h5 className="text-sm font-semibold text-gray-900 mb-2">
-                              Horarios Disponibles:
-                            </h5>
-                            <div className="h-20 overflow-hidden">
-                              <div className="grid grid-cols-3 gap-1 h-full">
-                                {(servicio.horariosDisponibles || []).slice(0, 8).map((hour: string, hourIndex: number) => (
-                                  <div
-                                    key={hourIndex}
-                                    className="px-1 py-1 rounded text-xs text-center font-medium bg-blue-50 text-blue-700 flex items-center justify-center h-6"
-                                  >
-                                    {hour}
-                                  </div>
-                                ))}
-                                {/* Mostrar cajita de "más horarios" si hay más de 8 */}
-                                {(servicio.horariosDisponibles?.length || 0) > 8 && (
-                                  <div className="px-1 py-1 rounded text-xs text-center font-medium bg-gradient-to-r from-blue-500 to-blue-600 text-white flex items-center justify-center h-6 shadow-sm">
-                                    +{(servicio.horariosDisponibles?.length || 0) - 8}
-                                  </div>
-                                )}
-                                {/* Rellenar espacios vacíos si hay menos de 9 horarios */}
-                                {Array.from({ length: Math.max(0, 9 - Math.min(9, servicio.horariosDisponibles?.length || 0)) }).map((_, emptyIndex) => (
-                                  <div key={`empty-${emptyIndex}`} className="h-6"></div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                          
 
                           {/* Available Days */}
-                          <div className="mb-6">
+                          <div className="mb-4">
                             <h5 className="text-sm font-semibold text-gray-900 mb-2">
                               Días Disponibles:
                             </h5>
@@ -542,6 +515,25 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                               ))}
                             </div>
                           </div>
+
+                          {/* Mascotas Aceptadas */}
+                          {servicio.mascotasAceptadas && servicio.mascotasAceptadas.length > 0 && (
+                            <div className="mb-6">
+                              <h5 className="text-sm font-semibold text-gray-900 mb-2">
+                                Mascotas Aceptadas:
+                              </h5>
+                              <div className="flex flex-wrap gap-1">
+                                {servicio.mascotasAceptadas.map((mascota: string, mascotaIndex: number) => (
+                                  <span
+                                    key={mascotaIndex}
+                                    className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium"
+                                  >
+                                    {mascota.charAt(0).toUpperCase() + mascota.slice(1).toLowerCase()}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           
                           <button
                             onClick={() => handleBookService(servicio)}
@@ -562,52 +554,68 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
                 </div>
               </div>
             ))}
-              </div>
+            </div>
 
-              {/* Botón Siguiente - Lado Derecho */}
-              {totalPaginas > 1 && (
+            {/* Navegación de páginas centrada */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-center space-x-4 mt-8">
+                {/* Botón Anterior */}
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={paginaActual === 1}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    paginaActual === 1 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="text-sm font-medium">Anterior</span>
+                </button>
+
+                {/* Indicadores de páginas */}
+                <div className="flex items-center space-x-2">
+                  {Array.from({ length: Math.min(totalPaginas, 7) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPaginas <= 7) {
+                      pageNumber = i + 1;
+                    } else if (paginaActual <= 4) {
+                      pageNumber = i + 1;
+                    } else if (paginaActual >= totalPaginas - 3) {
+                      pageNumber = totalPaginas - 6 + i;
+                    } else {
+                      pageNumber = paginaActual - 3 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium ${
+                          paginaActual === pageNumber
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-200 text-gray-700 hover:bg-blue-100 hover:text-blue-600'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botón Siguiente */}
                 <button
                   onClick={handleNextPage}
                   disabled={paginaActual === totalPaginas}
-                  className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                     paginaActual === totalPaginas 
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-110 shadow-xl'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                   }`}
-                  style={{ right: '-60px' }}
                 >
-                  <ChevronRight className="h-6 w-6 mx-auto" />
+                  <span className="text-sm font-medium">Siguiente</span>
+                  <ChevronRight className="h-4 w-4" />
                 </button>
-              )}
-            </div>
-
-            {/* Indicadores de páginas - Centrados debajo */}
-            {totalPaginas > 1 && (
-              <div className="flex items-center justify-center space-x-2 mt-8">
-                {Array.from({ length: Math.min(totalPaginas, 7) }, (_, i) => {
-                  let pageNumber;
-                  if (totalPaginas <= 7) {
-                    pageNumber = i + 1;
-                  } else if (paginaActual <= 4) {
-                    pageNumber = i + 1;
-                  } else if (paginaActual >= totalPaginas - 3) {
-                    pageNumber = totalPaginas - 6 + i;
-                  } else {
-                    pageNumber = paginaActual - 3 + i;
-                  }
-
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => goToPage(pageNumber)}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                        paginaActual === pageNumber
-                          ? 'bg-blue-600 scale-125'
-                          : 'bg-gray-300 hover:bg-blue-300'
-                      }`}
-                    />
-                  );
-                })}
               </div>
             )}
 

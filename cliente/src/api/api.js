@@ -76,14 +76,27 @@ export const signinUsuario = async (datos, tipo) => {
     }
 };
 
-export const reservarAlojamiento = async (datos) => {
+export const createReserva = async (datos) => {
     try {
-        const response = await axios.post(`${API_URL}/reservar`, {
-            "reservador": datos.reservador,
-            "cantHuespedes": datos.cantHuespedes,
-            "alojamiento": datos.alojamiento,
-            "rangoFechas": datos.rangoFechas,
-        });
+        const body = {
+            clienteId: datos.clienteId,
+            serviciOfrecido: datos.serviciOfrecido,
+            servicioReservadoId: datos.servicioReservadoId,
+            IdMascota: datos.mascota,
+            rangoFechas: {
+                fechaInicio: datos.rangoFechas.fechaInicio,
+                fechaFin: datos.rangoFechas.fechaFin
+            },
+            notaAdicional: datos.notaAdicional,
+            nombreDeContacto: datos.nombreDeContacto,
+            telefonoContacto: datos.telefonoContacto,
+            emailContacto: datos.emailContacto
+        };
+        // Solo agregar horario si no es cuidador
+        if (datos.serviciOfrecido !== "SERVICIOCUIDADOR" && datos.horario) {
+            body.horario = datos.horario;
+        }
+        const response = await axios.post(`${API_URL}/reservar`, body);
         return response;
     } catch (error) {
         console.error("Error al crear la reserva:", error);

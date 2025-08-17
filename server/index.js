@@ -62,7 +62,7 @@ const paseadorRepo = new PaseadorRepository();
 const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
 
-const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo);
+const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo, reservaRepo);
 const cuidadorService = new CuidadorService(cuidadorRepo, ciudadRepo, localidadRepo);
 const paseadorService = new PaseadorService(paseadorRepo, ciudadRepo, localidadRepo);
 const veterinariaService = new VeterinariaService(veterinariaRepo, ciudadRepo, localidadRepo);

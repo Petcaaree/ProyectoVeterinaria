@@ -24,6 +24,7 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [mascotaToDelete, setMascotaToDelete] = useState<Mascota | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { usuario, getMascotas, deleteMascota } = useAuth();
 
@@ -72,6 +73,7 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
 
   const handleDeletePet = (mascota: Mascota) => {
     setMascotaToDelete(mascota);
+    setDeleteError(null); // Limpiar errores previos
     setShowDeleteModal(true);
   };
 
@@ -79,13 +81,30 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
     if (mascotaToDelete && usuario && usuario.id) {
       try {
         setIsDeleting(true);
+        setDeleteError(null); // Limpiar errores previos
         await deleteMascota(usuario.id, mascotaToDelete.id);
         setMascotas(prev => prev.filter(mascota => mascota.id !== mascotaToDelete.id));
         setShowDeleteModal(false);
         setMascotaToDelete(null);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error al eliminar mascota:', error);
-        setError('Error al eliminar la mascota');
+        
+        // Extraer el mensaje de error específico del backend
+        let errorMessage = 'Error al eliminar la mascota';
+        
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response?: { data?: { message?: string } } };
+          if (axiosError.response?.data?.message) {
+            errorMessage = axiosError.response.data.message;
+          }
+        } else if (error && typeof error === 'object' && 'message' in error) {
+          const standardError = error as { message: string };
+          errorMessage = standardError.message;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+        
+        setDeleteError(errorMessage);
       } finally {
         setIsDeleting(false);
       }
@@ -95,6 +114,7 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
   const cancelDelete = () => {
     setShowDeleteModal(false);
     setMascotaToDelete(null);
+    setDeleteError(null); // Limpiar errores al cancelar
   };
 
   if (userType !== 'cliente') {
@@ -259,7 +279,7 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                       <img
                         src={mascota.fotos[0]}
                         alt={mascota.nombre}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover block"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -400,50 +420,87 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                 </div>
               </div>
 
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h4 className="text-sm font-medium text-red-800">
-                      ¿Estás seguro de que quieres eliminar a {mascotaToDelete.nombre}?
-                    </h4>
-                    <p className="text-sm text-red-700 mt-1">
-                      Se eliminarán permanentemente todos los datos, fotos y registros asociados con esta mascota.
-                    </p>
+              {/* Mostrar error si existe */}
+              {deleteError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-red-800">
+                        No se puede eliminar la mascota
+                      </h4>
+                      <p className="text-sm text-red-700 mt-1">
+                        {deleteError}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Mostrar mensaje de confirmación solo si no hay error */}
+              {!deleteError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-red-800">
+                        ¿Estás seguro de que quieres eliminar a {mascotaToDelete.nombre}?
+                      </h4>
+                      <p className="text-sm text-red-700 mt-1">
+                        Se eliminarán permanentemente todos los datos, fotos y registros asociados con esta mascota.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Botones de acción */}
               <div className="flex space-x-3">
-                <button
-                  onClick={cancelDelete}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
-                >
-                  {isDeleting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Eliminando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4" />
-                      <span>Eliminar</span>
-                    </>
-                  )}
-                </button>
+                {deleteError ? (
+                  // Solo mostrar botón "Cerrar" cuando hay error
+                  <button
+                    onClick={cancelDelete}
+                    className="flex-1 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-semibold"
+                  >
+                    Cerrar
+                  </button>
+                ) : (
+                  // Mostrar botones normales cuando no hay error
+                  <>
+                    <button
+                      onClick={cancelDelete}
+                      disabled={isDeleting}
+                      className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      disabled={isDeleting}
+                      className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold disabled:opacity-50 flex items-center justify-center space-x-2"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Eliminando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4" />
+                          <span>Eliminar</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { obetenerServiciosCuidadores,obetenerServiciosPaseadores,obetenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import { createReserva, obetenerServiciosCuidadores,obetenerServiciosPaseadores,obetenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -237,6 +237,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+
+  const crearReserva = async (datos: any) => {
+    try {
+      const response = await createReserva(datos);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear reserva:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUsuario(null);
     setTipoUsuario(null);
@@ -315,6 +326,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getServiciosCuidadores,
     getServiciosPaseadores,
     getServiciosVeterinarias,
+    crearReserva,
     logout,
     cambiarTipoUsuario,
     tipoUsuario

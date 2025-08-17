@@ -123,7 +123,19 @@ export class ReservaService {
 
         // Validar datos obligatorios básicos (sin horario, que es condicional)
         if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas || !notaAdicional || !nombreDeContacto || !telefonoContacto || !emailContacto) {
-            throw new ValidationError("Faltan datos obligatorios")
+            
+            const faltantes = []
+            if (!clienteId) faltantes.push("clienteId")
+            if (!serviciOfrecido) faltantes.push("serviciOfrecido")
+            if (!servicioReservadoId) faltantes.push("servicioReservadoId")
+            if (!IdMascota) faltantes.push("IdMascota")
+            if (!rangoFechas) faltantes.push("rangoFechas")
+            if (!notaAdicional) faltantes.push("notaAdicional")
+            if (!nombreDeContacto) faltantes.push("nombreDeContacto")
+            if (!telefonoContacto) faltantes.push("telefonoContacto")
+            if (!emailContacto) faltantes.push("emailContacto")
+            throw new ValidationError(`Faltan datos obligatorios: ${faltantes.join(", ")}`)
+            //throw new ValidationError("Faltan datos obligatorios")
         }
 
         

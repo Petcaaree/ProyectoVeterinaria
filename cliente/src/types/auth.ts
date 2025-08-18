@@ -77,7 +77,11 @@ export interface AuthContextType {
    getServiciosPaseadores: (page: number, filtro: any) => Promise<any[]>;
    getServiciosVeterinarias: (page: number, filtro: any) => Promise<any[]>;
    crearReserva: (datos: any) => Promise<any>;
-  /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
+   getNotificationes: (usuarioId: string, userType:string,  page: number ) => Promise<any[]>;
+   getNotificacionesNoLeidas: (usuarioId: string , leida : string, userType:string,  page: number) => Promise<any[]>;
+   obtenerTodasLasReservas: (usuarioId: string, userType: string, page: number) => Promise<any[]>;
+
+   /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
   getReservasById: (reservaId: string) => Promise<any>;
   getReservasByMascota: (mascotaId: string) => Promise<any[]>;
   getReservasByServicio: (servicioId: string, tipoServicio: string) => Promise<any[]>;

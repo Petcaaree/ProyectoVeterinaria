@@ -140,6 +140,30 @@ export class ServicioCuidadorController {
         }
     }
 
+
+    async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioCuidadorService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioCuidadorService.getAllNotificaciones(id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     
 
 

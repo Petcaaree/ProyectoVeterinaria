@@ -36,9 +36,11 @@ export default function servicioVeterinariaRoutes(getController) {
                 getController(ServicioVeterinariaController).findByEstadoServicioVeterinaria(req, res, next)
     })
 
-    router.get("/petcare/veterinaria/:id/serviciosVeterinaria/:estado", (req, res, next) => {
+    /* router.get("/petcare/veterinaria/:id/serviciosVeterinaria/:estado", (req, res, next) => {
             getController(ServicioVeterinariaController).findByEstadoServicioVeterinaria(req, res, next)
-    })
+    }) */
+
+    
 
     return router
 }

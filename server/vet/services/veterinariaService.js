@@ -146,7 +146,7 @@ export class VeterinariaService {
         return this.toDTO(actualizado)
     }
 
-     async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const veterinaria = await this.veterinariaRepository.findById(id)
         if(!veterinaria) {
             throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
@@ -164,20 +164,46 @@ export class VeterinariaService {
             throw new ValidationError(`${leida} no corresponde a true o false`)
         }
 
-        const total = data.length   
+        const total = data.length
         const total_pages = Math.ceil(total / limit)
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
 
         return {
-            page: page,
-            per_page: limit,
+            page: Number(page),
+            per_page: Number(limit),
             total: total,
             total_pages: total_pages,
             data: dataNew
         }
     }
+
+     async getAllNotificaciones(id, { page=1, limit=5 }) {
+        console.log('🔍 getAllNotificaciones SERVICE - page:', page, 'type:', typeof page);
+        const veterinaria = await this.veterinariaRepository.findById(id)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+        }
+
+        const notificaciones = veterinaria.notificaciones.map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
+
+        const result = {
+            page: Number(page),
+            per_page: Number(limit),
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+        console.log('🔍 getAllNotificaciones SERVICE - result.page:', result.page, 'type:', typeof result.page);
+        return result
+    } 
 
     async leerNotificacion(idUsuario, idNotificacion) {
         const veterinaria = await this.veterinariaRepository.findById(idUsuario)

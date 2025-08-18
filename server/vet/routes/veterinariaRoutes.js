@@ -48,9 +48,15 @@ export default function veterinariaRoutes(getController) {
             getController(VeterinariaController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )
 
-    router.get("/petcare/veterinaria/:id/notificaciones/:tipoLeida", (req, res, next) =>
-        getController(VeterinariaController).getNotificaciones(req, res, next)
-    )
+    // Ruta específica para notificaciones leídas/no leídas (debe ir antes que la general)
+    router.get("/petcare/veterinaria/:id/notificaciones/:leida", (req, res, next) =>
+            getController(VeterinariaController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
+        )
+
+    // Ruta general para todas las notificaciones (debe ir después de la específica)
+    router.get("/petcare/veterinaria/:id/notificaciones", (req, res, next) => {
+            getController(VeterinariaController).obtenerTodasLasNotificaciones(req, res, next)
+    })
 
     
 

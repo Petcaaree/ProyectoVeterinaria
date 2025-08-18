@@ -156,7 +156,7 @@ export class ClienteService {
 
 
 
-    async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const cliente = await this.clienteRepository.findById(id)
         if(!cliente) {
             throw new NotFoundError(`Cliente con id ${id} no encontrado`)
@@ -179,6 +179,29 @@ export class ClienteService {
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
+
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const cliente = await this.clienteRepository.findById(id)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+        }
+
+        const notificaciones = cliente.notificaciones.map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
 
         return {
             page: page,

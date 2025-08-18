@@ -32,6 +32,14 @@ export default function clienteRoutes(getController) {
         getController(ClienteController).cancelReserva(req, res, next)
     )
 
+    router.get("/petcare/cliente/:id/notificaciones", (req, res, next) => {
+                getController(ClienteController).obtenerTodasLasNotificaciones(req, res, next)
+    })
+
+    router.get("/petcare/cliente/:id/notificaciones/:leida", (req, res, next) => {
+                getController(ClienteController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
+    })
+
     router.put("/petcare/cliente/:id/notificaciones/:idNotificacion", (req, res, next) =>
             getController(ClienteController).marcarLeidaNotificacion(req, res, next)
     )

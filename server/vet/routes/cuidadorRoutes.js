@@ -49,9 +49,13 @@ export default function cuidadorRoutes(getController) {
     )
     
 
-    router.get("/petcare/cuidador/:id/notificaciones/:tipoLeida", (req, res, next) =>
-        getController(CuidadorController).getNotificaciones(req, res, next)
+    router.get("/petcare/cuidador/:id/notificaciones/:leida", (req, res, next) =>
+        getController(CuidadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
     )
+
+    router.get("/petcare/cuidador/:id/notificaciones", (req, res, next) => {
+                    getController(CuidadorController).obtenerTodasLasNotificaciones(req, res, next)
+    })
 
     
 

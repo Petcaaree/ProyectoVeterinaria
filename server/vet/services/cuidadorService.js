@@ -146,7 +146,7 @@ export class CuidadorService {
         return this.toDTO(actualizado)
     }
 
-    async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const cuidador = await this.cuidadorRepository.findById(id)
         if(!cuidador) {
             throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
@@ -169,6 +169,29 @@ export class CuidadorService {
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
+
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const cuidador = await this.cuidadorRepository.findById(id)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+        }
+
+        const notificaciones = cuidador.notificaciones.map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
 
         return {
             page: page,

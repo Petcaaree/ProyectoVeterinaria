@@ -36,5 +36,9 @@ export default function servicioPaseadorRoutes(getController) {
             getController(ServicioPaseadorController).findByEstadoServicioPaseador(req, res, next)
     })
 
+    router.get("/petcare/paseador/:id/notificaciones", (req, res, next) => {
+                getController(ServicioPaseadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
+        })
+
     return router
 }

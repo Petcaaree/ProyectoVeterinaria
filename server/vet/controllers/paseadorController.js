@@ -115,18 +115,28 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   } 
 
-  async getNotificaciones(req, res, next) {
-    try {
-      const { id, tipoLeida } = req.params
-      const { page, limit } = req.query
-
-      const notificaciones = await this.paseadorService.getNotificaciones(id, tipoLeida, { page, limit })
-
-      res.json(notificaciones)
-    } catch(error) {
-      next(error)
+  async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.paseadorService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
     }
-  }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.paseadorService.getAllNotificaciones(id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 
     
 }

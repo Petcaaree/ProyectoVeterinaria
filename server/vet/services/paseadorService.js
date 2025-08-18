@@ -147,7 +147,7 @@ export class PaseadorService {
         return this.toDTO(actualizado)
     }
 
-     async getNotificaciones(id, leida, { page=1, limit=5 }) {
+     async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const paseador = await this.paseadorRepository.findById(id)
         if(!paseador) {
             throw new NotFoundError(`Paseador con id ${id} no encontrado`)
@@ -180,6 +180,28 @@ export class PaseadorService {
         }
     }
 
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const paseador = await this.paseadorRepository.findById(id)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+        }
+
+        const notificaciones = paseador.notificaciones.map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
     async leerNotificacion(idUsuario, idNotificacion) {
         const paseador = await this.paseadorRepository.findById(idUsuario)
         if(!paseador) {

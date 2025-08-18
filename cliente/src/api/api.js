@@ -518,3 +518,46 @@ export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
     throw error;
   }
 };
+// Obtener todas las reservas (paginadas)
+export const getTodasReservas = async (userId, userType, page) => {
+    // ...existing code...
+    try {
+        const response = await axios.get(`${API_URL}/${userType}/${userId}/reservas`, {
+            params: { 
+                page : page
+            }
+        });
+        return response.data; // { page, per_page, total, total_pages, data }
+    } catch (error) {
+        console.error("Error al obtener todas las reservas:", error);
+        throw error;
+    }
+};
+
+export const obtenerNotificacionesNoLeidas = async (usuarioId, leida, tipoUsuario, pageNumber) => {
+    try {
+        const response = await axios.get(`${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones/${leida}`, {
+            params: {
+                page: pageNumber
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener notificaciones no leídas:", error);
+        throw error;
+    }
+};
+
+export const obtenerNotificaciones = async (usuarioId, tipoUsuario, pageNumber) => {
+    try {
+        const response = await axios.get(`${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones`, {
+            params: {
+                page: pageNumber
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener notificaciones:", error);
+        throw error;
+    }
+};

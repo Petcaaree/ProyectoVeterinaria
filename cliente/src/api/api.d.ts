@@ -145,8 +145,10 @@ export declare function obetenerServiciosCuidadores(page: number, filtro: any): 
 export declare function obetenerServiciosPaseadores(page: number, filtro: any): Promise<any[]>;
 export declare function obetenerServiciosVeterinarias(page: number, filtro: any): Promise<any[]>;
 export declare function createReserva(datos: any): Promise<any>;
+export declare function obtenerNotificacionesNoLeidas(usuarioId: string, leida: string, tipoUsuario: string, page: number): Promise<any>;
+export declare function obtenerNotificaciones(usuarioId: string, tipoUsuario: string, page: number): Promise<any>;
 
-
+export declare function getTodasReservas(usuarioId: string,userType: string, page: number): Promise<any>;
 export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
 export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;

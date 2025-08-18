@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReservaDetalleModal from './ReservaDetalleModal';
 import { ArrowLeft, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
 
 interface MisTurnosProps {
@@ -24,94 +25,22 @@ interface Appointment {
 
 const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedReserva, setSelectedReserva] = useState<Appointment | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  // Mock data - diferentes según el tipo de usuario
-  const getAppointments = (): Appointment[] => {
-    if (userType === 'cliente') {
-      return [
-        {
-          id: '1',
-          date: '2024-01-15',
-          time: '10:00',
-          status: 'confirmed',
-          service: 'Consulta Veterinaria',
-          provider: 'Dr. Carlos López',
-          location: 'Clínica Veterinaria San Martín',
-          phone: '+57 301 234 5678',
-          price: 40000,
-          duration: 45,
-          pet: 'Max (Golden Retriever)'
-        },
-        {
-          id: '2',
-          date: '2024-01-18',
-          time: '15:30',
-          status: 'pending',
-          service: 'Paseo Premium',
-          provider: 'María Rodríguez',
-          location: 'Parque El Virrey',
-          phone: '+57 302 345 6789',
-          price: 18000,
-          duration: 120,
-          pet: 'Luna (Siamés)'
-        },
-        {
-          id: '3',
-          date: '2024-01-12',
-          time: '09:00',
-          status: 'completed',
-          service: 'Cuidado Diurno',
-          provider: 'Pedro Martínez',
-          location: 'Domicilio del cuidador',
-          phone: '+57 303 456 7890',
-          price: 65000,
-          pet: 'Rocky (Bulldog Francés)'
-        }
-      ];
-    } else {
-      return [
-        {
-          id: '1',
-          date: '2024-01-15',
-          time: '10:00',
-          status: 'confirmed',
-          service: userType === 'veterinary' ? 'Consulta General' : userType === 'walker' ? 'Paseo Básico' : 'Cuidado 24/7',
-          client: 'Ana García',
-          pet: 'Max (Golden Retriever)',
-          phone: '+57 300 123 4567',
-          price: userType === 'veterinary' ? 40000 : userType === 'walker' ? 15000 : 80000,
-          duration: userType === 'veterinary' ? 45 : userType === 'walker' ? 60 : 1440,
-          notes: 'Mascota muy activa, necesita ejercicio extra'
-        },
-        {
-          id: '2',
-          date: '2024-01-18',
-          time: '15:30',
-          status: 'pending',
-          service: userType === 'veterinary' ? 'Vacunación' : userType === 'walker' ? 'Paseo Premium' : 'Cuidado Diurno',
-          client: 'Carlos Mendoza',
-          pet: 'Luna (Siamés)',
-          phone: '+57 301 234 5678',
-          price: userType === 'veterinary' ? 35000 : userType === 'walker' ? 18000 : 65000,
-          duration: userType === 'veterinary' ? 30 : userType === 'walker' ? 120 : 720
-        },
-        {
-          id: '3',
-          date: '2024-01-12',
-          time: '09:00',
-          status: 'completed',
-          service: userType === 'veterinary' ? 'Control Veterinario' : userType === 'walker' ? 'Paseo Socialización' : 'Cuidado Fin de Semana',
-          client: 'María López',
-          pet: 'Rocky (Bulldog Francés)',
-          phone: '+57 302 345 6789',
-          price: userType === 'veterinary' ? 40000 : userType === 'walker' ? 20000 : 120000,
-          duration: userType === 'veterinary' ? 45 : userType === 'walker' ? 90 : 2880
-        }
-      ];
-    }
-  };
-
-  const appointments = getAppointments();
+  useEffect(() => {
+    const fetchReservas = async () => {
+      try {
+        const data = await getTodasReservas();
+        // Si la API retorna un array en data.data, ajusta aquí:
+        setAppointments(data.data || []);
+      } catch {
+        // Puedes mostrar un mensaje de error si lo deseas
+      }
+    };
+    fetchReservas();
+  }, []);
 
   const filteredAppointments = appointments.filter(appointment => {
     const matchesFilter = filter === 'all' || appointment.status === filter;
@@ -133,7 +62,10 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     }
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price?: number) => {
+    if (typeof price !== 'number' || isNaN(price)) {
+      return '$0';
+    }
     return price.toLocaleString('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -153,20 +85,20 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
 
   const getTitle = () => {
     switch (userType) {
-      case 'owner': return 'Mis Turnos';
-      case 'veterinary': return 'Mis Citas Veterinarias';
-      case 'walker': return 'Mis Paseos Programados';
-      case 'caregiver': return 'Mis Servicios de Cuidado';
+      case 'cliente': return 'Mis Turnos';
+      case 'veterinaria': return 'Mis Citas Veterinarias';
+      case 'paseador': return 'Mis Paseos Programados';
+      case 'cuidador': return 'Mis Servicios de Cuidado';
       default: return 'Mis Turnos';
     }
   };
 
   const getEmptyMessage = () => {
     switch (userType) {
-      case 'owner': return 'No tienes turnos programados';
-      case 'veterinary': return 'No tienes citas veterinarias programadas';
-      case 'walker': return 'No tienes paseos programados';
-      case 'caregiver': return 'No tienes servicios de cuidado programados';
+      case 'cliente': return 'No tienes turnos programados';
+      case 'veterinaria': return 'No tienes citas veterinarias programadas';
+      case 'paseador': return 'No tienes paseos programados';
+      case 'cuidador': return 'No tienes servicios de cuidado programados';
       default: return 'No tienes turnos programados';
     }
   };
@@ -214,7 +146,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                   </div>
                 </div>
                 
-                {userType !== 'owner' && filteredAppointments.filter(a => a.status === 'pending').length > 0 && (
+                {userType !== 'cliente' && filteredAppointments.filter(a => a.status === 'pending').length > 0 && (
                   <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg">
                     <CheckCircle className="h-4 w-4" />
                     <span>Gestionar Citas</span>
@@ -241,7 +173,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                 ].map(({ key, label, count }) => (
                   <button
                     key={key}
-                    onClick={() => setFilter(key as any)}
+                    onClick={() => setFilter(key as typeof filter)}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2 ${
                       filter === key
                         ? 'bg-blue-600 text-white shadow-lg'
@@ -271,7 +203,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
             <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">{getEmptyMessage()}</h3>
             <p className="text-gray-600">
-              {userType === 'owner' 
+              {userType === 'cliente'
                 ? 'Reserva un servicio para ver tus turnos aquí'
                 : 'Los clientes que reserven tus servicios aparecerán aquí'
               }
@@ -321,7 +253,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      {userType === 'owner' ? (
+                      {userType === 'cliente' ? (
                         <>
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-gray-400" />
@@ -356,66 +288,49 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                       )}
                     </div>
 
-                    {appointment.notes && (
-                      <div className="bg-gray-50 p-3 rounded-lg mb-4">
-                        <p className="text-sm text-gray-700">
-                          <strong>Notas:</strong> {appointment.notes}
-                        </p>
-                      </div>
-                    )}
+                    {/* Apartado de notas eliminado por requerimiento */}
 
                     {/* Actions */}
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                      {userType === 'owner' ? (
-                        // Acciones para dueños (solo pueden ver y calificar)
-                        <div className="flex space-x-2">
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                            Ver Detalles
-                          </button>
-                          {appointment.status === 'completed' && (
-                            <button className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm">
-                              Calificar Servicio
-                            </button>
-                          )}
-                        </div>
-                      ) : (
-                        // Acciones para proveedores de servicios (pueden confirmar/cancelar)
-                        <div className="flex space-x-2">
-                          {appointment.status === 'pending' && (
-                            <>
-                              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                                Confirmar
-                              </button>
-                              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                Cancelar
-                              </button>
-                            </>
-                          )}
-                          {appointment.status === 'confirmed' && (
-                            <>
-                              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                                Ver Detalles
-                              </button>
-                              <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
-                                Reprogramar
-                              </button>
-                              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                Cancelar Cita
-                              </button>
-                            </>
-                          )}
-                          {appointment.status === 'completed' && (
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                        {/* Acciones para dueño */}
+                        {userType === 'cliente' && (
+                          <div className="flex space-x-2">
+                            <button
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                              onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
+                            >
                               Ver Detalles
                             </button>
-                          )}
-                        </div>
-                      )}
-                      
-                      <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                        Contactar {userType === 'owner' ? 'Proveedor' : 'Cliente'}
-                      </button>
-                    </div>
+                            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                              Cancelar
+                            </button>
+                          </div>
+                        )}
+                        {/* Acciones para veterinaria, cuidador y paseador */}
+                        {['veterinaria', 'cuidador', 'paseador'].includes(userType || '') && (
+                          <div className="flex space-x-2">
+                            {appointment.status === 'pending' && (
+                              <>
+                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                  Confirmar
+                                </button>
+                                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                  Cancelar
+                                </button>
+                              </>
+                            )}
+                            <button
+                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                              onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
+                            >
+                              Ver Detalles
+                            </button>
+                          </div>
+                        )}
+                        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                          Contactar {userType === 'cliente' ? 'Proveedor' : 'Cliente'}
+                        </button>
+                      </div>
                   </div>
                 </div>
               );
@@ -423,7 +338,13 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
           </div>
         )}
       </div>
-    </div>
+    {/* Modal de detalle de reserva */}
+    <ReservaDetalleModal
+      reserva={selectedReserva}
+      isOpen={modalOpen}
+      onClose={() => setModalOpen(false)}
+    />
+  </div>
   );
 };
 

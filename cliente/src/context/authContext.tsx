@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import { createReserva, obetenerServiciosCuidadores,obetenerServiciosPaseadores,obetenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import {getTodasReservas, obtenerNotificacionesNoLeidas,obtenerNotificaciones, createReserva, obetenerServiciosCuidadores,obetenerServiciosPaseadores,obetenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServiciooVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -308,6 +308,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getNotificationes = async (userId: string , userType: string, page: number) => {
+    try {
+      const response = await obtenerNotificaciones(userId, userType, page);
+      return response;
+    } catch (error) {
+      console.error('Error al obtener notificaciones:', error);
+      throw error;
+    }
+  };
+
+  const getNotificacionesNoLeidas = async (userId: string , leida: string, userType: string , page: number) => {
+    try {
+      const response = await obtenerNotificacionesNoLeidas(userId, leida, userType, page);
+      return response;
+    } catch (error) {
+      console.error('Error al obtener notificaciones no leídas:', error);
+      throw error;
+    }
+  };
+
+  const obtenerTodasLasReservas = async (userId: string, userType: string, page: number) => {
+    try {
+      const response = await getTodasReservas(userId, userType, page);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener todas las reservas:', error);
+      throw error;
+    }
+  };
+
   const contextValue: AuthContextType = {
     usuario,
     login,
@@ -326,6 +356,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getServiciosCuidadores,
     getServiciosPaseadores,
     getServiciosVeterinarias,
+    getNotificationes,
+    getNotificacionesNoLeidas,
+    obtenerTodasLasReservas,
     crearReserva,
     logout,
     cambiarTipoUsuario,

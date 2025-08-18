@@ -36,9 +36,9 @@ export default function servicioCuidadorRoutes(getController) {
         getController(ServicioCuidadorController).findByEstadoServicioCuidador(req, res, next)
     })
 
-    /* router.get("/petcare/serviciosCuidadores/inactivos", (req, res, next) => {
-        getController(ServicioCuidadorController).findInactivos(req, res, next)
-    }) */
+    router.get("/petcare/cuidador/:id/notificaciones", (req, res, next) => {
+                getController(ServicioCuidadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
+        })
 
     return router
 }

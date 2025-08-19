@@ -58,14 +58,14 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'pending':
+      case 'PENDIENTE':
         return { color: 'yellow', icon: AlertCircle, text: 'Pendiente', bg: 'bg-yellow-100', textColor: 'text-yellow-800' };
-      case 'confirmed':
-        return { color: 'blue', icon: CheckCircle, text: 'Confirmado', bg: 'bg-blue-100', textColor: 'text-blue-800' };
-      case 'completed':
-        return { color: 'green', icon: CheckCircle, text: 'Completado', bg: 'bg-green-100', textColor: 'text-green-800' };
-      case 'cancelled':
-        return { color: 'red', icon: XCircle, text: 'Cancelado', bg: 'bg-red-100', textColor: 'text-red-800' };
+      case 'CONFIRMADA':
+        return { color: 'blue', icon: CheckCircle, text: 'Confirmada', bg: 'bg-blue-100', textColor: 'text-blue-800' };
+      case 'COMPLETADA':
+        return { color: 'green', icon: CheckCircle, text: 'Completada', bg: 'bg-green-100', textColor: 'text-green-800' };
+      case 'CANCELADA':
+        return { color: 'red', icon: XCircle, text: 'Cancelada', bg: 'bg-red-100', textColor: 'text-red-800' };
       default:
         return { color: 'gray', icon: AlertCircle, text: 'Desconocido', bg: 'bg-gray-100', textColor: 'text-gray-800' };
     }

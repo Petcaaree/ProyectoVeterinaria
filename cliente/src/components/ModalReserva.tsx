@@ -64,9 +64,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     horario: serviceType === 'cuidador' ? "null" : '',
     notaAdicional: '',
     nombreDeContacto: '',
-    telefonoContacto: '',
-    emailContacto: '',
-  }), [usuario?.id, serviceType, service?._id, service?.id]);
+    telefonoContacto: usuario?.telefono || '',
+    emailContacto: usuario?.email || '',
+  }), [usuario?.id, usuario?.telefono, usuario?.email, serviceType, service?._id, service?.id]);
 
 
 

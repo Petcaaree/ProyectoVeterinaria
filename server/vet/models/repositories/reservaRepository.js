@@ -132,9 +132,8 @@ export class ReservaRepository {
         });
     }
 
-    async findByUsuarioProveedorByPage(pageNum, limitNum, serviciosReservadosIds) {
+    async findByUsuarioProveedorByPage( serviciosReservadosIds) {
 
-        const skip = (pageNum - 1) * limitNum;
 
         if (!Array.isArray(serviciosReservadosIds) || serviciosReservadosIds.length === 0) {
             return [];
@@ -143,8 +142,7 @@ export class ReservaRepository {
         const reservas = await this.model.find({
             servicioReservado: { $in: serviciosReservadosIds }
         })
-        .skip(skip)
-        .limit(limitNum)
+        
         .populate('cliente')
         .populate({
             path: 'servicioReservado',
@@ -203,12 +201,9 @@ export class ReservaRepository {
     });
 }
 
-    async findByCliente(pageNum, limitNum, cliente) {
-        const skip = (pageNum - 1) * limitNum;
+    async findByCliente( cliente) {
 
         let reservas = await this.model.find({ cliente })
-            .skip(skip)
-            .limit(limitNum)
             .populate('cliente')
             .populate({
                 path: 'servicioReservado',

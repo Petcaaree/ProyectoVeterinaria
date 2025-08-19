@@ -71,18 +71,25 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
           let data 
           if (filter ==='TODAS') {
              data = await getTodasReservas(userId, tipoUsuario, filter, page);
+             console.log('Data TODAS:', data); // Debug
+             console.log('Total Pages TODAS:', data.total_pages); // Debug
+             console.log('Total TODAS:', data.total); // Debug
             setAppointments(data.data || []);
-            setTotalPages(data.totalPages || 0);
+            setTotalPages(data.total_pages || 0);
           } else {
              data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
+             console.log('Data Por Estado:', data); // Debug
+             console.log('Total Pages Por Estado:', data.total_pages); // Debug
+             console.log('Total Por Estado:', data.total); // Debug
             setAppointments(data.data || []);
-            setTotalPages(data.totalPages || 0);
+            setTotalPages(data.total_pages || 0);
           }
         } catch {
           // Puedes mostrar un mensaje de error si lo deseas
           setAppointments([]);
         } finally {
           setIsLoading(false);
+          console.log('Final totalPages state:', totalPages); // Debug
         }
       };
     

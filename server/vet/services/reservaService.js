@@ -68,10 +68,10 @@ export class ReservaService {
         let data
 
         if (estado === 'TODAS') {
-            reservas = await this.reservaRepository.findByCliente(pageNum, limitNum, cliente)
+            reservas = await this.reservaRepository.findByCliente( cliente)
             total = reservas.length
             total_pages = Math.ceil(total / limitNum)
-            data = reservas.map(r => this.toDTO(r))
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
         } else   {
             reservas = await this.reservaRepository.findByClienteByEstado(cliente, estado)
              total = reservas.length;
@@ -147,10 +147,10 @@ export class ReservaService {
         let total_pages
         let data
         if (estado === 'TODAS') {
-            reservas = await this.reservaRepository.findByUsuarioProveedorByPage(page, limit, serviciosIds)
+            reservas = await this.reservaRepository.findByUsuarioProveedorByPage( serviciosIds)
             total = reservas.length
              total_pages = Math.ceil(total / limitNum);
-            data = reservas.map(r => this.toDTO(r))
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
         } else{
              reservas = await this.reservaRepository.findByProveedorByEstado(serviciosIds, estado)
             total = reservas.length

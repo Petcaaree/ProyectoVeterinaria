@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { getTodasReservas } from '../../api/api';
+import { useAuth } from '../../context/authContext';
 import ReservaDetalleModal from './ReservaDetalleModal';
 import { ArrowLeft, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
 
@@ -29,18 +31,25 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const [selectedReserva, setSelectedReserva] = useState<Appointment | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
+
+  // Obtener usuario y tipoUsuario del contexto de autenticación usando el hook personalizado
+  const { usuario, tipoUsuario } = useAuth();
+  const userId = usuario?.id;
+
   useEffect(() => {
+    console.log('userId:', userId);
+    console.log('tipoUsuario:', tipoUsuario);
     const fetchReservas = async () => {
+      if (!userId || !tipoUsuario) return;
       try {
-        const data = await getTodasReservas();
-        // Si la API retorna un array en data.data, ajusta aquí:
+        const data = await getTodasReservas(userId, tipoUsuario, 1); // página 1
         setAppointments(data.data || []);
-      } catch {
+      } catch (error) {
         // Puedes mostrar un mensaje de error si lo deseas
       }
     };
     fetchReservas();
-  }, []);
+  }, [userId, tipoUsuario]);
 
   const filteredAppointments = appointments.filter(appointment => {
     const matchesFilter = filter === 'all' || appointment.status === filter;

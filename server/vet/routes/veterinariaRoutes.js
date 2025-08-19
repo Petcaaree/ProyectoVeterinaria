@@ -48,6 +48,11 @@ export default function veterinariaRoutes(getController) {
             getController(VeterinariaController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )
 
+    // Nueva ruta para obtener solo el contador de notificaciones no leídas
+    router.get("/petcare/veterinaria/:id/notificaciones/contador", (req, res, next) =>
+        getController(VeterinariaController).obtenerContadorNotificacionesNoLeidas(req, res, next)
+    )
+
     // Ruta específica para notificaciones leídas/no leídas (debe ir antes que la general)
     router.get("/petcare/veterinaria/:id/notificaciones/:leida", (req, res, next) =>
             getController(VeterinariaController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)

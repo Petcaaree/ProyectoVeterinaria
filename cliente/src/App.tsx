@@ -235,15 +235,15 @@ function App() {
     }
     
     if (currentView === 'my-walks') {
-      return <MisPaseos userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisPaseos userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-vet-services') {
-      return <MisServiciosVeterinarios userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisServiciosVeterinarios userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-care-services') {
-      return <MisServiciosCuidadores userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisServiciosCuidadores userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
 
     switch (currentService) {

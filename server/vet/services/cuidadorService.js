@@ -240,6 +240,17 @@ export class CuidadorService {
 
         return cuidador.notificaciones.map(n => this.notificacionToDTO(n))
     }
+
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const cuidador = await this.cuidadorRepository.findById(id)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = cuidador.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
+    }
     
 
     toDTO(cuidador) {

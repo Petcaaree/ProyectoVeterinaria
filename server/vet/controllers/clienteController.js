@@ -144,6 +144,19 @@ export class ClienteController {
     }
   }
 
+  // Nuevo endpoint para obtener solo el contador de notificaciones no leídas
+  async obtenerContadorNotificacionesNoLeidas(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const contador = await this.clienteService.getContadorNotificacionesNoLeidas(id);
+      
+      res.json({ contador });
+    } catch (error) {
+      next(error);
+    }
+  }
+
     async findMascotasByCliente(req, res, next) {
         try {
         const id = req.params.id

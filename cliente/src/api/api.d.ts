@@ -137,18 +137,35 @@ export declare function crearServicioPaseador(data: DatosServicioPaseador): Prom
 export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
 export declare function obtenerMascotas(usuarioId: string): Promise<any>;
 export declare function eliminarMascota(usuarioId: string, mascotaId: string): Promise<void>;
+
+///-----OBTENER LOS SERVICIOS DE CADA PROVEEDOR-----
 export declare function getServiciosVeterinariaByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
 export declare function getServiciosPaseadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
 export declare function getServiciosCuidadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
+
+///-----ACTIVAR O DESACTIVAR LOS SERVICIOS -----
 export declare function cambiarEstadoServicio(serviceId: string, estado: string, tipoUsuario: string): Promise<void>;
+
+///-----OBTENER LOS SERVICIOS EN CADA PAGINA-----
 export declare function obetenerServiciosCuidadores(page: number, filtro: any): Promise<any[]>;
 export declare function obetenerServiciosPaseadores(page: number, filtro: any): Promise<any[]>;
 export declare function obetenerServiciosVeterinarias(page: number, filtro: any): Promise<any[]>;
+
+///-----RESERVAS-----
 export declare function createReserva(datos: any): Promise<any>;
+export declare function getTodasReservas(usuarioId: string,userType: string, page: number): Promise<any>;
+
+
+/// ---------NOTIFICACIONES----------
 export declare function obtenerNotificacionesNoLeidas(usuarioId: string, leida: string, tipoUsuario: string, page: number): Promise<any>;
 export declare function obtenerNotificaciones(usuarioId: string, tipoUsuario: string, page: number): Promise<any>;
+export declare function marcarLeidaCliente(usuarioId: string, notificacionId: string): Promise<void>;
+export declare function marcarLeidaProveedor(usuarioId: string, notificacionId: string, tipoProveedor: string): Promise<void>;
+export declare function marcarTodasLeidasProveedor(usuarioId: string, tipoProveedor: string): Promise<void>;
+export declare function marcarTodasLeidasCliente(usuarioId: string): Promise<void>;
 
-export declare function getTodasReservas(usuarioId: string,userType: string, page: number): Promise<any>;
+
+
 export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
 export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;

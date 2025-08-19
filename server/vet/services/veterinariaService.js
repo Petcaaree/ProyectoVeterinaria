@@ -244,6 +244,17 @@ export class VeterinariaService {
         return veterinaria.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const veterinaria = await this.veterinariaRepository.findById(id)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = veterinaria.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
+    }
+
     
 
     toDTO(veterinaria) {

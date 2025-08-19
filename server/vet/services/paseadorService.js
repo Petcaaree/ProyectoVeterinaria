@@ -241,6 +241,17 @@ export class PaseadorService {
         return paseador.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const paseador = await this.paseadorRepository.findById(id)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = paseador.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
+    }
+
     
 
     toDTO(paseador) {

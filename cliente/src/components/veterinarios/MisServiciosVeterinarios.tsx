@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Stethoscope, User, MapPin, Phone, Star, Plus, Edit, Trash2, ArrowRight } from 'lucide-react';
 import {useAuth} from '../../context/authContext.tsx';
+import Toast from '../comun/Toast.tsx';
+import { useToast } from '../../hooks/useToast.ts';
 
 interface ClinicInfo {
   name: string;
@@ -12,13 +14,14 @@ interface ClinicInfo {
 interface MisServiciosVeterinariosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
+  onCreateService?: () => void;
 }
 
 
 
 
 
-const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ userType, onBack }) => {
+const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ userType, onBack, onCreateService }) => {
   const [activeTab, setActiveTab] = useState<'activos' | 'inactivos'>('activos');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0)
@@ -27,6 +30,8 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
   const [totalInactivos, setTotalInactivos] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const { usuario , getServiciosVeterinaria, activarOdesactivarServicio} = useAuth();
+  const { toast, showError, showSuccess, hideToast } = useToast();
+  
   // Mock data para información de la clínica
   const clinicInfo: ClinicInfo = {
     name: 'Clínica Veterinaria San Martín',
@@ -123,9 +128,16 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
       await cargarTotales();
       
       console.log("Estado cambiado exitosamente");
-    } catch (error) {
+      showSuccess(`Servicio ${nuevoEstado.toLowerCase()} exitosamente`);
+    } catch (error: any) {
       console.error("Error al cambiar el estado del servicio:", error);
-      alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
+      
+      // Mostrar el mensaje específico del backend si está disponible
+      const errorMessage = error?.response?.data?.message || 
+                          error?.message || 
+                          "Error al cambiar el estado del servicio. Por favor, intenta de nuevo.";
+      
+      showError(errorMessage);
     }
   }
   
@@ -214,7 +226,10 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
                 </div>
               </div>
               
-              <button className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg">
+              <button 
+                onClick={onCreateService}
+                className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+              >
                 <Plus className="h-5 w-5" />
                 <span>Nuevo Servicio</span>
               </button>
@@ -311,7 +326,10 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
                         }
                       </p>
                       {activeTab === 'activos' && (
-                        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <button 
+                          onClick={onCreateService}
+                          className="inline-flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
                           <Plus className="h-5 w-5" />
                           <span>Crear Primer Servicio</span>
                         </button>
@@ -461,6 +479,14 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
 
         </div>
       </div>
+      
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 };

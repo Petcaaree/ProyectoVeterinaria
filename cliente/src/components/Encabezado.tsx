@@ -18,7 +18,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('login');
   
   // Usar el contexto de autenticación
-  const { usuario, tipoUsuario, login, logout } = useAuth();
+  const { usuario, tipoUsuario, login, logout, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
   
   // Mapear tipos del contexto a los tipos del componente
   const usuarioLogueado = usuario ? {
@@ -112,6 +112,8 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         break;
       case 'notifications':
         if (onViewChange) onViewChange('notifications');
+        // Actualizar el contador de notificaciones cuando se abre la vista
+        cargarContadorNotificaciones();
         break;
       case 'register-pet':
         // Verificar si es dueño antes de permitir registrar mascota
@@ -272,9 +274,9 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                       >
                         {Icon && <Icon className="h-4 w-4" />}
                         <span>{option.label}</span>
-                        {option.id === 'notifications' && usuario?.notificaciones && usuario.notificaciones.length > 0 && (
+                        {option.id === 'notifications' && contadorNotificacionesNoLeidas > 0 && (
                           <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {usuario.notificaciones.filter(n => !n.leida).length}
+                            {contadorNotificacionesNoLeidas}
                           </span>
                         )}
                       </button>
@@ -414,9 +416,9 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                       >
                         {Icon && <Icon className="h-4 w-4" />}
                         <span>{option.label}</span>
-                        {option.id === 'notifications' && usuario?.notificaciones && usuario.notificaciones.length > 0 && (
+                        {option.id === 'notifications' && contadorNotificacionesNoLeidas > 0 && (
                           <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {usuario.notificaciones.filter(n => !n.leida).length}
+                            {contadorNotificacionesNoLeidas}
                           </span>
                         )}
                       </button>

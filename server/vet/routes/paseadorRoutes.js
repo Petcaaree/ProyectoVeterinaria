@@ -48,6 +48,11 @@ export default function paseadorRoutes(getController) {
                 getController(PaseadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )
 
+    // Nueva ruta para obtener solo el contador de notificaciones no leídas
+    router.get("/petcare/paseador/:id/notificaciones/contador", (req, res, next) =>
+        getController(PaseadorController).obtenerContadorNotificacionesNoLeidas(req, res, next)
+    )
+
     router.get("/petcare/paseador/:id/notificaciones/:leida", (req, res, next) =>
             getController(PaseadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
         )

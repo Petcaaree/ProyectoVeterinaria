@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Shield,ArrowRight, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2, Home } from 'lucide-react';
 import {useAuth} from '../../context/authContext.tsx';
+import Toast from '../comun/Toast.tsx';
+import { useToast } from '../../hooks/useToast.ts';
 
 interface MisServiciosCuidadoresProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
+  onCreateService?: () => void;
 }
 
 
 
-const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userType, onBack }) => {
+const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userType, onBack, onCreateService }) => {
  
   const [activeTab, setActiveTab] = useState<'activos' | 'inactivos'>('activos');
       const [page, setPage] = useState(1);
@@ -20,6 +23,8 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
   const [isLoading, setIsLoading] = useState(false);
       const { usuario , getServiciosCuidador, activarOdesactivarServicio} = useAuth();
       const [seleccionoEstado, setSeleccionoEstado] = useState<boolean>(false);
+      const { toast, showError, showSuccess, hideToast } = useToast();
+      
       // Mock data para información de la clínica
       
     
@@ -156,9 +161,16 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           await cargarTotales();
           
           console.log("Estado cambiado exitosamente");
-        } catch (error) {
+          showSuccess(`Servicio ${nuevoEstado.toLowerCase()} exitosamente`);
+        } catch (error: any) {
           console.error("Error al cambiar el estado del servicio:", error);
-          alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
+          
+          // Mostrar el mensaje específico del backend si está disponible
+          const errorMessage = error?.response?.data?.message || 
+                              error?.message || 
+                              "Error al cambiar el estado del servicio. Por favor, intenta de nuevo.";
+          
+          showError(errorMessage);
         }
       }    
       const deleteService = (serviceId: string) => {
@@ -214,9 +226,12 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
                 </div>
               </div>
               
-              <button className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-lg">
+              <button 
+                onClick={onCreateService}
+                className="flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-lg"
+              >
                 <Plus className="h-5 w-5" />
-                <span>Nuevo Servicio</span>
+                <span>Nuevo Cuidado</span>
               </button>
             </div>
           </div>
@@ -289,7 +304,10 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
                         }
                       </p>
                       {activeTab === 'activos' && (
-                        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                        <button 
+                          onClick={onCreateService}
+                          className="inline-flex items-center space-x-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                        >
                           <Plus className="h-5 w-5" />
                           <span>Crear Primer Servicio</span>
                         </button>
@@ -419,6 +437,14 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           
         </div>
       </div>
+      
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 };

@@ -48,6 +48,10 @@ export default function cuidadorRoutes(getController) {
                 getController(CuidadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )
     
+    // Nueva ruta para obtener solo el contador de notificaciones no leídas
+    router.get("/petcare/cuidador/:id/notificaciones/contador", (req, res, next) =>
+        getController(CuidadorController).obtenerContadorNotificacionesNoLeidas(req, res, next)
+    )
 
     router.get("/petcare/cuidador/:id/notificaciones/:leida", (req, res, next) =>
         getController(CuidadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)

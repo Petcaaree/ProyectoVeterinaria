@@ -251,6 +251,17 @@ export class ClienteService {
         return cliente.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const cliente = await this.clienteRepository.findById(id)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = cliente.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
+    }
+
     async getMascotas(idUsuario) {
         const mascotas = await this.clienteRepository.findMascotasByCliente(idUsuario)
         if(!mascotas) {

@@ -77,10 +77,19 @@ export interface AuthContextType {
    getServiciosPaseadores: (page: number, filtro: any) => Promise<any[]>;
    getServiciosVeterinarias: (page: number, filtro: any) => Promise<any[]>;
    crearReserva: (datos: any) => Promise<any>;
+    obtenerTodasLasReservas: (usuarioId: string, userType: string, page: number) => Promise<any[]>;
    getNotificationes: (usuarioId: string, userType:string,  page: number ) => Promise<any[]>;
    getNotificacionesNoLeidas: (usuarioId: string , leida : string, userType:string,  page: number) => Promise<any[]>;
-   obtenerTodasLasReservas: (usuarioId: string, userType: string, page: number) => Promise<any[]>;
-
+   marcarLeidaDelCliente: (usuarioId: string, notificacionId: string) => Promise<void>;
+   marcarLeidaDelProveedor: (usuarioId: string, notificacionId: string, tipoProveedor: string) => Promise<void>;
+   marcarTodasLeidasDelProveedor: (usuarioId: string, tipoProveedor: string) => Promise<void>;
+   marcarTodasLeidasDelCliente: (usuarioId: string) => Promise<void>;
+   // Contador de notificaciones no leídas
+   contadorNotificacionesNoLeidas: number;
+   cargarContadorNotificaciones: () => Promise<void>;
+   actualizarContadorNotificaciones: (nuevoContador: number) => void;
+   decrementarContadorNotificaciones: () => void;
+   incrementarContadorNotificaciones: () => void;
    /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
   getReservasById: (reservaId: string) => Promise<any>;
   getReservasByMascota: (mascotaId: string) => Promise<any[]>;

@@ -3,14 +3,14 @@ import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, 
 import { useAuth } from '../../context/authContext.tsx';
 
 interface NotificacionesProps {
-  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' ;
   onBack: () => void;
 }
 
 
 const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => {
   const [filter, setFilter] = useState<'todas' | 'Noleidas' | 'appointment' | 'reminder' | 'review' | 'payment' | 'system'>('todas');
-  const { usuario, getNotificationes, getNotificacionesNoLeidas } = useAuth();
+  const { usuario, getNotificationes, getNotificacionesNoLeidas, marcarLeidaDelCliente, marcarLeidaDelProveedor, marcarTodasLeidasDelCliente, marcarTodasLeidasDelProveedor, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
   const [notifications, setNotifications] = useState<any>([]);
   const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState<any>([]);
   
@@ -116,6 +116,11 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
     }
   };
 
+  const goToPage = (pageNumber: number) => {
+    setPage(pageNumber);
+    setTimeout(() => scrollToFilters(), 100);
+  };
+
  
 
   // Usar directamente las notificaciones que vienen del backend (ya paginadas)
@@ -160,20 +165,46 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
     });
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, fechaLeida: new Date().toISOString() }
-          : notification
-      )
-    );
+
+  const markAsRead = async (id: string) => {
+    if (!usuario?.id) return;
+    
+    try {
+      if (userType === 'cliente') {
+        await marcarLeidaDelCliente(usuario.id, id);
+      } else {
+        await marcarLeidaDelProveedor(usuario.id, id, userType);
+      }
+      
+      // Recargar todas las notificaciones después de marcar como leída
+      await cargarTotasNotificacions();
+      await cargarNotificacionesNoLeidas();
+      
+      // Actualizar contador del encabezado
+      await cargarContadorNotificaciones();
+    } catch (error) {
+      console.error('Error al marcar notificación como leída:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, fechaLeida: new Date().toISOString() }))
-    );
+  const markAllAsRead = async () => {
+    if (!usuario?.id) return;
+    try {
+      if (userType === 'cliente') {
+        await marcarTodasLeidasDelCliente(usuario.id);
+      } else {
+        await marcarTodasLeidasDelProveedor(usuario.id, userType);
+      }
+
+      // Recargar todas las notificaciones después de marcar como leída
+      await cargarTotasNotificacions();
+      await cargarNotificacionesNoLeidas();
+      
+      // Actualizar contador del encabezado
+      await cargarContadorNotificaciones();
+    } catch (error) {
+      console.error('Error al marcar todas las notificaciones como leídas:', error);
+    }
   };
 
   const deleteNotification = (id: string) => {
@@ -189,6 +220,14 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
       default: return 'Notificaciones';
     }
   };
+
+  // Efecto para recargar notificaciones cuando cambia el contador global
+  useEffect(() => {
+    if (usuario?.id) {
+      cargarTotasNotificacions();
+      cargarNotificacionesNoLeidas();
+    }
+  }, [contadorNotificacionesNoLeidas]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -315,15 +354,7 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                             </p>
                             <div className="flex items-center space-x-4 text-sm text-gray-500">
                               <span>{formatDate(notification.fechaAlta)}</span>
-                              <span className="capitalize">{notification.type || 'general'}</span>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                notification.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                notification.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-green-100 text-green-700'
-                              }`}>
-                                {notification.priority === 'high' ? 'Alta' : 
-                                 notification.priority === 'medium' ? 'Media' : 'Baja'} prioridad
-                              </span>
+                              
                             </div>
                           </div>
                           
@@ -362,38 +393,76 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
             })}
             </div>
 
-            {/* Paginación */}
+            {/* Navegación de páginas centrada */}
             {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-4 py-6 mt-8">
+              <div className="flex items-center justify-center space-x-4 mt-8">
+                {/* Botón Anterior */}
                 <button
                   onClick={handlePrevious}
                   disabled={page === 1}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                     page === 1 
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                   }`}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  <span className="hidden sm:block">Anterior</span>
+                  <span className="text-sm font-medium">Anterior</span>
                 </button>
-                
-                <span className="text-gray-700 text-sm mx-4">
-                  Página {page} de {totalPages} ({total} notificaciones)
-                </span>
 
+                {/* Indicadores de páginas */}
+                <div className="flex items-center space-x-2">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 7) {
+                      pageNumber = i + 1;
+                    } else if (page <= 4) {
+                      pageNumber = i + 1;
+                    } else if (page >= totalPages - 3) {
+                      pageNumber = totalPages - 6 + i;
+                    } else {
+                      pageNumber = page - 3 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium ${
+                          page === pageNumber
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-200 text-gray-700 hover:bg-blue-100 hover:text-blue-600'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botón Siguiente */}
                 <button
                   onClick={handleNext}
                   disabled={page === totalPages}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                     page === totalPages 
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                   }`}
                 >
-                  <span className="hidden sm:block">Siguiente</span>
+                  <span className="text-sm font-medium">Siguiente</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
+              </div>
+            )}
+
+            {/* Información de páginas */}
+            {totalPages > 1 && (
+              <div className="text-center mt-4">
+                <p className="text-gray-600 text-sm">
+                  Página <span className="font-semibold text-blue-600">{page}</span> de{' '}
+                  <span className="font-semibold text-blue-600">{totalPages}</span>
+                </p>
               </div>
             )}
           </>

@@ -1,28 +1,18 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getTodasReservas } from '../../api/api';
 import { useAuth } from '../../context/authContext';
 import ReservaDetalleModal from './ReservaDetalleModal';
-import { ArrowLeft, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter } from 'lucide-react';
 
 interface MisTurnosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
 }
 
+// Usamos tipo flexible para manejar datos del backend
 interface Appointment {
-  id: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  service: string;
-  client?: string;
-  pet?: string;
-  provider?: string;
-  location?: string;
-  phone?: string;
-  price: number;
-  duration?: number;
-  notes?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
@@ -44,7 +34,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
       try {
         const data = await getTodasReservas(userId, tipoUsuario, 1); // página 1
         setAppointments(data.data || []);
-      } catch (error) {
+      } catch {
         // Puedes mostrar un mensaje de error si lo deseas
       }
     };
@@ -79,16 +69,6 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
       style: 'currency',
       currency: 'COP',
       minimumFractionDigits: 0
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
     });
   };
 
@@ -352,11 +332,14 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
         )}
       </div>
     {/* Modal de detalle de reserva */}
-    <ReservaDetalleModal
-      reserva={selectedReserva}
-      isOpen={modalOpen}
-      onClose={() => setModalOpen(false)}
-    />
+    {selectedReserva && (
+      <ReservaDetalleModal
+        appointment={selectedReserva}
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        userType={userType}
+      />
+    )}
   </div>
   );
 };

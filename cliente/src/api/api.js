@@ -503,9 +503,15 @@ export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
   }
 };
 // Obtener todas las reservas (paginadas)
-export const getTodasReservas = async (userId, _userType, page) => {
+export const getTodasReservas = async (userId, userType, page) => {
     try {
-        const response = await axios.get(`${API_URL}/reservas/${userId}`, {
+        let tipoUsuario;
+        if (userType === 'cliente'){
+            tipoUsuario = 'cliente';
+        } else {
+            tipoUsuario = 'proveedor';
+        }
+        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}`, {
             params: { page }
         });
         return response.data; // { page, per_page, total, total_pages, data }

@@ -16,7 +16,7 @@ export default function reservaRoutes(getController) {
     getController(ReservaController).findAll(req, res, next)
   })
 
-  router.get("/petcare/reservas/:id", (req, res, next) => {
+  router.get("/petcare/reservas/cliente/:id", (req, res, next) => {
     getController(ReservaController).findByCliente(req, res, next)
   })
 

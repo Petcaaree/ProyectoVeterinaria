@@ -7,6 +7,18 @@ interface NavegacionServiciosProps {
 }
 
 const NavegacionServicios: React.FC<NavegacionServiciosProps> = ({ currentService, onServiceChange }) => {
+  // Función para manejar el cambio de servicio con scroll automático
+  const handleServiceChange = (serviceId: 'overview' | 'veterinary' | 'walker' | 'caregiver') => {
+    // Cambiar el servicio
+    onServiceChange(serviceId);
+    
+    // Hacer scroll hacia arriba
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   const services = [
     {
       id: 'overview' as const,
@@ -60,7 +72,7 @@ const NavegacionServicios: React.FC<NavegacionServiciosProps> = ({ currentServic
             return (
               <button
                 key={service.id}
-                onClick={() => onServiceChange(service.id)}
+                onClick={() => handleServiceChange(service.id)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${getColorClasses(service.color, isActive)}`}
               >
                 <Icon className="h-4 w-4" />
@@ -80,7 +92,7 @@ const NavegacionServicios: React.FC<NavegacionServiciosProps> = ({ currentServic
               return (
                 <button
                   key={service.id}
-                  onClick={() => onServiceChange(service.id)}
+                  onClick={() => handleServiceChange(service.id)}
                   className={`flex flex-col items-center justify-center px-2 py-3 rounded-lg font-medium transition-all duration-200 text-sm min-w-0 ${getColorClasses(service.color, isActive)}`}
                 >
                   <Icon className="h-4 w-4 mb-1 flex-shrink-0" />

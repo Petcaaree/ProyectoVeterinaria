@@ -221,8 +221,18 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
         ) : (
           <div className="space-y-6">
             {filteredAppointments.map((appointment) => {
-              const statusConfig = getStatusConfig(appointment.status);
+              // Ajuste: usar los campos reales del DTO
+              const statusConfig = getStatusConfig(appointment.estado);
               const StatusIcon = statusConfig.icon;
+              const proveedor = appointment.servicioReservado?.usuarioProveedor?.nombreUsuario || '';
+              const servicio = appointment.servicioReservado?.nombreServicio || appointment.serviciOfrecido;
+              const fecha = appointment.rangoFechas?.fechaInicio || '';
+              const horario = appointment.horario || '';
+              const telefono = appointment.telefonoContacto || '';
+              const precio = appointment.servicioReservado?.precio || 0;
+              const mascota = appointment.mascota?.nombre || '';
+              const notas = appointment.notaAdicional || '';
+              const cliente = appointment.cliente?.nombreUsuario || '';
 
               return (
                 <div key={appointment.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
@@ -233,113 +243,107 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                           <Calendar className="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">{appointment.service}</h3>
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">{servicio}</h3>
                           <div className="flex items-center space-x-4 text-sm text-gray-600">
                             <div className="flex items-center space-x-1">
                               <Calendar className="h-4 w-4" />
-                              <span>{formatDate(appointment.date)}</span>
+                              <span>{fecha}</span>
                             </div>
                             <div className="flex items-center space-x-1">
                               <Clock className="h-4 w-4" />
-                              <span>{appointment.time}</span>
-                              {appointment.duration && (
-                                <span>({appointment.duration} min)</span>
-                              )}
+                              <span>{horario}</span>
                             </div>
                           </div>
                         </div>
                       </div>
-                      
                       <div className="flex items-center space-x-3">
                         <div className={`px-3 py-1 rounded-full ${statusConfig.bg} ${statusConfig.textColor} flex items-center space-x-1`}>
                           <StatusIcon className="h-4 w-4" />
                           <span className="text-sm font-medium">{statusConfig.text}</span>
                         </div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-green-600">{formatPrice(appointment.price)}</div>
+                          <div className="text-lg font-bold text-green-600">{formatPrice(precio)}</div>
                         </div>
                       </div>
                     </div>
-
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                      {userType === 'cliente' ? (
+                      {tipoUsuario === 'cliente' ? (
                         <>
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">Proveedor: {appointment.provider}</span>
+                            <span className="text-sm text-gray-600">Proveedor: {proveedor}</span>
                           </div>
-                          {appointment.location && (
-                            <div className="flex items-center space-x-2">
-                              <MapPin className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-600">{appointment.location}</span>
-                            </div>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            <Star className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm text-gray-600">Mascota: {mascota}</span>
+                          </div>
                           <div className="flex items-center space-x-2">
                             <Phone className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{appointment.phone}</span>
+                            <span className="text-sm text-gray-600">{telefono}</span>
                           </div>
                         </>
                       ) : (
                         <>
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">Cliente: {appointment.client}</span>
+                            <span className="text-sm text-gray-600">Cliente: {cliente}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Star className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">Mascota: {appointment.pet}</span>
+                            <span className="text-sm text-gray-600">Mascota: {mascota}</span>
                           </div>
                           <div className="flex items-center space-x-2">
                             <Phone className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-600">{appointment.phone}</span>
+                            <span className="text-sm text-gray-600">{telefono}</span>
                           </div>
                         </>
                       )}
                     </div>
-
-                    {/* Apartado de notas eliminado por requerimiento */}
-
+                    {/* Apartado de notas */}
+                    {notas && (
+                      <div className="mb-2 text-sm text-gray-500">Notas: {notas}</div>
+                    )}
                     {/* Actions */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        {/* Acciones para dueño */}
-                        {userType === 'cliente' && (
-                          <div className="flex space-x-2">
-                            <button
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                              onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
-                            >
-                              Ver Detalles
-                            </button>
-                            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                              Cancelar
-                            </button>
-                          </div>
-                        )}
-                        {/* Acciones para veterinaria, cuidador y paseador */}
-                        {['veterinaria', 'cuidador', 'paseador'].includes(userType || '') && (
-                          <div className="flex space-x-2">
-                            {appointment.status === 'pending' && (
-                              <>
-                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                                  Confirmar
-                                </button>
-                                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                                  Cancelar
-                                </button>
-                              </>
-                            )}
-                            <button
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                              onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
-                            >
-                              Ver Detalles
-                            </button>
-                          </div>
-                        )}
-                        <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                          Contactar {userType === 'cliente' ? 'Proveedor' : 'Cliente'}
-                        </button>
-                      </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      {/* Acciones para dueño */}
+                      {tipoUsuario === 'cliente' && (
+                        <div className="flex space-x-2">
+                          <button
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                            onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
+                          >
+                            Ver Detalles
+                          </button>
+                          <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                            Cancelar
+                          </button>
+                        </div>
+                      )}
+                      {/* Acciones para veterinaria, cuidador y paseador */}
+                      {['veterinaria', 'cuidador', 'paseador'].includes(tipoUsuario || '') && (
+                        <div className="flex space-x-2">
+                          {appointment.estado === 'pending' && (
+                            <>
+                              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                                Confirmar
+                              </button>
+                              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                                Cancelar
+                              </button>
+                            </>
+                          )}
+                          <button
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                            onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
+                          >
+                            Ver Detalles
+                          </button>
+                        </div>
+                      )}
+                      <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                        Contactar {tipoUsuario === 'cliente' ? 'Proveedor' : 'Cliente'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

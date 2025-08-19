@@ -51,7 +51,7 @@ export class ReservaService {
         return reserva ? this.toDTO(reserva) : null;
     }
 
-    async findByCliente({page = 1, limit = 10, id}) {
+    async findByCliente({page = 1, limit = 4}, id, estado) {
 
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
@@ -62,14 +62,24 @@ export class ReservaService {
         }
 
 
+        let reservas
+        let total
+        let total_pages
+        let data
 
-        const reservas = await this.reservaRepository.findByCliente(pageNum, limitNum, id)
+        if (estado === 'TODAS') {
+            reservas = await this.reservaRepository.findByCliente(pageNum, limitNum, cliente)
+            total = reservas.length
+            total_pages = Math.ceil(total / limitNum)
+            data = reservas.map(r => this.toDTO(r))
+        } else   {
+            reservas = await this.reservaRepository.findByClienteByEstado(cliente, estado)
+             total = reservas.length;
+             total_pages = Math.ceil(total / limitNum);
+             data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        }
 
-        const total = reservas.length;
-        const total_pages = Math.ceil(total / limitNum);
-
-        const data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
-
+        
         return {
             page: pageNum,
             per_page: limitNum,
@@ -79,7 +89,9 @@ export class ReservaService {
         }
     }
 
-    async findByProveedorServicio(id, {page = 1, limit = 10}) {
+
+
+    async findByProveedorServicio(id, estado,{page = 1, limit = 4}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
@@ -91,24 +103,65 @@ export class ReservaService {
             throw new NotFoundError("Proveedor de servicio no encontrado")
         }
 
-        let servicios
+        
 
-        if (veterinaria) {
-            servicios = await this.servicioVeterinariaRepository.findByVeterinariaId(id)
-        } else if (cuidador) {
-             servicios = await this.servicioCuidadorRepository.findByCuidadorId(id)
-        } else if (paseador) {
+        /* if (estado === 'TODAS') {
+            if (veterinaria) {
+            reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, veterinaria)
+            } else if (cuidador) {
+                reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, cuidador)
+            } else if (paseador) {
+                reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, paseador)
+            }
+              total = reservas.length
+             total_pages = Math.ceil(total / limitNum);
+            data = reservas.map(r => this.toDTO(r))
+
+        }else {
+            if (veterinaria) {
+            reservas = await this.reservaRepository.findByProveedorByEstado(veterinaria, estado)
+            } else if (cuidador) {
+                reservas = await this.reservaRepository.findByProveedorByEstado(cuidador, estado)
+            } else if (paseador) {
+                reservas = await this.reservaRepository.findByProveedorByEstado(paseador, estado)
+            }
+              total = reservas.length
+            total_pages = Math.ceil(total / limitNum);
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        } */
+
+
+         let servicios
+
+             if (veterinaria) {
+                 servicios = await this.servicioVeterinariaRepository.findByVeterinariaId(id)
+             } else if (cuidador) {
+                 servicios = await this.servicioCuidadorRepository.findByCuidadorId(id)
+            } else if (paseador) {
              servicios = await this.servicioPaseadorRepository.findByPaseadorId(id)
-        }
+            }
 
         const serviciosIds = servicios.map(s => s.id)
+        let reservas
+        let total
+        let total_pages
+        let data
+        if (estado === 'TODAS') {
+            reservas = await this.reservaRepository.findByUsuarioProveedorByPage(page, limit, serviciosIds)
+            total = reservas.length
+             total_pages = Math.ceil(total / limitNum);
+            data = reservas.map(r => this.toDTO(r))
+        } else{
+             reservas = await this.reservaRepository.findByProveedorByEstado(serviciosIds, estado)
+            total = reservas.length
+            total_pages = Math.ceil(total / limitNum);
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        
+        }
 
-        const reservas = await this.reservaRepository.findByUsuarioProveedor(serviciosIds)
+        
 
-        const total = reservas.length
-        const total_pages = Math.ceil(total / limitNum);
-        const data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
-
+        
         return {
             page: pageNum,
             per_page: limitNum,

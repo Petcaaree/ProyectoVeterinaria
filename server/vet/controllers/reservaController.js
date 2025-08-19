@@ -27,22 +27,25 @@ export class ReservaController {
     async findByCliente(req, res, next) {
         try {
             const { page, limit } = req.query
-            const {id} = req.params
+            const id = req.params.id
+            const estado = req.params.estado
 
-            const reservas = await this.reservaService.findByCliente({page, limit, id})
-            
+            const reservas = await this.reservaService.findByCliente({page, limit}, id, estado)
+
             res.json(reservas)
         } catch(error) {
             next(error)
         }
     }
 
+
     async findByProveedor(req, res, next) {
         try {
             const id = req.params.id
+            const estado = req.params.estado
             const { page, limit } = req.query
-            const reservas = await this.reservaService.findByProveedorServicio(id, {page, limit})
-            
+            const reservas = await this.reservaService.findByProveedorServicio(id, estado, {page, limit})
+
             res.json(reservas)
         } catch(error) {
             next(error)

@@ -503,7 +503,7 @@ export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
   }
 };
 // Obtener todas las reservas (paginadas)
-export const getTodasReservas = async (userId, userType, page) => {
+export const getReservasPorEstado = async (userId, userType, estado, page) => {
     try {
         let tipoUsuario;
         if (userType === 'cliente'){
@@ -511,7 +511,7 @@ export const getTodasReservas = async (userId, userType, page) => {
         } else {
             tipoUsuario = 'proveedor';
         }
-        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}`, {
+        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}/${estado}`, {
             params: { page }
         });
         return response.data; // { page, per_page, total, total_pages, data }
@@ -520,6 +520,26 @@ export const getTodasReservas = async (userId, userType, page) => {
         throw error;
     }
 };
+
+export const getTodasReservas = async (userId, userType, estado, page) => {
+    try {
+        let tipoUsuario;
+        if (userType === 'cliente'){
+            tipoUsuario = 'cliente';
+        } else {
+            tipoUsuario = 'proveedor';
+        }
+        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}/${estado}`, {
+            params: { page }
+        });
+        return response.data; // { page, per_page, total, total_pages, data }
+    } catch (error) {
+        console.error("Error al obtener todas las reservas:", error);
+        throw error;
+    }
+};
+
+
 
 
 

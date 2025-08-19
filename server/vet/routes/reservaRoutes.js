@@ -16,11 +16,11 @@ export default function reservaRoutes(getController) {
     getController(ReservaController).findAll(req, res, next)
   })
 
-  router.get("/petcare/reservas/cliente/:id", (req, res, next) => {
+  router.get("/petcare/reservas/cliente/:id/:estado", (req, res, next) => {
     getController(ReservaController).findByCliente(req, res, next)
   })
 
-  router.get("/petcare/reservas/proveedor/:id", (req, res, next) => {
+  router.get("/petcare/reservas/proveedor/:id/:estado", (req, res, next) => {
     getController(ReservaController).findByProveedor(req, res, next)
   })
 

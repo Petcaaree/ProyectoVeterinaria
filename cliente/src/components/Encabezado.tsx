@@ -195,7 +195,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
       case 'paseador':
         return [
           { id: 'add-service', label: 'Agregar Paseo', icon: Plus },
-          { id: 'my-walks', label: 'Mis Paseos', icon: MapPin },
+          { id: 'my-walks', label: 'Mis Servicios', icon: MapPin },
           ...commonOptions,
           { id: 'logout', label: 'Cerrar Sesión', icon: X }
         ];

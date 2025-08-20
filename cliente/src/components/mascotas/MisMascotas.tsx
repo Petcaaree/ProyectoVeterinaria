@@ -222,40 +222,11 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex items-center space-x-3">
                 <div className="bg-purple-100 p-3 rounded-full">
-                  <PawPrint className="h-6 w-6 text-purple-600" />
+                  <Heart className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{mascotas?.length || 0}</p>
                   <p className="text-gray-600">Mascotas Registradas</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center space-x-3">
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Heart className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{mascotas?.filter(m => m.fotos && m.fotos.length > 0).length || 0}</p>
-                  <p className="text-gray-600">Con Fotos</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center space-x-3">
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {mascotas && mascotas.length > 0 
-                      ? Math.round(mascotas.reduce((acc, mascota) => acc + mascota.edad, 0) / mascotas.length) 
-                      : 0
-                    }
-                  </p>
-                  <p className="text-gray-600">Edad Promedio</p>
                 </div>
               </div>
             </div>

@@ -381,4 +381,8 @@ export class ReservaRepository {
     async countAll() {
         return await this.model.countDocuments()
     }
+
+    async update(id, updateData) {
+        return await this.model.findByIdAndUpdate(id, updateData, { new: true });
+    }
 }

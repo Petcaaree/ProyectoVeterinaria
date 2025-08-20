@@ -3,15 +3,13 @@ import { RangoFechas } from "../models/entidades/RangoFechas.js"
 import { Reserva } from "../models/entidades/Reserva.js";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
-import 'dayjs/locale/es.js';
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js";
 import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
 
 
-dayjs.extend(customParseFormat);
-dayjs.locale('es');
+dayjs.extend(customParseFormat)
 
 export class ReservaService {
     constructor(reservaRepository, servicioVeterinariaRepository, servicioCuidadorRepository, servicioPaseadorRepository, clienteRepository, cuidadorRepository, paseadorRepository, veterinariaRepository) {
@@ -392,6 +390,9 @@ export class ReservaService {
             if(reserva.rangoFechas.fechaInicio < fechaActual) {
                 throw new ValidationError("No se puede cancelar luego de pasada la fecha inicio")
             }
+
+            // Validar restricciones específicas de cancelación por tipo de servicio
+            this.validarRestriccionesCancelacion(reserva);
             
             const fechasReserva = reserva.rangoFechas
             if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
@@ -564,6 +565,35 @@ export class ReservaService {
             telefonoContacto: reserva.telefonoContacto,
             emailContacto: reserva.emailContacto,
             fechaAlta: reserva.fechaAlta
+        }
+    }
+
+    // Validar restricciones específicas de cancelación según el tipo de servicio
+    validarRestriccionesCancelacion(reserva) {
+        const ahora = dayjs();
+        const fechaInicio = dayjs(reserva.rangoFechas.fechaInicio);
+
+        if (reserva.serviciOfrecido === "ServicioCuidador") {
+            // Para cuidadores: no se puede cancelar el mismo día
+            if (ahora.isSame(fechaInicio, 'day')) {
+                throw new ValidationError("No se puede cancelar un servicio de cuidado el mismo día del servicio");
+            }
+        } else if (reserva.serviciOfrecido === "ServicioVeterinaria" || reserva.serviciOfrecido === "ServicioPaseador") {
+            // Para veterinarias y paseadores: verificar horario y permitir cancelación hasta 3 horas antes
+            if (reserva.horario) {
+                const [horas, minutos] = reserva.horario.split(':');
+                const fechaHoraServicio = fechaInicio
+                    .hour(parseInt(horas))
+                    .minute(parseInt(minutos))
+                    .second(0);
+
+                const tresHorasAntes = fechaHoraServicio.subtract(3, 'hours');
+                
+                if (ahora.isAfter(tresHorasAntes)) {
+                    const tipoServicio = reserva.serviciOfrecido === "ServicioVeterinaria" ? "veterinario" : "de paseo";
+                    throw new ValidationError(`No se puede cancelar un servicio ${tipoServicio} con menos de 3 horas de anticipación`);
+                }
+            }
         }
     }
 }

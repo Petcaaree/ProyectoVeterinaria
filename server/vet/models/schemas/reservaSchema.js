@@ -97,6 +97,10 @@ const reservaSchema = new mongoose.Schema({
       message: (props) => `${props.value} no es un email valido!`,
     },
   },
+  recordatorioEnviado: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 // Middleware de validación personalizada

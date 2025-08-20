@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead, ChevronLeft, ChevronRight, X, CalendarCheck } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead, ChevronLeft, ChevronRight, X, CalendarCheck, AlarmClock } from 'lucide-react';
 import { useAuth } from '../../context/authContext.tsx';
 
 interface NotificacionesProps {
@@ -131,7 +131,9 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
 
   const getNotificationIcon = (message: string) => {
     // Detectar tipo de mensaje basado en el contenido
-    if (message.toLowerCase().includes('confirmada')) {
+    if (message.toLowerCase().includes('recordatorio')) {
+      return { icon: AlarmClock, color: 'text-orange-600', bg: 'bg-orange-100' };
+    } else if (message.toLowerCase().includes('confirmada')) {
       return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' };
     } else if (message.toLowerCase().includes('cancelada')) {
       return { icon: X, color: 'text-red-600', bg: 'bg-red-100' };

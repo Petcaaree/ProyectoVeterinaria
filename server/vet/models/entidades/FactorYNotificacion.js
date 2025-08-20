@@ -45,6 +45,35 @@ export class FactoryNotificacion {
     return new Notificacion(mensaje);
   }
 
+  static crearRecordatorio(reserva, tipoRecordatorio = 'programado') {
+    const usuarioProveedor = reserva.servicioReservado.usuarioProveedor;
+    let mensaje;
+    
+    if (tipoRecordatorio === 'inmediato') {
+      // Mensajes para recordatorios inmediatos (cuando se hace la reserva con menos de 1 hora)
+      if (reserva.serviciOfrecido === "ServicioCuidador") {
+        mensaje = `¡Recordatorio! Tu servicio de cuidado con ${usuarioProveedor.nombreUsuario} comienza hoy ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      } else if (reserva.serviciOfrecido === "ServicioPaseador") {
+        mensaje = `¡Recordatorio! Tu paseo con ${usuarioProveedor.nombreUsuario} es muy pronto (${reserva.horario}) el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      } else {
+        const tipoServicio = reserva.servicioReservado.tipoServicio || 'servicio veterinario';
+        mensaje = `¡Recordatorio! Tu cita de ${tipoServicio} con ${usuarioProveedor.nombreUsuario} es muy pronto (${reserva.horario}) el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      }
+    } else {
+      // Mensajes para recordatorios programados (1 hora antes)
+      if (reserva.serviciOfrecido === "ServicioCuidador") {
+        mensaje = `Recordatorio: Tu servicio de cuidado con ${usuarioProveedor.nombreUsuario} comienza hoy ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      } else if (reserva.serviciOfrecido === "ServicioPaseador") {
+        mensaje = `Recordatorio: Tu paseo con ${usuarioProveedor.nombreUsuario} es en 1 hora (${reserva.horario}) el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      } else {
+        const tipoServicio = reserva.servicioReservado.tipoServicio || 'servicio veterinario';
+        mensaje = `Recordatorio: Tu cita de ${tipoServicio} con ${usuarioProveedor.nombreUsuario} es en 1 hora (${reserva.horario}) el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)}`;
+      }
+    }
+    
+    return new Notificacion(mensaje);
+  }
+
   static crearCancelacionAlCliente(reserva) {
     const usuarioProveedor = reserva.servicioReservado.usuarioProveedor;
     const cliente = reserva.cliente;

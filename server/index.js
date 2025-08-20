@@ -9,6 +9,7 @@ import { Server } from "./server.js";
 // import YAML from "yamljs";
 
 import routes from "./vet/routes/routes.js";
+import recordatorioRoutes from "./vet/routes/recordatorioRoutes.js";
 
 import { CiudadRepository } from "./vet/models/repositories/ciudadRepository.js";
 import { LocalidadRepository } from "./vet/models/repositories/localidadRepository.js";
@@ -35,6 +36,7 @@ import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
 import { ReservaService } from "./vet/services/reservaService.js";
 import { CiudadService } from "./vet/services/ciudadService.js";
+import { RecordatorioService } from "./vet/services/recordatorioService.js";
 
 /* 
 */
@@ -71,6 +73,12 @@ const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
+
+// Inicializar servicio de recordatorios
+const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
+
+// Hacer el servicio disponible en el contexto de la aplicación
+//app.set('recordatorioService', recordatorioService);
 
 const clienteController = new ClienteController(clienteService, reservaService);
 const cuidadorController = new CuidadorController(cuidadorService, reservaService);
@@ -137,11 +145,18 @@ server.setController(ReservaController, reservaController); */
 routes.forEach(r => {
     server.addRoute(r);
 })
+
+// Agregar rutas de recordatorios
+app.use('/api/recordatorios', recordatorioRoutes);
+
 server.configureRoutes();
 
 // const swaggerDocument = YAML.load("../docs/swagger.yaml")
 // app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.use(errorHandler)
+
+// Iniciar el servicio de recordatorios después de configurar todo
+recordatorioService.iniciar();
 
 server.launch();

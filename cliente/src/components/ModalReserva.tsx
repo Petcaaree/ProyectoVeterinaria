@@ -308,24 +308,24 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   if (userType !== 'cliente') {
     return (
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6"
         onClick={handleBackdropClick}
       >
-        <div className="bg-white rounded-2xl max-w-md w-full p-8">
+        <div className="bg-white rounded-xl sm:rounded-2xl max-w-xs sm:max-w-md w-full p-4 sm:p-6 md:p-8 mx-2">
           <div className="text-center">
-            <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-8 w-8 text-red-600" />
+            <div className="bg-red-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
             </div>
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Acceso Restringido</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Acceso Restringido</h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">
               Solo los dueños de mascotas pueden hacer reservas de servicios.
               {!userType && ' Por favor, inicia sesión como dueño de mascota.'}
               {userType && userType !== 'cliente' && ['veterinaria', 'paseador', 'cuidador'].includes(userType) && ` Tu cuenta actual es de tipo: ${getUserTypeLabel(userType)}.`}
             </p>
-            <div className="flex space-x-3">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base touch-manipulation"
               >
                 Cerrar
               </button>
@@ -412,39 +412,39 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 lg:p-8 overflow-y-auto"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto my-8">
+      <div className="bg-white rounded-xl sm:rounded-2xl max-w-sm sm:max-w-md md:max-w-lg lg:max-w-2xl xl:max-w-3xl w-full max-h-[95vh] sm:max-h-[90vh] md:max-h-[85vh] overflow-y-auto my-4 sm:my-6 md:my-8 transform transition-all duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+        <div className="flex items-center justify-between p-3 sm:p-4 md:p-6 border-b border-gray-200">
+          <div className="min-w-0 flex-1 pr-3">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 truncate">
               {getServiceTitle()}
             </h2>
-            <p className="text-lg font-semibold text-blue-600">
+            <p className="text-base sm:text-lg font-semibold text-blue-600 truncate">
               {getServicePrice()}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 sm:p-1.5 rounded-lg hover:bg-gray-100 touch-manipulation flex-shrink-0"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6">
           {/* Pet Information */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <Dog className="h-5 w-5 mr-2" />
-              Información de tu Mascota
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center">
+              <Dog className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
+              <span className="truncate">Información de tu Mascota</span>
             </h3>
-            <div className="grid md:grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                   Selecciona tu Mascota *
                 </label>
                 {cargandoMascotas ? (

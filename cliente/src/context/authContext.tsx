@@ -119,7 +119,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return usuarioCompleto;
     } catch (error) {
       console.error('Error en login:', error);
-      throw error;
+      
+      // Propagar el error con un mensaje más claro
+      if (error instanceof Error) {
+        throw error; // Ya tiene un mensaje apropiado de api.js
+      }
+      
+      // Error inesperado
+      throw new Error('Error inesperado al iniciar sesión. Intenta nuevamente.');
     }
   };
 

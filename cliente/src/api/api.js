@@ -49,7 +49,30 @@ export const loginUsuario = async (datos, tipo) => {
         return response;
     } catch (error) {
         console.error("Error al obtener el usuario:", error);
-        throw error;
+        
+        // Mejorar el manejo de errores del servidor
+        if (error.response?.status === 404) {
+            const errorMessage = error.response.data?.message || "Email o contraseña incorrectos";
+            throw new Error(errorMessage);
+        }
+        
+        if (error.response?.status === 400) {
+            const errorMessage = error.response.data?.message || "Datos de login inválidos";
+            throw new Error(errorMessage);
+        }
+        
+        // Para otros errores del servidor
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        
+        // Error de red o conexión
+        if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+            throw new Error("No se pudo conectar con el servidor. Verifica tu conexión a internet.");
+        }
+        
+        // Error genérico
+        throw new Error("Error al iniciar sesión. Intenta nuevamente.");
     }
 };
 

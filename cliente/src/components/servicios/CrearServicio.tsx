@@ -784,7 +784,7 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
                   <div className="grid md:grid-cols-3 gap-6 mb-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Duración (minutos) *
+                        Duración Estimada (minutos) *
                       </label>
                       <input
                         type="number"

@@ -375,23 +375,12 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
 
                     {/* Actions */}
                     <div className="flex space-x-2">
-                      <button className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center justify-center space-x-1">
                       <button
                         className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center justify-center space-x-1"
                         onClick={() => handleEditPet(mascota)}
                       >
                         <Edit className="h-4 w-4" />
                         <span>Editar</span>
-                      </button>
-    {/* Modal para editar mascota */}
-    {showEditModal && mascotaToEdit && (
-      <EditarMascotaModal
-        mascota={mascotaToEdit}
-        isOpen={showEditModal}
-        onClose={() => { setShowEditModal(false); setMascotaToEdit(null); }}
-        onSave={handleSaveEditPet}
-      />
-    )}
                       </button>
                       <button
                         onClick={() => handleDeletePet(mascota)}

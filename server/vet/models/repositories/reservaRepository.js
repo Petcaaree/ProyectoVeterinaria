@@ -7,14 +7,17 @@ export class ReservaRepository {
     }
 
     async save(reserva) {
-        const { id, ...datos } = reserva;
+        const { id, _id, ...datos } = reserva;
+        
+        // Usar _id o id para determinar si es una actualización
+        const reservaId = _id || id;
 
         let reservaGuardada;
 
-        if (id) {
+        if (reservaId) {
             // Actualiza si existe
             reservaGuardada = await this.model.findByIdAndUpdate(
-            id,
+            reservaId,
             datos,
             { new: true, runValidators: true }
             );
@@ -121,6 +124,9 @@ export class ReservaRepository {
         return reservas.map(reserva => {
             // Convertir el documento de Mongoose a objeto JS plano
             const reservaObj = reserva.toObject();
+
+                        reservaObj._id = reserva._id;
+
             
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
@@ -159,6 +165,9 @@ export class ReservaRepository {
         return reservas.map(reserva => {
             // Convertir el documento de Mongoose a objeto JS plano
             const reservaObj = reserva.toObject();
+
+                        reservaObj._id = reserva._id;
+
             
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
@@ -218,45 +227,13 @@ export class ReservaRepository {
 
         // Para cada reserva, buscar la mascota dentro del cliente
         reservas = reservas.map(reserva => {
-            // Convertir el documento de Mongoose a objeto JS plano
-            const reservaObj = reserva.toObject();
-            
-            if (reserva.cliente && reserva.cliente.mascotas) {
-                const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
-                if (mascota) {
-                    reservaObj.mascota = mascota;
-                }
-            }
-            return reservaObj;
-        });
-
-        return reservas;
-        }
-
-
-        async findByProveedor(pageNum, limitNum, usuarioProveedor) {
-        const skip = (pageNum - 1) * limitNum;
-
-        let reservas = await this.model.find({ usuarioProveedor })
-            .skip(skip)
-            .limit(limitNum)
-            .populate('cliente')
-            .populate({
-                path: 'servicioReservado',
-                populate: [
-                    { path: 'usuarioProveedor' },
-                    {
-                        path: 'direccion.localidad',
-                        populate: { path: 'ciudad' }
-                    }
-                ]
+            // Convertir el documento de Mongoose a objeto JS plano preservando _id
+            const reservaObj = reserva.toObject({ 
+                virtuals: true,
+                transform: false,
+                getters: true
             });
 
-        // Para cada reserva, buscar la mascota dentro del cliente
-        reservas = reservas.map(reserva => {
-            // Convertir el documento de Mongoose a objeto JS plano
-            const reservaObj = reserva.toObject();
-            
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
                 if (mascota) {
@@ -268,6 +245,9 @@ export class ReservaRepository {
 
         return reservas;
         }
+
+
+        
 
 
     async findAll() {
@@ -286,8 +266,12 @@ export class ReservaRepository {
 
         // Para cada reserva, buscar la mascota dentro del cliente
         reservas = reservas.map(reserva => {
-            // Convertir el documento de Mongoose a objeto JS plano
-            const reservaObj = reserva.toObject();
+            // Convertir el documento de Mongoose a objeto JS plano preservando _id
+            const reservaObj = reserva.toObject({ 
+                virtuals: true,
+                transform: false,
+                getters: true
+            });
             
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
@@ -317,8 +301,12 @@ export class ReservaRepository {
 
         // Para cada reserva, buscar la mascota dentro del cliente
         reservas = reservas.map(reserva => {
-            // Convertir el documento de Mongoose a objeto JS plano
-            const reservaObj = reserva.toObject();
+            // Convertir el documento de Mongoose a objeto JS plano preservando _id
+            const reservaObj = reserva.toObject({ 
+                virtuals: true,
+                transform: false,
+                getters: true
+            });
             
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());
@@ -355,8 +343,12 @@ export class ReservaRepository {
 
         // Para cada reserva, buscar la mascota dentro del cliente
         reservas = reservas.map(reserva => {
-            // Convertir el documento de Mongoose a objeto JS plano
-            const reservaObj = reserva.toObject();
+            // Convertir el documento de Mongoose a objeto JS plano preservando _id
+            const reservaObj = reserva.toObject({ 
+                virtuals: true,
+                transform: false,
+                getters: true
+            });
             
             if (reserva.cliente && reserva.cliente.mascotas) {
                 const mascota = reserva.cliente.mascotas.find(m => m._id.toString() === reserva.mascota.toString());

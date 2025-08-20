@@ -306,19 +306,19 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
                     <div>
                       <p className="text-sm font-medium text-gray-600">Proveedor</p>
                       <p className="text-lg font-semibold text-gray-900">
-                        {appointment.servicioReservado?.nombre || appointment.provider || 'No especificado'}
+                        {appointment.servicioReservado.usuarioProveedor.nombreUsuario || appointment.provider || 'No especificado'}
                       </p>
                     </div>
-                    {(appointment.telefonoContacto || appointment.phone) && (
+                    {(appointment.servicioReservado.usuarioProveedor.telefono || appointment.phone) && (
                       <div className="flex items-center space-x-2">
                         <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.telefonoContacto || appointment.phone}</span>
+                        <span className="text-gray-700">{appointment.servicioReservado.usuarioProveedor.telefono || appointment.phone}</span>
                       </div>
                     )}
-                    {(appointment.emailContacto || appointment.email) && (
+                    {(appointment.servicioReservado.usuarioProveedor.email || appointment.email) && (
                       <div className="flex items-center space-x-2">
                         <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.emailContacto || appointment.email}</span>
+                        <span className="text-gray-700">{appointment.servicioReservado.usuarioProveedor.email || appointment.email}</span>
                       </div>
                     )}
                   </div>

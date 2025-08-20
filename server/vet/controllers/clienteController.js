@@ -150,8 +150,9 @@ export class ClienteController {
       const { id } = req.params;
       
       const contador = await this.clienteService.getContadorNotificacionesNoLeidas(id);
-      
-      res.json({ contador });
+      console.log("Contador de notificaciones no leídas:", contador);
+
+      res.json({contador});
     } catch (error) {
       next(error);
     }

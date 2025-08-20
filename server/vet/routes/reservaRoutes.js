@@ -24,5 +24,13 @@ export default function reservaRoutes(getController) {
     getController(ReservaController).findByProveedor(req, res, next)
   })
 
+ 
+
+  router.put("/petcare/usuario/:idUsuario/reserva/:idReserva/:estado", (req, res, next) => {
+    getController(ReservaController).updateEstadoReserva(req, res, next)
+  })
+
+
+
   return router
 }

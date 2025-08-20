@@ -344,6 +344,8 @@ export class ReservaService {
             
             await this.clienteRepository.save(reserva.cliente)
             await this.reservaRepository.save(reserva)
+
+            return this.toDTO(reserva)
         
         } else if(nuevoEstado == "CANCELADA") {
             if(reserva.estado == EstadoReserva.CANCELADA) {
@@ -451,6 +453,8 @@ export class ReservaService {
             
             await this.reservaRepository.save(reserva)
 
+            return this.toDTO(reserva)
+
         } else {
             throw new ValidationError(`Estado ${nuevoEstado} desconocido`)
         }
@@ -508,12 +512,26 @@ export class ReservaService {
         return borrado;
     }
 
+    async updateEstadoReserva(idReserva, estado) {
+        const reserva = await this.reservaRepository.findById(idReserva);
+        if (!reserva) {
+            throw new NotFoundError(`Reserva con id ${idReserva} no encontrada`);
+        }
+
+        reserva.estado = estado;
+        await this.reservaRepository.save(reserva);
+        return this.toDTO(reserva);
+    }
+
+    
+
     toDTO(reserva) {
         const fechaInicio = dayjs(reserva.rangoFechas.fechaInicio).format("DD/MM/YYYY");
         const fechaFin = dayjs(reserva.rangoFechas.fechaFin).format("DD/MM/YYYY");
 
         
         return {
+            _id: reserva._id,  // Agregar _id para compatibilidad con frontend
             id: reserva.id,
             cliente: {
                 nombreUsuario: reserva.cliente.nombreUsuario,

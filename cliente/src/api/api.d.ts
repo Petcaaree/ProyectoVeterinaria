@@ -155,7 +155,7 @@ export declare function obetenerServiciosVeterinarias(page: number, filtro: any)
 export declare function createReserva(datos: any): Promise<any>;
 export declare function getTodasReservas(usuarioId: string,userType: string, estado: string, page: number): Promise<any>;
 export declare function getReservasPorEstado(usuarioId: string,userType: string, estado: string, page: number): Promise<any>;
-
+export declare function cambiarEstadoReserva(usuarioId: string, reservaId: string, estado: string): Promise<void>;
 /// ---------NOTIFICACIONES----------
 export declare function obtenerNotificacionesNoLeidas(usuarioId: string, leida: string, tipoUsuario: string, page: number): Promise<any>;
 export declare function obtenerNotificaciones(usuarioId: string, tipoUsuario: string, page: number): Promise<any>;

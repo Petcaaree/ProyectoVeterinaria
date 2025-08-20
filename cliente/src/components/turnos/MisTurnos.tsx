@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getTodasReservas, getReservasPorEstado } from '../../api/api';
+import { getTodasReservas, getReservasPorEstado, cambiarEstadoReserva } from '../../api/api';
 import { useAuth } from '../../context/authContext';
 import ReservaDetalleModal from './ReservaDetalleModal';
 import { Calendar, Clock, User, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -36,62 +36,58 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const { usuario, tipoUsuario } = useAuth();
   const userId = usuario?.id;
 
-  useEffect(() => {
-    console.log('userId:', userId);
-    console.log('tipoUsuario:', tipoUsuario);
+  // Función para cargar totales
+  const cargarTotales = async () => {
+    if (!userId || !tipoUsuario) return;
     
-    const cargarTotales = async () => {
-      if (!userId || !tipoUsuario) return;
-      
-      try {
-        // Cargar totales para cada estado
-        const [todasData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
-          getTodasReservas(userId, tipoUsuario, 'TODAS', 1),
-          getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE', 1),
-          getReservasPorEstado(userId, tipoUsuario, 'CONFIRMADA', 1),
-          getReservasPorEstado(userId, tipoUsuario, 'COMPLETADA', 1),
-          getReservasPorEstado(userId, tipoUsuario, 'CANCELADA', 1)
-        ]);
+    try {
+      // Cargar totales para cada estado
+      const [todasData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
+        getTodasReservas(userId, tipoUsuario, 'TODAS', 1),
+        getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE', 1),
+        getReservasPorEstado(userId, tipoUsuario, 'CONFIRMADA', 1),
+        getReservasPorEstado(userId, tipoUsuario, 'COMPLETADA', 1),
+        getReservasPorEstado(userId, tipoUsuario, 'CANCELADA', 1)
+      ]);
 
-        setTotalTodas(todasData.total || 0);
-        setTotalPendientes(pendientesData.total || 0);
-        setTotalConfirmadas(confirmadasData.total || 0);
-        setTotalCompletadas(completadasData.total || 0);
-        setTotalCanceladas(canceladasData.total || 0);
-      } catch (error) {
-        console.error('Error al cargar totales:', error);
+      setTotalTodas(todasData.total || 0);
+      setTotalPendientes(pendientesData.total || 0);
+      setTotalConfirmadas(confirmadasData.total || 0);
+      setTotalCompletadas(completadasData.total || 0);
+      setTotalCanceladas(canceladasData.total || 0);
+    } catch (error) {
+      console.error('Error al cargar totales:', error);
+    }
+  };
+
+  // Función para fetch de reservas
+  const fetchReservas = async () => {
+    if (!userId || !tipoUsuario) return;
+    setIsLoading(true);
+    try {
+      let data 
+      if (filter ==='TODAS') {
+         data = await getTodasReservas(userId, tipoUsuario, filter, page);
+         
+        setAppointments(data.data || []);
+        setTotalPages(data.total_pages || 0);
+      } else {
+         data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
+         
+        setAppointments(data.data || []);
+        setTotalPages(data.total_pages || 0);
       }
-    };
+    } catch {
+      // Puedes mostrar un mensaje de error si lo deseas
+      setAppointments([]);
+    } finally {
+      setIsLoading(false);
+      console.log('Final totalPages state:', totalPages); // Debug
+    }
+  };
 
-    const fetchReservas = async () => {
-        if (!userId || !tipoUsuario) return;
-        setIsLoading(true);
-        try {
-
-          let data 
-          if (filter ==='TODAS') {
-             data = await getTodasReservas(userId, tipoUsuario, filter, page);
-             console.log('Data TODAS:', data); // Debug
-             console.log('Total Pages TODAS:', data.total_pages); // Debug
-             console.log('Total TODAS:', data.total); // Debug
-            setAppointments(data.data || []);
-            setTotalPages(data.total_pages || 0);
-          } else {
-             data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
-             console.log('Data Por Estado:', data); // Debug
-             console.log('Total Pages Por Estado:', data.total_pages); // Debug
-             console.log('Total Por Estado:', data.total); // Debug
-            setAppointments(data.data || []);
-            setTotalPages(data.total_pages || 0);
-          }
-        } catch {
-          // Puedes mostrar un mensaje de error si lo deseas
-          setAppointments([]);
-        } finally {
-          setIsLoading(false);
-          console.log('Final totalPages state:', totalPages); // Debug
-        }
-      };
+  useEffect(() => {
+    
     
     fetchReservas();
     // Solo cargar totales cuando cambia el usuario, no en cada cambio de filtro/página
@@ -118,6 +114,105 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const handleFilterChange = (newFilter: 'TODAS' | 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA') => {
     setFilter(newFilter);
     setPage(1); // Reset a página 1 cuando cambia el filtro
+  };
+
+  // Función para extraer ID correctamente de MongoDB
+  const getReservaId = (appointment: Appointment): string | undefined => {
+    // Intentar diferentes formas de obtener el ID
+    const id = appointment._id || appointment.id;
+    
+    // Si es un ObjectId de MongoDB, convertir a string
+    if (id && typeof id === 'object' && id.toString) {
+      return id.toString();
+    }
+    
+    // Si ya es string, devolverlo
+    if (typeof id === 'string') {
+      return id;
+    }
+    
+    // Intentar usar otros campos como identificador temporal
+    // Esto es un workaround mientras se arregla el backend
+    if (appointment.servicioReservado?._id) {
+      console.warn('⚠️ Usando servicioReservado._id como identificador temporal');
+      return appointment.servicioReservado._id.toString();
+    }
+    
+    console.error('❌ No se pudo extraer ID válido del appointment:', appointment);
+    console.error('❌ El backend no está devolviendo el _id de la reserva');
+    return undefined;
+  };
+
+  // Función para cancelar reserva
+  const handleCancelarReserva = async (reservaId: string | undefined) => {
+    if (!reservaId) {
+      console.error('Error: ID de reserva no válido');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await cambiarEstadoReserva(userId, reservaId, 'CANCELADA');
+
+      // Recargar las reservas y totales
+      await Promise.all([
+        fetchReservas(),
+        cargarTotales()
+      ]);
+    } catch (error) {
+      console.error('Error al cancelar reserva:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para confirmar reserva
+  const handleConfirmarReserva = async (reservaId: string | undefined) => {
+    if (!reservaId) {
+      console.error('Error: ID de reserva no válido');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await cambiarEstadoReserva(userId, reservaId, 'CONFIRMADA');
+
+      // Recargar las reservas y totales
+      await Promise.all([
+        fetchReservas(),
+        cargarTotales()
+      ]);
+    } catch (error) {
+      console.error('Error al confirmar reserva:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para rechazar reserva
+  const handleRechazarReserva = async (reservaId: string | undefined) => {
+    if (!reservaId) {
+      console.error('Error: ID de reserva no válido');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await cambiarEstadoReserva(userId, reservaId, 'CANCELADA');
+
+      // Recargar las reservas y totales
+      await Promise.all([
+        fetchReservas(),
+        cargarTotales()
+      ]);
+    } catch (error) {
+      console.error('Error al rechazar reserva:', error);
+      // Aquí podrías mostrar un mensaje de error al usuario
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Como ahora el filtro se hace en el backend, no necesitamos filtrar en el frontend
@@ -187,19 +282,25 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
               <div className="flex items-center space-x-4">
                 <div className="bg-blue-100 p-3 rounded-full relative">
                   <Calendar className="h-8 w-8 text-blue-600" />
-                  {totalTodas > 0 && (
+                  {/* Para clientes: mostrar solo pendientes, para proveedores: todas */}
+                  {((tipoUsuario === 'cliente' ? totalPendientes : totalTodas) > 0) && (
                     <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
-                      {totalTodas}
+                      {tipoUsuario === 'cliente' ? totalPendientes : totalTodas}
                     </span>
                   )}
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">{getTitle()}</h1>
                   <p className="text-gray-600">
-                    {totalTodas > 0 
-                      ? `Tienes ${totalTodas} cita${totalTodas > 1 ? 's' : ''} en total`
-                      : 'No tienes citas'
-                    }
+                    {tipoUsuario === 'cliente' ? (
+                      totalPendientes > 0 
+                        ? `Tienes ${totalPendientes} cita${totalPendientes > 1 ? 's' : ''} pendiente${totalPendientes > 1 ? 's' : ''}`
+                        : 'No tienes citas pendientes'
+                    ) : (
+                      totalTodas > 0 
+                        ? `Tienes ${totalTodas} cita${totalTodas > 1 ? 's' : ''} en total`
+                        : 'No tienes citas'
+                    )}
                   </p>
                 </div>
               </div>
@@ -290,7 +391,16 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
           </div>
         ) : (
           <div className="space-y-6">
-            {filteredAppointments.map((appointment) => {
+            {filteredAppointments.map((appointment, index) => {
+              // Crear una key única usando la función getReservaId
+              const uniqueKey = getReservaId(appointment) || index;
+              
+              // Debug: ver la estructura completa del appointment
+              console.log('🔍 Estructura del appointment:', appointment);
+              console.log('🔍 appointment._id:', appointment._id);
+              console.log('🔍 appointment.id:', appointment.id);
+              console.log('🔍 Object.keys(appointment):', Object.keys(appointment));
+              
               // Ajuste: usar los campos reales del DTO
               const statusConfig = getStatusConfig(appointment.estado);
               const StatusIcon = statusConfig.icon;
@@ -305,7 +415,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
               const cliente = appointment.cliente?.nombreUsuario || '';
 
               return (
-                <div key={appointment.id} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                <div key={uniqueKey} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start space-x-4">
@@ -338,7 +448,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                       {tipoUsuario === 'cliente' ? (
-                        <>
+                        <React.Fragment key={`cliente-info-${uniqueKey}`}>
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-gray-400" />
                             <span className="text-sm text-gray-600">Proveedor: {proveedor}</span>
@@ -351,9 +461,9 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                             <Phone className="h-4 w-4 text-gray-400" />
                             <span className="text-sm text-gray-600">{telefono}</span>
                           </div>
-                        </>
+                        </React.Fragment>
                       ) : (
-                        <>
+                        <React.Fragment key={`proveedor-info-${uniqueKey}`}>
                           <div className="flex items-center space-x-2">
                             <User className="h-4 w-4 text-gray-400" />
                             <span className="text-sm text-gray-600">Cliente: {cliente}</span>
@@ -366,7 +476,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                             <Phone className="h-4 w-4 text-gray-400" />
                             <span className="text-sm text-gray-600">{telefono}</span>
                           </div>
-                        </>
+                        </React.Fragment>
                       )}
                     </div>
                     {/* Apartado de notas */}
@@ -378,6 +488,23 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                       {/* Acciones para cliente */}
                       {tipoUsuario === 'cliente' && (
                         <div className="flex space-x-2">
+                          {/* Botón de cancelar solo si está pendiente */}
+                          {(appointment.estado === 'PENDIENTE' || appointment.status === 'pending') && (
+                            <button 
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                              onClick={() => {
+                                console.log('Cancelando reserva, appointment completo:', appointment);
+                                const reservaId = getReservaId(appointment);
+                                console.log('ID extraído:', reservaId);
+                                if (reservaId) {
+                                  handleCancelarReserva(reservaId);
+                                }
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                          
                           <button
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                             onClick={() => { setSelectedReserva(appointment); setModalOpen(true); }}
@@ -392,14 +519,34 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                         <div className="flex space-x-2">
                           {/* Confirmar/Rechazar solo si está pendiente */}
                           {(appointment.estado === 'PENDIENTE' || appointment.status === 'pending') && (
-                            <>
-                              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
+                            <React.Fragment key={`botones-pendiente-${uniqueKey}`}>
+                              <button 
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                                onClick={() => {
+                                  console.log('Confirmando reserva, appointment completo:', appointment);
+                                  const reservaId = getReservaId(appointment);
+                                  console.log('ID extraído para confirmar:', reservaId);
+                                  if (reservaId) {
+                                    handleConfirmarReserva(reservaId);
+                                  }
+                                }}
+                              >
                                 Confirmar
                               </button>
-                              <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
+                              <button 
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                                onClick={() => {
+                                  console.log('Rechazando reserva, appointment completo:', appointment);
+                                  const reservaId = getReservaId(appointment);
+                                  console.log('ID extraído para rechazar:', reservaId);
+                                  if (reservaId) {
+                                    handleRechazarReserva(reservaId);
+                                  }
+                                }}
+                              >
                                 Rechazar
                               </button>
-                            </>
+                            </React.Fragment>
                           )}
                           
                           <button

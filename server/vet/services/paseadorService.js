@@ -186,7 +186,11 @@ export class PaseadorService {
             throw new NotFoundError(`Paseador con id ${id} no encontrado`)
         }
 
-        const notificaciones = paseador.notificaciones.map(n => this.notificacionToDTO(n))
+        // Invertir el orden para mostrar las más recientes primero
+        const notificaciones = paseador.notificaciones
+            .slice()  // Crear una copia para no modificar el original
+            .reverse() // Invertir el orden (más recientes primero)
+            .map(n => this.notificacionToDTO(n))
 
         const total = notificaciones.length
         const total_pages = Math.ceil(total / limit)

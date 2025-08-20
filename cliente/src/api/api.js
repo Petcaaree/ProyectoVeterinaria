@@ -539,9 +539,15 @@ export const getTodasReservas = async (userId, userType, estado, page) => {
     }
 };
 
-
-
-
+export const cambiarEstadoReserva = async (idUsuario, reservaId, estado) => {
+    try {
+        const response = await axios.put(`${API_URL}/usuario/${idUsuario}/reserva/${reservaId}/${estado}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error al cambiar el estado de la reserva:", error);
+        throw error;
+    }
+};
 
 /// ----------------------NOTIFICACIONES-------------------------
 
@@ -577,7 +583,7 @@ export const obtenerNotificaciones = async (usuarioId, tipoUsuario, pageNumber) 
 
 export const marcarLeidaCliente = async (usuarioId, notificacionId) => {
     try {
-        await axios.put(`${API_URL}/huesped/${usuarioId}/notificaciones/${notificacionId}`)
+        await axios.put(`${API_URL}/cliente/${usuarioId}/notificaciones/${notificacionId}`)
     } catch(error) {
         console.error("Error al marcar la notificación como leída");
         throw error;
@@ -604,7 +610,7 @@ export const marcarTodasLeidasProveedor = async (usuarioId, tipoProveedor) => {
 
 export const marcarTodasLeidasCliente = async (usuarioId) => {
     try {
-        await axios.put(`${API_URL}/huesped/${usuarioId}/marcarNotificacionLeidas`);
+        await axios.put(`${API_URL}/cliente/${usuarioId}/marcarNotificacionLeidas`);
     } catch (error) {
         console.error("Error al marcar todas las notificaciones como leídas del cliente");
         throw error;

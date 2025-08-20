@@ -51,5 +51,20 @@ export class ReservaController {
             next(error)
         }
     }
+
+    async updateEstadoReserva(req, res, next) {
+        try {
+            const { idUsuario, idReserva, estado } = req.params
+            const resultado = await this.reservaService.modificarEstado(idUsuario, idReserva, estado, null)
+
+            res.json(resultado);
+        } catch(error) {
+            next(error)
+        }
+    }
+
+
+
+    
 }
 

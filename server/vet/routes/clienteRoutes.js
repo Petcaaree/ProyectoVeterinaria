@@ -36,6 +36,11 @@ export default function clienteRoutes(getController) {
                 getController(ClienteController).obtenerTodasLasNotificaciones(req, res, next)
     })
 
+    // Nueva ruta para obtener solo el contador de notificaciones no leídas (DEBE IR ANTES de las rutas con parámetros)
+    router.get("/petcare/cliente/:id/notificaciones/contador", (req, res, next) =>
+        getController(ClienteController).obtenerContadorNotificacionesNoLeidas(req, res, next)
+    )
+
     router.get("/petcare/cliente/:id/notificaciones/:leida", (req, res, next) => {
                 getController(ClienteController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
     })
@@ -46,11 +51,6 @@ export default function clienteRoutes(getController) {
 
     router.put("/petcare/cliente/:id/marcarNotificacionLeidas", (req, res, next) =>
             getController(ClienteController).marcarTodasLasNotificacionesLeidas(req, res, next)
-    )
-
-    // Nueva ruta para obtener solo el contador de notificaciones no leídas
-    router.get("/petcare/cliente/:id/notificaciones/contador", (req, res, next) =>
-        getController(ClienteController).obtenerContadorNotificacionesNoLeidas(req, res, next)
     )
 
     router.get("/petcare/cliente/:id/notificaciones/:tipoLeida", (req, res, next) =>

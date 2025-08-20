@@ -75,9 +75,37 @@ function App() {
 
   const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services'>('home');
 
+  // Función de scroll al top ultra suave
+  const smoothScrollToTop = () => {
+    const startPosition = window.pageYOffset;
+    const duration = 1000; // 1 segundo para scroll al top
+    let start = 0;
+
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    };
+
+    const animation = (currentTime: number) => {
+      if (start === 0) start = currentTime;
+      const timeElapsed = currentTime - start;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      const easedProgress = easeInOutCubic(progress);
+      const currentPosition = startPosition * (1 - easedProgress);
+      
+      window.scrollTo(0, currentPosition);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  };
+
   // Scroll al top cada vez que cambia la vista
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollToTop();
   }, [currentView]);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
@@ -158,9 +186,43 @@ function App() {
     }
   };
 
+  // Función de scroll ultra suave personalizada
+  const smoothScrollTo = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const startPosition = window.pageYOffset;
+    const targetPosition = element.offsetTop - 100; // 100px de offset para headers
+    const distance = targetPosition - startPosition;
+    const duration = 1200; // 1.2 segundos para un scroll muy suave
+    let start = 0;
+
+    // Función de easing para hacer el scroll más natural
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    };
+
+    const animation = (currentTime: number) => {
+      if (start === 0) start = currentTime;
+      const timeElapsed = currentTime - start;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      const easedProgress = easeInOutCubic(progress);
+      const currentPosition = startPosition + (distance * easedProgress);
+      
+      window.scrollTo(0, currentPosition);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  };
+
   const handleExploreServices = () => {
     // Determinar a qué sección hacer scroll según el tipo de usuario
-    let targetId = 'servicios'; // Por defecto, servicios generales
+    let targetId = 'veterinaria'; // Por defecto, servicios veterinarios (igual que para clientes)
     
     if (tipoUsuario) {
       switch (tipoUsuario) {
@@ -178,18 +240,12 @@ function App() {
           targetId = 'cuidadores';
           break;
         default:
-          targetId = 'servicios';
+          targetId = 'veterinaria';
       }
     }
     
-    // Hacer scroll a la sección correspondiente
-    const element = document.getElementById(targetId);
-    if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+    // Usar nuestra función de scroll ultra suave
+    smoothScrollTo(targetId);
   };
 
   const getUserTypeLabel = (tipo: string) => {

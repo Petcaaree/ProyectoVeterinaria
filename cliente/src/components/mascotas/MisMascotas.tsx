@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Plus, PawPrint, Edit, Trash2, Calendar, Weight, Ruler, Heart, Dog, Cat, Bird } from 'lucide-react';
+import { ArrowLeft, Plus, PawPrint, Edit, Trash2, Calendar, Weight, Heart, Dog, Cat, Bird } from 'lucide-react';
+import EditarMascotaModal from './EditarMascotaModal';
 import { useAuth } from '../../context/authContext.tsx';
 interface MisMascotasProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
@@ -8,7 +9,7 @@ interface MisMascotasProps {
 }
 
 interface Mascota {
-  id: string; // Cambiar de _id a id para coincidir con la API
+  id: string;
   nombre: string;
   edad: number;
   tipo: string;
@@ -25,6 +26,8 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
   const [mascotaToDelete, setMascotaToDelete] = useState<Mascota | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [mascotaToEdit, setMascotaToEdit] = useState<Mascota | null>(null);
 
   const { usuario, getMascotas, deleteMascota } = useAuth();
 
@@ -35,8 +38,18 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
           setIsLoading(true);
           setError(null);
           const data = await getMascotas(usuario.id);
-          setMascotas(data || []); // Asegurar que siempre sea un array
-          console.log('Mascotas obtenidas:', data);
+          // Adaptar el array para asegurar que cada mascota tenga 'id'
+          const mascotasAdaptadas = (data || []).map((m: any) => ({
+            id: m.id || m._id,
+            nombre: m.nombre,
+            edad: m.edad,
+            tipo: m.tipo,
+            raza: m.raza,
+            peso: m.peso,
+            fotos: m.fotos
+          }));
+          setMascotas(mascotasAdaptadas);
+          console.log('Mascotas obtenidas:', mascotasAdaptadas);
         } catch (error) {
           console.error('Error al obtener mascotas:', error);
           setError('Error al cargar las mascotas');
@@ -76,6 +89,19 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
     setDeleteError(null); // Limpiar errores previos
     setShowDeleteModal(true);
   };
+
+  const handleEditPet = (mascota: Mascota) => {
+    setMascotaToEdit(mascota);
+    setShowEditModal(true);
+  };
+
+  const handleSaveEditPet = (mascotaEditada: Mascota) => {
+    setMascotas(prev => prev.map(m => m.id === mascotaEditada.id ? mascotaEditada : m));
+    setShowEditModal(false);
+    setMascotaToEdit(null);
+    // Aquí podrías agregar la llamada a la API para actualizar la mascota en el backend
+  };
+  
 
   const confirmDelete = async () => {
     if (mascotaToDelete && usuario && usuario.id) {
@@ -350,8 +376,22 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
                     {/* Actions */}
                     <div className="flex space-x-2">
                       <button className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center justify-center space-x-1">
+                      <button
+                        className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center justify-center space-x-1"
+                        onClick={() => handleEditPet(mascota)}
+                      >
                         <Edit className="h-4 w-4" />
                         <span>Editar</span>
+                      </button>
+    {/* Modal para editar mascota */}
+    {showEditModal && mascotaToEdit && (
+      <EditarMascotaModal
+        mascota={mascotaToEdit}
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setMascotaToEdit(null); }}
+        onSave={handleSaveEditPet}
+      />
+    )}
                       </button>
                       <button
                         onClick={() => handleDeletePet(mascota)}
@@ -506,8 +546,18 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
           </div>
         </div>
       )}
-    </div>
-  );
-};
+    {/* Modal para editar mascota */}
+    {showEditModal && mascotaToEdit && (
+      <EditarMascotaModal
+        mascota={mascotaToEdit}
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setMascotaToEdit(null); }}
+        onSave={handleSaveEditPet}
+      />
+    )}
+  </div>
+  )
+}
+// ...existing code...
 
 export default MisMascotas;

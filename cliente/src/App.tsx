@@ -164,6 +164,10 @@ function App() {
     
     if (tipoUsuario) {
       switch (tipoUsuario) {
+        case 'cliente':
+          // Los dueños van directamente a servicios veterinarios
+          targetId = 'veterinaria';
+          break;
         case 'veterinaria':
           targetId = 'veterinaria';
           break;

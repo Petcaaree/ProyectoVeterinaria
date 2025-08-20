@@ -250,6 +250,15 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     setIsBookingOpen(true);
   };
 
+  // Función para manejar reserva exitosa
+  const handleReservaExitosa = () => {
+    // Recargar los datos de la página actual
+    cargarVeterinarias(paginaActual);
+    // Cerrar el modal
+    setIsBookingOpen(false);
+    setSelectedService(null);
+  };
+
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
@@ -639,6 +648,7 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
         service={selectedService}
         serviceType="veterinaria"
         userType={userType}
+        onReservaExitosa={handleReservaExitosa}
       />
       
       {/* Calendario */}

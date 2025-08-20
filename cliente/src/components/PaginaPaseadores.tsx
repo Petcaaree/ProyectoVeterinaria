@@ -193,6 +193,9 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
     setIsBookingOpen(true);
   };
 
+  const handleReservaExitosa = () => {
+    cargarServicios();
+  };
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -454,6 +457,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         service={selectedPaseador}
         serviceType="paseador"
         userType={userType}
+        onReservaExitosa={handleReservaExitosa}
       />
 
       {/* Calendario */}

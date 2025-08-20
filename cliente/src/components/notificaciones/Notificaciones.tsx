@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead, ChevronLeft, ChevronRight, X, CalendarCheck } from 'lucide-react';
 import { useAuth } from '../../context/authContext.tsx';
 
 interface NotificacionesProps {
@@ -129,12 +129,17 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
   // Para el contador de no leídas, usar el total del backend
   const unreadCount = totalNoLeidas;
 
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'reminder':
-        return { icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100' };
-      default:
-        return { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' };
+  const getNotificationIcon = (message: string) => {
+    // Detectar tipo de mensaje basado en el contenido
+    if (message.toLowerCase().includes('confirmada')) {
+      return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' };
+    } else if (message.toLowerCase().includes('cancelada')) {
+      return { icon: X, color: 'text-red-600', bg: 'bg-red-100' };
+    } else if (message.toLowerCase().includes('realizada')) {
+      return { icon: CalendarCheck, color: 'text-blue-600', bg: 'bg-blue-100' };
+    } else {
+      // Para cualquier otro tipo de mensaje
+      return { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' };
     }
   };
 
@@ -324,7 +329,7 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
           <>
             <div className="space-y-4">
                {paginatedNotifications.map((notification: any) => {
-              const iconConfig = getNotificationIcon(notification.type || 'default');
+              const iconConfig = getNotificationIcon(notification.mensaje || '');
               const Icon = iconConfig.icon;
 
               return (

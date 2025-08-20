@@ -298,89 +298,196 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
               Información de Contacto
             </h3>
             
+            {userType === 'cliente' ? (
+              // Vista para clientes - mostrar info del proveedor
+              <div className="bg-white rounded-xl p-5 shadow-sm">
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <User className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Proveedor del Servicio</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {appointment.servicioReservado?.usuarioProveedor?.nombreUsuario || appointment.provider || 'No especificado'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(appointment.servicioReservado?.usuarioProveedor?.telefono || appointment.phone) && (
+                    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-green-100 p-2 rounded-lg">
+                        <Phone className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {appointment.servicioReservado.usuarioProveedor.telefono || appointment.phone}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(appointment.servicioReservado?.usuarioProveedor?.email || appointment.email) && (
+                    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-purple-100 p-2 rounded-lg">
+                        <Mail className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                        <p className="text-sm font-semibold text-gray-900 break-all">
+                          {appointment.servicioReservado.usuarioProveedor.email || appointment.email}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Vista para proveedores - mostrar info del cliente
+              <div className="bg-white rounded-xl p-5 shadow-sm">
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="bg-indigo-100 p-3 rounded-full">
+                    <User className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Cliente</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {appointment.cliente?.nombreUsuario || appointment.client || 'No especificado'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  {(appointment.telefonoContacto || appointment.phone) && (
+                    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-green-100 p-2 rounded-lg">
+                        <Phone className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {appointment.telefonoContacto || appointment.phone}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(appointment.emailContacto || appointment.cliente?.email) && (
+                    <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-lg">
+                      <div className="bg-purple-100 p-2 rounded-lg">
+                        <Mail className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</p>
+                        <p className="text-sm font-semibold text-gray-900 break-all">
+                          {appointment.emailContacto || appointment.cliente?.email}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {appointment.nombreDeContacto && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-yellow-100 p-2 rounded-lg">
+                        <User className="h-4 w-4 text-yellow-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-yellow-700 uppercase tracking-wide">Persona de Contacto</p>
+                        <p className="text-lg font-bold text-yellow-900">
+                          {appointment.nombreDeContacto}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Información de la mascota */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 mb-6 border border-green-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+              <Heart className="h-5 w-5 mr-2 text-green-600" />
+              Información de la Mascota
+            </h3>
+            
             <div className="grid md:grid-cols-2 gap-6">
-              {userType === 'cliente' ? (
-                // Vista para dueños - mostrar info del proveedor
-                <>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Proveedor</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {appointment.servicioReservado.usuarioProveedor.nombreUsuario || appointment.provider || 'No especificado'}
-                      </p>
-                    </div>
-                    {(appointment.servicioReservado.usuarioProveedor.telefono || appointment.phone) && (
-                      <div className="flex items-center space-x-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.servicioReservado.usuarioProveedor.telefono || appointment.phone}</span>
-                      </div>
-                    )}
-                    {(appointment.servicioReservado.usuarioProveedor.email || appointment.email) && (
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.servicioReservado.usuarioProveedor.email || appointment.email}</span>
-                      </div>
-                    )}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Nombre</p>
+                  <p className="text-lg font-semibold text-gray-900">
+                    {appointment.mascota?.nombre || appointment.pet || 'No especificado'}
+                  </p>
+                </div>
+                {appointment.mascota?.raza && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Raza</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {appointment.mascota.raza}
+                    </p>
                   </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Mascota</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {appointment.mascota?.nombre || appointment.pet || 'No especificado'}
-                      </p>
-                    </div>
-                    {appointment.nombreDeContacto && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Contacto</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {appointment.nombreDeContacto}
-                        </p>
-                      </div>
-                    )}
+                )}
+                {appointment.mascota?.especie && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Especie</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {appointment.mascota.especie}
+                    </p>
                   </div>
-                </>
-              ) : (
-                // Vista para proveedores - mostrar info del cliente
-                <>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Cliente</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {appointment.cliente?.nombreUsuario || appointment.client || 'No especificado'}
-                      </p>
-                    </div>
-                    {(appointment.telefonoContacto || appointment.phone) && (
-                      <div className="flex items-center space-x-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.telefonoContacto || appointment.phone}</span>
-                      </div>
-                    )}
-                    {(appointment.emailContacto || appointment.cliente?.email) && (
-                      <div className="flex items-center space-x-2">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-700">{appointment.emailContacto || appointment.cliente?.email}</span>
-                      </div>
-                    )}
+                )}
+              </div>
+              <div className="space-y-3">
+                {appointment.mascota?.edad && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Edad</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {appointment.mascota.edad} {appointment.mascota.edad === 1 ? 'año' : 'años'}
+                    </p>
                   </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Mascota</p>
-                      <p className="text-lg font-semibold text-gray-900">
-                        {appointment.mascota?.nombre || appointment.pet || 'No especificado'}
-                      </p>
-                    </div>
-                    {appointment.nombreDeContacto && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Contacto</p>
-                        <p className="text-lg font-semibold text-gray-900">
-                          {appointment.nombreDeContacto}
-                        </p>
-                      </div>
-                    )}
+                )}
+                {appointment.mascota?.peso && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Peso</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {appointment.mascota.peso} kg
+                    </p>
                   </div>
-                </>
-              )}
+                )}
+                {appointment.mascota?.genero && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Género</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {appointment.mascota.genero}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
+            
+            {/* Información médica adicional si existe */}
+            {(appointment.mascota?.condicionesMedicas || appointment.mascota?.observaciones) && (
+              <div className="mt-4 pt-4 border-t border-green-200">
+                {appointment.mascota?.condicionesMedicas && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-600">Condiciones Médicas</p>
+                    <p className="text-gray-700 bg-white p-3 rounded-lg shadow-sm">
+                      {appointment.mascota.condicionesMedicas}
+                    </p>
+                  </div>
+                )}
+                {appointment.mascota?.observaciones && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Observaciones</p>
+                    <p className="text-gray-700 bg-white p-3 rounded-lg shadow-sm">
+                      {appointment.mascota.observaciones}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Notas adicionales */}

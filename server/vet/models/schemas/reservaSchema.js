@@ -62,9 +62,9 @@ const reservaSchema = new mongoose.Schema({
   },
   notaAdicional: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
-    minlength: 1,
+    minlength: 0,
     maxlength: 1000,
   },
   cantidadDias: {

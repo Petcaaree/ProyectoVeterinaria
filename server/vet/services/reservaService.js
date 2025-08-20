@@ -3,13 +3,15 @@ import { RangoFechas } from "../models/entidades/RangoFechas.js"
 import { Reserva } from "../models/entidades/Reserva.js";
 import dayjs from "dayjs";
 import customParseFormat from "dayjs/plugin/customParseFormat.js";
+import 'dayjs/locale/es.js';
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js";
 import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
 
 
-dayjs.extend(customParseFormat)
+dayjs.extend(customParseFormat);
+dayjs.locale('es');
 
 export class ReservaService {
     constructor(reservaRepository, servicioVeterinariaRepository, servicioCuidadorRepository, servicioPaseadorRepository, clienteRepository, cuidadorRepository, paseadorRepository, veterinariaRepository) {
@@ -29,9 +31,12 @@ export class ReservaService {
 
         const reservas = await this.reservaRepository.findAll();
 
+        // Invertir array para mostrar las más recientes primero
+        const reservasInvertidas = reservas.reverse();
+
         // Aplicar paginación manualmente en el servicio
         const skip = (pageNum - 1) * limitNum;
-        const reservasPaginadas = reservas.slice(skip, skip + limitNum);
+        const reservasPaginadas = reservasInvertidas.slice(skip, skip + limitNum);
 
         const total = reservas.length;
         const total_pages = Math.ceil(total / limitNum);
@@ -69,11 +74,15 @@ export class ReservaService {
 
         if (estado === 'TODAS') {
             reservas = await this.reservaRepository.findByCliente( cliente)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
             total = reservas.length
             total_pages = Math.ceil(total / limitNum)
             data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
         } else   {
             reservas = await this.reservaRepository.findByClienteByEstado(cliente, estado)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
              total = reservas.length;
              total_pages = Math.ceil(total / limitNum);
              data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
@@ -148,11 +157,15 @@ export class ReservaService {
         let data
         if (estado === 'TODAS') {
             reservas = await this.reservaRepository.findByUsuarioProveedorByPage( serviciosIds)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
             total = reservas.length
              total_pages = Math.ceil(total / limitNum);
             data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
         } else{
              reservas = await this.reservaRepository.findByProveedorByEstado(serviciosIds, estado)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
             total = reservas.length
             total_pages = Math.ceil(total / limitNum);
             data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
@@ -175,7 +188,7 @@ export class ReservaService {
         const { clienteId, serviciOfrecido, servicioReservadoId, IdMascota, rangoFechas, horario, notaAdicional, nombreDeContacto, telefonoContacto, emailContacto } = reserva
 
         // Validar datos obligatorios básicos (sin horario, que es condicional)
-        if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas || !notaAdicional || !nombreDeContacto || !telefonoContacto || !emailContacto) {
+        if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas  || !nombreDeContacto || !telefonoContacto || !emailContacto) {
             
             const faltantes = []
             if (!clienteId) faltantes.push("clienteId")
@@ -183,7 +196,6 @@ export class ReservaService {
             if (!servicioReservadoId) faltantes.push("servicioReservadoId")
             if (!IdMascota) faltantes.push("IdMascota")
             if (!rangoFechas) faltantes.push("rangoFechas")
-            if (!notaAdicional) faltantes.push("notaAdicional")
             if (!nombreDeContacto) faltantes.push("nombreDeContacto")
             if (!telefonoContacto) faltantes.push("telefonoContacto")
             if (!emailContacto) faltantes.push("emailContacto")

@@ -10,9 +10,10 @@ interface ModalReservaProps {
   service: any;
   serviceType: 'veterinaria' | 'paseador' | 'cuidador';
   userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  onReservaExitosa?: () => void; // Nueva prop para callback cuando la reserva es exitosa
 }
 
-const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, serviceType, userType }) => {
+const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, serviceType, userType, onReservaExitosa }) => {
   // Helper para parsear fecha DD/MM/AAAA a Date object
 
   const {usuario, crearReserva, getMascotas} = useAuth();
@@ -362,9 +363,14 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     // Handle booking submission
     await crearReserva(formData); 
     setShowSuccess(true);
+    
     setTimeout(() => {
       setShowSuccess(false);
       onClose();
+      // Llamar al callback para recargar los datos de la página principal
+      if (onReservaExitosa) {
+        onReservaExitosa();
+      }
     }, 2500);
   };
 

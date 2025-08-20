@@ -282,25 +282,20 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
               <div className="flex items-center space-x-4">
                 <div className="bg-blue-100 p-3 rounded-full relative">
                   <Calendar className="h-8 w-8 text-blue-600" />
-                  {/* Para clientes: mostrar solo pendientes, para proveedores: todas */}
-                  {((tipoUsuario === 'cliente' ? totalPendientes : totalTodas) > 0) && (
+                  {/* Para todos los usuarios: mostrar solo pendientes */}
+                  {totalPendientes > 0 && (
                     <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold">
-                      {tipoUsuario === 'cliente' ? totalPendientes : totalTodas}
+                      {totalPendientes}
                     </span>
                   )}
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">{getTitle()}</h1>
                   <p className="text-gray-600">
-                    {tipoUsuario === 'cliente' ? (
-                      totalPendientes > 0 
-                        ? `Tienes ${totalPendientes} cita${totalPendientes > 1 ? 's' : ''} pendiente${totalPendientes > 1 ? 's' : ''}`
-                        : 'No tienes citas pendientes'
-                    ) : (
-                      totalTodas > 0 
-                        ? `Tienes ${totalTodas} cita${totalTodas > 1 ? 's' : ''} en total`
-                        : 'No tienes citas'
-                    )}
+                    {totalPendientes > 0 
+                      ? `Tienes ${totalPendientes} cita${totalPendientes > 1 ? 's' : ''} pendiente${totalPendientes > 1 ? 's' : ''}`
+                      : 'No tienes citas pendientes'
+                    }
                   </p>
                 </div>
               </div>
@@ -344,6 +339,13 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                                 key === 'COMPLETADA' ? totalCompletadas :
                                 totalCanceladas;
                   
+                  // Para TODAS: no mostrar contador nunca
+                  // Para PENDIENTES: mostrar contador siempre excepto cuando sea 0
+                  // Para otros: mostrar contador solo cuando está seleccionado y count > 0
+                  const shouldShowCounter = key === 'TODAS' ? false :
+                                          key === 'PENDIENTE' ? count > 0 :
+                                          (filter === key && count > 0);
+                  
                   return (
                     <button
                       key={key}
@@ -355,7 +357,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                       }`}
                     >
                       <span>{label}</span>
-                      {filter === key && count > 0 && (
+                      {shouldShowCounter && (
                         <span className={`ml-1 px-2 py-1 rounded-full text-xs font-bold ${
                           filter === key 
                             ? 'bg-red-600 text-white' 

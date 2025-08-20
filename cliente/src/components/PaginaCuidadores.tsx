@@ -194,6 +194,15 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
     setIsBookingOpen(true);
   };
 
+  // Función para manejar reserva exitosa
+  const handleReservaExitosa = () => {
+    // Recargar los datos de la página actual
+    cargarServicios();
+    // Cerrar el modal
+    setIsBookingOpen(false);
+    setSelectedCuidador(null);
+  };
+
  
 
   // Check if cuidador is available on selected date
@@ -555,7 +564,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
         onClose={() => setIsBookingOpen(false)}
         service={selectedCuidador}
         serviceType="cuidador"
-       userType={userType}
+        userType={userType}
+        onReservaExitosa={handleReservaExitosa}
       />
       </div>
 

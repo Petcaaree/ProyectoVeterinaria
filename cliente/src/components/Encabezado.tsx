@@ -34,6 +34,19 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
     setIsUserMenuOpen(!isUserMenuOpen);
   };
 
+  const handleLogoClick = () => {
+    // Cambiar a la vista de inicio y al servicio overview
+    if (onViewChange) {
+      onViewChange('home');
+    }
+    if (onServiceChange) {
+      onServiceChange('overview');
+    }
+    // Cerrar menús si están abiertos
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+  };
+
   const handleServiceClick = (service: 'overview' | 'veterinaria' | 'paseador' | 'cuidador') => {
     if (onServiceChange) {
       onServiceChange(service);
@@ -216,7 +229,10 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleLogoClick}
+          >
             <div className="bg-blue-600 p-2 rounded-lg">
               <Heart className="h-6 w-6 text-white" />
             </div>

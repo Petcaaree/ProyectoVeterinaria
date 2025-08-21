@@ -29,7 +29,7 @@ export class LocalidadRepository {
     }
 
     async findAll() {
-        return await this.model.find()
+        return await this.model.find().populate('ciudad')
     }
 
     async countAll() {

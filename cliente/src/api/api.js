@@ -657,3 +657,13 @@ export const obtenerContadorNotificacionesNoLeidas = async (usuarioId, tipoUsuar
         throw error;
     }
 };
+
+export const getLocalidades = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/localidades`);
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener localidades:", error);
+        throw error;
+    }
+};

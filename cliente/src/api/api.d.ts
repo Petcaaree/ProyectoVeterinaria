@@ -125,6 +125,7 @@ export interface DatosServicioCuidador {
     };
   };
 }
+export declare function getLocalidades(): Promise<any>;
 
 export declare function getServiciosPaseadores(pageNumber: number, filtros?: any): Promise<any>;
 export declare function getAlojamientos(pageNumber: number, filtros: FiltrosAlojamiento): Promise<any>;

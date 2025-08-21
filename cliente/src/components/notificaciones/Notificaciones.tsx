@@ -35,25 +35,18 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
     setIsLoading(true);
     try {
       let data;
-      
       if (filter === 'Noleidas') {
-        // Usar la API específica para notificaciones no leídas
         data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, page);
       } else {
-        // Usar la API general para todas las notificaciones
         data = await getNotificationes(usuario.id, userType as string, page);
       }
-      
-      // Manejar respuesta paginada del backend
       setNotifications(data?.data || []);
       setTotalPages(data?.total_pages || 0);
       setTotal(data?.total || 0);
-      
-      // Verificar si la página actual coincide con la respuesta
-      if (data?.page !== page) {
-        setPage(data?.page || 1);
+      // Solo actualizar el número de página si la respuesta del backend es válida y diferente
+      if (typeof data?.page === 'number' && data.page > 0 && data.page !== page) {
+        setPage(data.page);
       }
-      
     } catch (error) {
       console.error('Error al cargar notificaciones:', error);
       setNotifications([]);
@@ -131,7 +124,9 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
 
   const getNotificationIcon = (message: string) => {
     // Detectar tipo de mensaje basado en el contenido
-    if (message.toLowerCase().includes('recordatorio')) {
+    if (message.toLowerCase().includes('cancelada automáticamente')) {
+      return { icon: X, color: 'text-orange-600', bg: 'bg-orange-100' };
+    } else if (message.toLowerCase().includes('recordatorio')) {
       return { icon: AlarmClock, color: 'text-orange-600', bg: 'bg-orange-100' };
     } else if (message.toLowerCase().includes('confirmada')) {
       return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' };

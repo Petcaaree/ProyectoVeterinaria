@@ -153,7 +153,7 @@ export class VeterinariaService {
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = veterinaria.notificaciones;
+        const notificaciones = veterinaria.notificaciones.reverse();
 
         let data
         if(leida == "true") {

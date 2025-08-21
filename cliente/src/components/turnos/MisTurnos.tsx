@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import Toast from '../comun/Toast.tsx';
+import { useToast } from '../../hooks/useToast.ts';
 import { getTodasReservas, getReservasPorEstado, cambiarEstadoReserva } from '../../api/api';
 import { useAuth } from '../../context/authContext';
 import ReservaDetalleModal from './ReservaDetalleModal';
@@ -143,25 +145,29 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     return undefined;
   };
 
+  // Toast hook
+  const { toast, showError, showSuccess, hideToast } = useToast();
+
   // Función para cancelar reserva
   const handleCancelarReserva = async (reservaId: string | undefined) => {
     if (!reservaId) {
       console.error('Error: ID de reserva no válido');
+      showError('ID de reserva no válido');
       return;
     }
-    
     try {
       setIsLoading(true);
       await cambiarEstadoReserva(userId, reservaId, 'CANCELADA');
-
-      // Recargar las reservas y totales
       await Promise.all([
         fetchReservas(),
         cargarTotales()
       ]);
-    } catch (error) {
+      showSuccess('Reserva cancelada correctamente');
+    } catch (error: any) {
       console.error('Error al cancelar reserva:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      // Mostrar error del backend si existe
+      const mensaje = error?.response?.data?.message || error?.message || 'Error al cancelar la reserva';
+      showError(mensaje);
     } finally {
       setIsLoading(false);
     }
@@ -171,21 +177,21 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const handleConfirmarReserva = async (reservaId: string | undefined) => {
     if (!reservaId) {
       console.error('Error: ID de reserva no válido');
+      showError('ID de reserva no válido');
       return;
     }
-    
     try {
       setIsLoading(true);
       await cambiarEstadoReserva(userId, reservaId, 'CONFIRMADA');
-
-      // Recargar las reservas y totales
       await Promise.all([
         fetchReservas(),
         cargarTotales()
       ]);
-    } catch (error) {
+      showSuccess('Reserva confirmada correctamente');
+    } catch (error: any) {
       console.error('Error al confirmar reserva:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      const mensaje = error?.response?.data?.message || error?.message || 'Error al confirmar la reserva';
+      showError(mensaje);
     } finally {
       setIsLoading(false);
     }
@@ -195,21 +201,21 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const handleRechazarReserva = async (reservaId: string | undefined) => {
     if (!reservaId) {
       console.error('Error: ID de reserva no válido');
+      showError('ID de reserva no válido');
       return;
     }
-    
     try {
       setIsLoading(true);
       await cambiarEstadoReserva(userId, reservaId, 'CANCELADA');
-
-      // Recargar las reservas y totales
       await Promise.all([
         fetchReservas(),
         cargarTotales()
       ]);
-    } catch (error) {
+      showSuccess('Reserva rechazada correctamente');
+    } catch (error: any) {
       console.error('Error al rechazar reserva:', error);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      const mensaje = error?.response?.data?.message || error?.message || 'Error al rechazar la reserva';
+      showError(mensaje);
     } finally {
       setIsLoading(false);
     }
@@ -603,6 +609,13 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
           </div>
         )}
       </div>
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     {/* Modal de detalle de reserva */}
     {selectedReserva && (
       <ReservaDetalleModal

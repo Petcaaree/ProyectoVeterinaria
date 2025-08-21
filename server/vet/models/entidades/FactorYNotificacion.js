@@ -1,3 +1,4 @@
+
 import { Notificacion } from './Notificacion.js';
 import { Cuidador } from './Cuidador.js';
 import { Paseador } from './Paseador.js';
@@ -42,6 +43,36 @@ export class FactoryNotificacion {
              mensaje = `Tu reserva con ${usuarioProveedor.nombreUsuario} de ${tipoServicio} ha sido confirmada el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} a las ${reserva.horario}`;
          }
 
+    return new Notificacion(mensaje);
+  }
+
+    static crearCancelacionAutomaticaParaCliente(reserva, motivo) {
+    const usuarioProveedor = reserva.servicioReservado.usuarioProveedor;
+    const cliente = reserva.cliente;
+    let mensaje;
+    if (reserva.serviciOfrecido === "ServicioCuidador") {
+      mensaje = `La reserva de cuidado con ${usuarioProveedor.nombreUsuario} del ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} hasta el ${this.formatearFecha(reserva.rangoFechas.fechaFin)} fue cancelada automáticamente. Motivo: ${motivo}`;
+    } else if (reserva.serviciOfrecido === "ServicioPaseador") {
+      mensaje = `La reserva de paseo con ${usuarioProveedor.nombreUsuario} el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} a las ${reserva.horario} fue cancelada automáticamente. Motivo: ${motivo}`;
+    } else {
+      const tipoServicio = reserva.servicioReservado.tipoServicio || 'servicio veterinario';
+      mensaje = `La reserva de ${tipoServicio} con ${usuarioProveedor.nombreUsuario} el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} a las ${reserva.horario} fue cancelada automáticamente. Motivo: ${motivo}`;
+    }
+    return new Notificacion(mensaje);
+  }
+
+  static crearCancelacionAutomaticaParaProveedor(reserva, motivo) {
+    const usuarioProveedor = reserva.servicioReservado.usuarioProveedor;
+    const cliente = reserva.cliente;
+    let mensaje;
+    if (reserva.serviciOfrecido === "ServicioCuidador") {
+      mensaje = `La reserva de cuidado con ${cliente.nombreUsuario} del ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} hasta el ${this.formatearFecha(reserva.rangoFechas.fechaFin)} fue cancelada automáticamente. Motivo: ${motivo}`;
+    } else if (reserva.serviciOfrecido === "ServicioPaseador") {
+      mensaje = `La reserva de paseo con ${cliente.nombreUsuario} el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} a las ${reserva.horario} fue cancelada automáticamente. Motivo: ${motivo}`;
+    } else {
+      const tipoServicio = reserva.servicioReservado.tipoServicio || 'servicio veterinario';
+      mensaje = `La reserva de ${tipoServicio} con ${cliente.nombreUsuario} el ${this.formatearFecha(reserva.rangoFechas.fechaInicio)} a las ${reserva.horario} fue cancelada automáticamente. Motivo: ${motivo}`;
+    }
     return new Notificacion(mensaje);
   }
 

@@ -36,13 +36,20 @@ const TarjetaPaseador: React.FC<TarjetaPaseadorProps> = ({ paseador, alContratar
   return (
     <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden flex flex-col h-full">
       {/* Encabezado del perfil */}
-      <div className="h-48 bg-gradient-to-br from-green-400 to-blue-500 relative">
-        <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-        <div className="absolute bottom-4 left-4 right-4">
-          <h3 className="text-xl font-bold text-white mb-1">
-            {paseador?.nombreContacto }
-          </h3>
+      <div className="bg-gradient-to-br from-green-600 to-blue-400 p-6 text-white relative">
+        <div className="absolute top-4 right-4">
+          <div className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
+            {/* {cuidador.experience} */} 4 años
+          </div>
+        </div>
+        <h3 className="text-xl font-bold mb-2">
+          {paseador.nombreContacto}
+        </h3>
+        <div className="flex items-center space-x-2 mb-3">
           <EstrellaCalificacion calificacion={3} />
+        </div>
+        <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-sm font-bold inline-block">
+          {formatearPrecio(paseador.precio)}/día
         </div>
       </div>
       

@@ -153,7 +153,7 @@ export class CuidadorService {
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = cuidador.notificaciones;
+        const notificaciones = cuidador.notificaciones.reverse();
 
         let data
         if(leida == "true") {

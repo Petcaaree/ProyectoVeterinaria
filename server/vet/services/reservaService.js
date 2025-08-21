@@ -574,9 +574,10 @@ export class ReservaService {
         const fechaInicio = dayjs(reserva.rangoFechas.fechaInicio);
 
         if (reserva.serviciOfrecido === "ServicioCuidador") {
-            // Para cuidadores: no se puede cancelar el mismo día
-            if (ahora.isSame(fechaInicio, 'day')) {
-                throw new ValidationError("No se puede cancelar un servicio de cuidado el mismo día del servicio");
+            // Para cuidadores: solo se puede cancelar con mínimo 3 días de anticipación
+            const tresDiasAntes = fechaInicio.subtract(3, 'days').hour(23).minute(59).second(59);
+            if (ahora.isAfter(tresDiasAntes)) {
+                throw new ValidationError("No se puede cancelar un servicio de cuidado con menos de 3 días de anticipación");
             }
         } else if (reserva.serviciOfrecido === "ServicioVeterinaria" || reserva.serviciOfrecido === "ServicioPaseador") {
             // Para veterinarias y paseadores: verificar horario y permitir cancelación hasta 3 horas antes

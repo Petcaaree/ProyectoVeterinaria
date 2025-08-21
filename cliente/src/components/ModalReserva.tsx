@@ -231,58 +231,53 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   // Función para obtener todos los horarios con su estado (disponible/ocupado)
   const obtenerHorariosConEstado = (fecha: string): { horario: string; disponible: boolean }[] => {
     if (!fecha) return [];
-    
-    // Verificar si el día de la semana está disponible
     if (!esFechaDisponible(fecha)) return [];
-    
-    // Obtener horarios base del servicio
     const horariosBase = service?.horariosDisponibles || service?.servicioReservado?.horariosDisponibles || [];
-    
-    if (!horariosBase || horariosBase.length === 0) {
-      return [];
-    }
-    
-    // Convertir fecha DD/MM/YYYY a formato para comparar
+    if (!horariosBase || horariosBase.length === 0) return [];
     const [dia, mes, año] = fecha.split('/');
     const fechaParaComparar = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
-    
-    // Obtener fechas no disponibles
     const fechasNoDisponibles = service?.fechasNoDisponibles || service?.servicioReservado?.fechasNoDisponibles;
-    
     let horariosOcupados: string[] = [];
-    
-    // Buscar horarios ocupados para esta fecha específica
     if (fechasNoDisponibles && Array.isArray(fechasNoDisponibles)) {
       const fechaNoDisponible = fechasNoDisponibles.find((item: { fecha: string; horariosNoDisponibles: string[] }) => {
         if (!item.fecha) return false;
-        
         const fechaISO = new Date(item.fecha);
         const fechaComparar = new Date(fechaISO.getFullYear(), fechaISO.getMonth(), fechaISO.getDate());
         const fechaLocal = new Date(fechaParaComparar.getFullYear(), fechaParaComparar.getMonth(), fechaParaComparar.getDate());
-        
         return fechaComparar.getTime() === fechaLocal.getTime();
       });
-      
       if (fechaNoDisponible?.horariosNoDisponibles) {
         horariosOcupados = fechaNoDisponible.horariosNoDisponibles;
       }
     }
-    
-    // Crear array con todos los horarios y su estado, ordenados cronológicamente
+    // Mostrar todos los horarios, pero bloquear los que ya pasaron o faltan menos de 2h (veterinaria/paseador, hoy)
+    const hoy = new Date();
+    const esHoy = (
+      fechaParaComparar.getFullYear() === hoy.getFullYear() &&
+      fechaParaComparar.getMonth() === hoy.getMonth() &&
+      fechaParaComparar.getDate() === hoy.getDate()
+    );
+    const ahoraMin = hoy.getHours() * 60 + hoy.getMinutes();
     const horariosConEstado = horariosBase
-      .map((horario: string) => ({
-        horario,
-        disponible: !horariosOcupados.includes(horario)
-      }))
-      .sort((a: { horario: string; disponible: boolean }, b: { horario: string; disponible: boolean }) => {
-        // Ordenar por hora (convertir HH:MM a minutos para comparar)
+      .map((horario: string) => {
+        let disponible = !horariosOcupados.includes(horario);
+        if ((serviceType === 'veterinaria' || serviceType === 'paseador') && esHoy) {
+          const [hH, hM] = horario.split(':').map(Number);
+          const horarioMin = hH * 60 + hM;
+          // Si ya pasó o faltan menos de 2h, bloquear
+          if ((horarioMin - ahoraMin) < 120) {
+            disponible = false;
+          }
+        }
+        return { horario, disponible };
+      })
+      .sort((a, b) => {
         const timeA = a.horario.split(':').map(Number);
         const timeB = b.horario.split(':').map(Number);
         const minutesA = timeA[0] * 60 + timeA[1];
         const minutesB = timeB[0] * 60 + timeB[1];
         return minutesA - minutesB;
       });
-    
     return horariosConEstado;
   };
 
@@ -402,9 +397,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       case 'veterinaria':
         return formatPrice(service?.precio || service?.price);
       case 'paseador':
-        return `${formatPrice(service?.pricePerHour)}/hora`;
+        return `${formatPrice(service?.precio)}/hora`;
       case 'cuidador':
-        return `${formatPrice(service?.pricePerDay)}/día`;
+        return `${formatPrice(service?.precio)}/día`;
       default:
         return '';
     }
@@ -791,6 +786,64 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           </div>
 
           {/* Submit Button */}
+          {/* Resumen de total para cuidadores */}
+          {(() => {
+            let show = false;
+            let label = '';
+            let subtotal = 0;
+            let tarifaServicio = 0;
+            let total = 0;
+            let detalle = '';
+            if (serviceType === 'cuidador' && formData.rangoFechas.fechaInicio && formData.rangoFechas.fechaFin && validarFechas().esValido) {
+              const fechaInicio = parsearFecha(formData.rangoFechas.fechaInicio);
+              const fechaFin = parsearFecha(formData.rangoFechas.fechaFin);
+              if (fechaInicio && fechaFin && fechaInicio <= fechaFin) {
+                const dias = Math.ceil((fechaFin.getTime() - fechaInicio.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                const precioDia = service?.precio || 0;
+                subtotal = dias * precioDia;
+                tarifaServicio = Math.round(subtotal * 0.1);
+                total = subtotal + tarifaServicio;
+                detalle = `(${dias} día${dias > 1 ? 's' : ''} x ${formatPrice(precioDia)})`;
+                show = true;
+                label = 'Resumen de la reserva';
+              }
+            } else if ((serviceType === 'paseador' || serviceType === 'veterinaria') && formData.rangoFechas.fechaInicio && formData.horario) {
+              const precio = service?.precio || 0;
+              subtotal = precio;
+              tarifaServicio = Math.round(subtotal * 0.1);
+              total = subtotal + tarifaServicio;
+              if (serviceType === 'paseador') {
+                detalle = '(1 hora)';
+                label = 'Resumen del paseo';
+              } else {
+                detalle = '';
+                label = 'Resumen de la consulta';
+              }
+              show = true;
+            }
+            if (!show) return null;
+            return (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg max-w-md mx-auto">
+                <span className="text-green-700 font-semibold text-base mb-3 block">{label}</span>
+                <div className="w-full">
+                  <div className="flex justify-between text-gray-700 text-sm mb-1">
+                    <span>Subtotal {detalle}</span>
+                    <span>{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700 text-sm mb-1">
+                    <span>Tarifa de servicio (10%)</span>
+                    <span>{formatPrice(tarifaServicio)}</span>
+                  </div>
+                  <div className="border-t border-green-200 my-2"></div>
+                  <div className="flex justify-between text-lg font-bold text-green-900">
+                    <span>Total</span>
+                    <span>{formatPrice(total)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          
           <div className="flex space-x-4">
             <button
               type="button"
@@ -808,7 +861,8 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 (serviceType === 'paseador' && !formData.horario) ||
                 (serviceType === 'cuidador' && (!formData.rangoFechas.fechaFin || !validarFechas().esValido))
               }
-              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className={`flex-1 px-6 py-3 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed
+                ${serviceType === 'cuidador' ? 'bg-orange-600 hover:bg-orange-700' : serviceType === 'paseador' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
               Confirmar Reserva
             </button>
@@ -844,7 +898,6 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           onFechaSeleccionada={(fecha) => {
             const fechaFin = formData.rangoFechas.fechaFin;
             const nuevaFechaInicio = fecha; // Ya es string
-            
             setFormData(prev => ({
               ...prev,
               rangoFechas: {
@@ -855,7 +908,12 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             setMostrarCalendarioInicio(false);
           }}
           onCerrar={() => setMostrarCalendarioInicio(false)}
-          fechaMinima={new Date().toISOString().split('T')[0]}
+          // Bloquear el mismo día para cuidadores
+          fechaMinima={(() => {
+            const hoy = new Date();
+            hoy.setDate(hoy.getDate() + 1);
+            return hoy.toISOString().split('T')[0];
+          })()}
           colorTema="orange"
           titulo="Fecha de inicio del cuidado"
           diasDisponibles={service?.diasDisponibles}

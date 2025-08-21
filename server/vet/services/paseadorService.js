@@ -154,7 +154,7 @@ export class PaseadorService {
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = paseador.notificaciones;
+        const notificaciones = paseador.notificaciones.reverse();
 
         let data
         if(leida == "true") {

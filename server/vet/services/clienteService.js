@@ -163,7 +163,7 @@ export class ClienteService {
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = cliente.notificaciones;
+        const notificaciones = cliente.notificaciones.reverse();
 
         let data
         if(leida == "true") {

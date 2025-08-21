@@ -61,9 +61,15 @@ const EditarMascotaModal: React.FC<EditarMascotaModalProps> = ({ mascota, isOpen
     }
   };
 
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full mx-4 transform transition-all duration-300 scale-100 opacity-100">
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 backdrop-blur-sm" onClick={handleBackdropClick}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto transform transition-all duration-300 scale-100 opacity-100 overflow-y-auto max-h-[95vh]" onClick={e => e.stopPropagation()}>
         {/* Header del modal con gradiente */}
         <div className="bg-gradient-to-r from-purple-600 via-purple-700 to-pink-600 p-4 text-white relative overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-10"></div>

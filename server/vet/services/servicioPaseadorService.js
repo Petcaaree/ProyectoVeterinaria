@@ -146,8 +146,8 @@ export class ServicioPaseadorService {
         };
     }
 
-   async create(servicioPaseador) {
-        const { idPaseador, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, direccion } = servicioPaseador
+    async create(servicioPaseador) {
+          const { idPaseador, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, direccion, maxPerros } = servicioPaseador
 
         if(!idPaseador || !nombreServicio  || !precio || !descripcion || !duracionMinutos || !nombreContacto  || !emailContacto || !telefonoContacto || !diasDisponibles || !horariosDisponibles || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
@@ -218,7 +218,8 @@ export class ServicioPaseadorService {
             telefonoContacto,               // telefonoContacto
             diasDisponibles,               // diasDisponibles
             horariosDisponibles,           // horariosDisponibles
-            objectDireccion                 // direccion
+            objectDireccion,                // direccion
+            maxPerros                       // maxPerros
         )
 
         const servicioGuardado = await this.servicioPaseadorRepository.save(nuevoServicioPaseador)
@@ -326,7 +327,8 @@ async delete(id) {
             fechasNoDisponibles: servicoPaseador.fechasNoDisponibles,
             estado: servicoPaseador.estado,
             fechaCreacion: servicoPaseador.fechaCreacion,
-            cantidadReservas: servicoPaseador.cantidadReservas
+            cantidadReservas: servicoPaseador.cantidadReservas,
+            maxPerros: servicoPaseador.maxPerros ?? 1
         }
     }
     notificacionToDTO(notificacion) {

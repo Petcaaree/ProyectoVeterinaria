@@ -8,7 +8,7 @@ import { useAuth } from '../../context/authContext.tsx';
 
 
 interface CrearServicioProps {
-  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' ;
   onBack: () => void;
 }
 
@@ -100,14 +100,15 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
   const [formDataPaseador, setFormDataPaseador] = useState({
     idPaseador: usuario?.id ,
     nombreServicio: '',
+    maxPerros: 1,
     descripcion: '',
     precio: '',
     duracionMinutos: '',
     horariosDisponibles: [] as string[],
     diasDisponibles: [] as string[],
-    nombreContacto: '',
-    telefonoContacto: '',
-    emailContacto: '',
+    nombreContacto: usuario?.nombreUsuario || '',
+    telefonoContacto: usuario?.telefono || '',
+    emailContacto: usuario?.email || '',
     direccion: {
       calle: usuario?.direccion?.calle || '',
       altura: usuario?.direccion?.altura || '',
@@ -1220,6 +1221,30 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cantidad máxima de perros por paseo *
+                      </label>
+                      <input
+                        type="number"
+                        name="maxPerros"
+                        min={1}
+                        step={1}
+                        value={formDataPaseador.maxPerros === undefined || formDataPaseador.maxPerros === null ? '' : formDataPaseador.maxPerros}
+                        onChange={e => {
+                          const val = e.target.value.replace(/^0+(?!$)/, '');
+                          setFormDataPaseador(prev => ({ ...prev, maxPerros: val === '' ? '' : val }));
+                        }}
+                        onBlur={e => {
+                          const val = e.target.value.replace(/^0+(?!$)/, '');
+                          const num = parseInt(val);
+                          setFormDataPaseador(prev => ({ ...prev, maxPerros: (!val || isNaN(num) || num < 1) ? 1 : num }));
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        placeholder="Ej: 3"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Duración del Paseo *
                       </label>
                       <input
@@ -1237,21 +1262,6 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
                       <p className="text-xs text-gray-500 mt-1">
                         Se redondeará automáticamente a múltiplos de 30 minutos
                       </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre de Contacto *
-                      </label>
-                      <input
-                        type="text"
-                        name="nombreContacto"
-                        value={formDataPaseador.nombreContacto}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        placeholder="Tu nombre completo"
-                        required
-                      />
                     </div>
                   </div>
 

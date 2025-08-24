@@ -237,9 +237,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     const [dia, mes, año] = fecha.split('/');
     const fechaParaComparar = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
     const fechasNoDisponibles = service?.fechasNoDisponibles || service?.servicioReservado?.fechasNoDisponibles;
-    let horariosOcupados: string[] = [];
+    let horariosNoDisponibles: { horario: string, perrosReservados: number }[] = [];
     if (fechasNoDisponibles && Array.isArray(fechasNoDisponibles)) {
-      const fechaNoDisponible = fechasNoDisponibles.find((item: { fecha: string; horariosNoDisponibles: string[] }) => {
+      const fechaNoDisponible = fechasNoDisponibles.find((item: { fecha: string; horariosNoDisponibles: any[] }) => {
         if (!item.fecha) return false;
         const fechaISO = new Date(item.fecha);
         const fechaComparar = new Date(fechaISO.getFullYear(), fechaISO.getMonth(), fechaISO.getDate());
@@ -247,9 +247,10 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
         return fechaComparar.getTime() === fechaLocal.getTime();
       });
       if (fechaNoDisponible?.horariosNoDisponibles) {
-        horariosOcupados = fechaNoDisponible.horariosNoDisponibles;
+        horariosNoDisponibles = fechaNoDisponible.horariosNoDisponibles;
       }
     }
+    const maxPerros = service?.maxPerros || service?.servicioReservado?.maxPerros || 1;
     // Mostrar todos los horarios, pero bloquear los que ya pasaron o faltan menos de 2h (veterinaria/paseador, hoy)
     const hoy = new Date();
     const esHoy = (
@@ -259,8 +260,13 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     );
     const ahoraMin = hoy.getHours() * 60 + hoy.getMinutes();
     const horariosConEstado = horariosBase
-      .map((horario: string) => {
-        let disponible = !horariosOcupados.includes(horario);
+      .map((horario) => {
+        // Buscar si el horario está ocupado por maxPerros
+        const horarioObj = horariosNoDisponibles.find(h => h.horario === horario);
+        let disponible = true;
+        if (horarioObj && horarioObj.perrosReservados >= maxPerros) {
+          disponible = false;
+        }
         if ((serviceType === 'veterinaria' || serviceType === 'paseador') && esHoy) {
           const [hH, hM] = horario.split(':').map(Number);
           const horarioMin = hH * 60 + hM;

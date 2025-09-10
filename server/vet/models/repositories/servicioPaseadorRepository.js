@@ -100,7 +100,7 @@ export class ServicioPaseadorRepository {
                   const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideLocalidad = filtro.localidad ? ciudad?.nombre === filtro.localidad : true
+                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombre
                   ? (nombreServicio || '').toLowerCase().includes(filtro.nombre.toLowerCase())
                   : true;

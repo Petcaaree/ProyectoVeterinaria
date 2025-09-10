@@ -284,7 +284,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
             />
 
             {/* Location Filter Autocomplete (usando localidades del backend) */}
-            <div className="relative localidad-dropdown-container">
+            <div className="relative localidad-dropdown-container z-[9998]">
               <input
                 type="text"
                 value={locationFilter}
@@ -318,7 +318,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
               </div>
               {/* Dropdown de sugerencias */}
               {showSuggestions && (
-                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-b-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in">
+                <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-b-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in">
                   {/* Header de ayuda */}
                   {!locationFilter.trim() && (
                     <div className="px-4 py-2 bg-orange-50 border-b border-orange-100">

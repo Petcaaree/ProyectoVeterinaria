@@ -102,7 +102,7 @@ const Filtros: React.FC<FiltrosProps> = ({
 
       {/* Filtros adicionales */}
       {filtrosAdicionales && (
-        <div className={`transition-all duration-300 ease-in-out ${mostrarFiltros ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+        <div className={`transition-all duration-300 ease-in-out ${mostrarFiltros ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'} ${mostrarFiltros ? 'overflow-visible' : 'overflow-hidden'}`}>
           <div className="px-6 pb-6">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

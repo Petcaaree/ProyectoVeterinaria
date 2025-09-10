@@ -59,19 +59,26 @@ export class RecordatorioService {
                     fechaHoraReserva = fechaReserva.hour(23).minute(59).second(59);
                 }
 
-                // Cancelar automáticamente según tipo de servicio
+                const horasHasta = fechaHoraReserva.diff(ahora, 'hour');
+                
+                // Cancelar automáticamente si ya pasó la fecha/hora de la reserva
+                if (horasHasta < 0) {
+                    console.log(`⏰ Reserva ${reserva.id} ya pasó su fecha programada (${fechaHoraReserva.format('DD/MM/YYYY HH:mm')}), cancelando automáticamente.`);
+                    await this.cancelarReservaAutomatica(reserva, 'La reserva expiró por falta de confirmación');
+                    continue;
+                }
+
+                // Cancelar automáticamente según tipo de servicio antes de la fecha
                 if (reserva.serviciOfrecido === 'ServicioCuidador') {
                     // Si faltan 12h o menos y sigue pendiente
-                    const horasHasta = fechaHoraReserva.diff(ahora, 'hour');
-                    if (horasHasta <= 12 && horasHasta >= 0) {
+                    if (horasHasta <= 12) {
                         console.log(`⏳ Reserva de cuidador ${reserva.id} sigue pendiente a menos de 12h, cancelando automáticamente.`);
                         await this.cancelarReservaAutomatica(reserva, 'No fue confirmada a tiempo por el cuidador');
                         continue;
                     }
                 } else if (reserva.serviciOfrecido === 'ServicioPaseador' || reserva.serviciOfrecido === 'ServicioVeterinaria') {
                     // Si faltan 2h o menos y sigue pendiente
-                    const horasHasta = fechaHoraReserva.diff(ahora, 'hour');
-                    if (horasHasta <= 2 && horasHasta >= 0) {
+                    if (horasHasta <= 2) {
                         console.log(`⏳ Reserva de paseador/veterinaria ${reserva.id} sigue pendiente a menos de 2h, cancelando automáticamente.`);
                         await this.cancelarReservaAutomatica(reserva, 'No fue confirmada a tiempo por el proveedor');
                         continue;

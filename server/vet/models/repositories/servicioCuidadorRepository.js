@@ -112,7 +112,7 @@ export class ServicioCuidadorRepository {
                   const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
-                  const coincideLocalidad = filtro.localidad ? ciudad?.nombre === filtro.localidad : true
+                  const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
                   const coincideNombreServicio = filtro.nombreServicio ? nombreServicio === filtro.nombreServicio : true
 
       

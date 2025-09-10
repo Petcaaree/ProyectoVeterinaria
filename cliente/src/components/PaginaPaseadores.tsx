@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { Heart, Clock, Star, Award, Shield, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Clock, Star, Award, Shield, Calendar, ChevronLeft, ChevronRight, Search, ChevronDown, CheckCircle } from 'lucide-react';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
 import Filtros from './comun/Filtros';
@@ -7,6 +7,7 @@ import SinResultados from './comun/SinResultados';
 import TarjetaPaseador from './paseadores/TarjetaPaseador';
 import CalendarioModerno from './comun/CalendarioModerno';
 import { useAuth } from '../context/authContext.tsx';
+import { getLocalidades } from '../api/api';
 
 
 
@@ -27,7 +28,10 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   const [maxPrice, setMaxPrice] = useState('');
   const [fechaPaseo, setFechaPaseo] = useState(''); // una sola fecha para paseos
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
-    const [locationFilter, setLocationFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [localidades, setLocalidades] = useState<{ id: number; nombre: string; ciudad?: string }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<{ id: number; nombre: string; ciudad?: string }[]>([]);
 
 
   // paginación
@@ -48,6 +52,37 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
     localidad: '',
     fecha: '',
   });
+
+  // Cargar localidades del backend al montar
+  useEffect(() => {
+    getLocalidades().then((data) => {
+      if (Array.isArray(data)) {
+        setLocalidades(data);
+      } else if (data && Array.isArray(data.data)) {
+        setLocalidades(data.data.map((l: any) => ({
+          id: l.idLocalidad,
+          nombre: l.localidad,
+          ciudad: l.ciudad
+        })));
+      }
+    });
+  }, []);
+
+  // Cerrar dropdown de localidades al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.localidad-dropdown-container')) {
+        setShowSuggestions(false);
+      }
+    };
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
 
   useEffect(() => {
     console.log('🔄 Página cambió a:', page);
@@ -79,11 +114,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   }, []);
 
   // Efecto para monitorear cambios en filtros (sin enviar al API aún)
- 
-
-  const locations = [...new Set(walkServices.map(paseador => 
-    paseador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
-  ).filter(ciudad => ciudad !== 'No especificado'))];
 
   const cargarServicios = async (filtrosPersonalizados?: any) => {
     try {
@@ -246,20 +276,97 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
 
-              {/* Location Filter */}
-            <select
-              value={locationFilter}
-              onChange={(e) => {
-                console.log('📍 Localidad cambiada a:', e.target.value);
-                setLocationFilter(e.target.value);
-              }}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            >
-              <option value="all">Todas las zonas</option>
-              {locations.map(location => (
-                <option key={location} value={location}>{location}</option>
-              ))}
-            </select>
+              {/* Location Filter Autocomplete (usando localidades del backend) */}
+            <div className="relative localidad-dropdown-container z-[9998]">
+              <input
+                type="text"
+                value={locationFilter}
+                onChange={e => {
+                  const value = e.target.value;
+                  setLocationFilter(value);
+                  setShowSuggestions(true);
+                  if (value.length === 0) {
+                    setFilteredSuggestions([]);
+                  } else {
+                    setFilteredSuggestions(
+                      localidades.filter(l => l.nombre.toLowerCase().includes(value.toLowerCase()))
+                    );
+                  }
+                  setPage(1);
+                  setFiltros(prev => ({ ...prev, localidad: value }));
+                }}
+                onFocus={() => {
+                  if (localidades.length > 0) setShowSuggestions(true);
+                }}
+                placeholder="Buscar localidad..."
+                className={`w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white ${filteredSuggestions.length > 0 && showSuggestions ? 'rounded-b-none' : ''}`}
+                autoComplete="off"
+              />
+              {/* Icono de búsqueda y flecha */}
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+                {localidades.length > 0 && (
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} />
+                )}
+              </div>
+              {/* Dropdown de sugerencias */}
+              {showSuggestions && (
+                <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-b-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in">
+                  {/* Header de ayuda */}
+                  {!locationFilter.trim() && (
+                    <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+                      <p className="text-sm font-medium text-green-800">
+                        💡 Escribí para buscar localidades o elegí de la lista
+                      </p>
+                      <p className="text-xs text-green-600">
+                        Hay {localidades.length} localidades disponibles
+                      </p>
+                    </div>
+                  )}
+                  {locationFilter.trim() && (
+                    <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+                      <p className="text-sm font-medium text-green-800">
+                        🔍 Resultados para "{locationFilter}"
+                      </p>
+                      <p className="text-xs text-green-600">
+                        {filteredSuggestions.length} localidad{filteredSuggestions.length !== 1 ? 'es' : ''} encontrada{filteredSuggestions.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
+                  {/* Lista de sugerencias */}
+                  {filteredSuggestions.length > 0 ? (
+                    filteredSuggestions.map((l) => (
+                      <div
+                        key={l.id}
+                        onMouseDown={() => {
+                          setLocationFilter(l.nombre);
+                          setFiltros(prev => ({ ...prev, localidad: l.nombre }));
+                          setShowSuggestions(false);
+                          setPage(1);
+                        }}
+                        className={`px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors group ${locationFilter === l.nombre ? 'bg-green-100 font-semibold text-green-700' : ''}`}
+                      >
+                        <span className="font-medium">{l.nombre}</span>
+                        {l.ciudad && (
+                          <span className="block text-xs text-gray-500 mt-1">{l.ciudad}</span>
+                        )}
+                        {locationFilter === l.nombre && (
+                          <CheckCircle className="inline ml-2 h-4 w-4 text-green-600 align-middle" />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Search className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <p className="text-sm text-yellow-700 font-medium">No se encontraron localidades</p>
+                      <p className="text-xs text-yellow-600">Verificá que esté bien escrito o probá con otra ciudad</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
               {/* Fecha del paseo - En toda la fila para mejor layout */}
               <div className="col-span-full">

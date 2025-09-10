@@ -114,7 +114,7 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
                       className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs"
                     >
                       {typeof cuidador?.direccion?.localidad?.ciudad === 'object' 
-                        ? cuidador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
+                        ? cuidador?.direccion?.localidad?.nombre + ", " + cuidador?.direccion?.localidad?.ciudad?.nombre  || 'No especificado'
                         : cuidador  ?.direccion?.localidad?.ciudad || 'No especificado'}
                     </span>
                   </div>

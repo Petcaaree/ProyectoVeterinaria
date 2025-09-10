@@ -102,7 +102,7 @@ const TarjetaPaseador: React.FC<TarjetaPaseadorProps> = ({ paseador, alContratar
               className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs"
             >
               {typeof paseador?.direccion?.localidad?.ciudad === 'object' 
-                ? paseador?.direccion?.localidad?.ciudad?.nombre || 'No especificado'
+                ? paseador?.direccion?.localidad?.nombre + ", " + paseador?.direccion?.localidad?.ciudad?.nombre  || 'No especificado'
                 : paseador?.direccion?.localidad?.ciudad || 'No especificado'}
             </span>
           </div>

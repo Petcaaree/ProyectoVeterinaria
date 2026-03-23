@@ -248,7 +248,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
               {usuarioLogueado ? (
                 <>
                   <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold">{usuarioLogueado.nombre.charAt(0)}</span>
+                    <span className="text-sm font-bold">{usuarioLogueado.nombre?.charAt(0) ?? 'U'}</span>
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-semibold">{usuarioLogueado.nombre}</div>
@@ -358,7 +358,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                   <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold">{usuarioLogueado.nombre.charAt(0)}</span>
+                        <span className="text-white font-bold">{usuarioLogueado.nombre?.charAt(0) ?? 'U'}</span>
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">{usuarioLogueado.nombre}</div>

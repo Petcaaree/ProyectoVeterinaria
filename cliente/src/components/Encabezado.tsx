@@ -207,7 +207,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
           { id: 'logout', label: 'Cerrar Sesión', icon: X }
         ];
       default:
-        return commonOptions;
+        return [...commonOptions, { id: 'logout', label: 'Cerrar Sesión', icon: X }];
     }
   };
 

@@ -5,6 +5,7 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { Mascota } from "../models/entidades/Mascota.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class ClienteService {
@@ -46,7 +47,8 @@ export class ClienteService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -91,7 +93,8 @@ export class ClienteService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoCliente = new Cliente(nombreUsuario, email, objectDireccion, telefono, contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoCliente = new Cliente(nombreUsuario, email, objectDireccion, telefono, contraseniaHasheada)
 
         const clienteGuardado = await this.clienteRepository.save(nuevoCliente)
 

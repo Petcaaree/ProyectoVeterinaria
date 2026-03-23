@@ -4,6 +4,7 @@ import { Ciudad } from "../models/entidades/Ciudad.js"
 import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class VeterinariaService {
@@ -45,7 +46,8 @@ export class VeterinariaService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -86,7 +88,8 @@ export class VeterinariaService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoVeterinaria = new Veterinaria(nombreUsuario, nombreClinica, email, objectDireccion, telefono, contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoVeterinaria = new Veterinaria(nombreUsuario, nombreClinica, email, objectDireccion, telefono, contraseniaHasheada)
 
         const veterinariaGuardada = await this.veterinariaRepository.save(nuevoVeterinaria)
 

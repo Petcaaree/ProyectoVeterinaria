@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class VeterinariaController {
   constructor(veterinariaService, reservaService) {
     this.veterinariaService = veterinariaService
@@ -24,8 +26,9 @@ export class VeterinariaController {
     try {
       const datos = req.body
       const usuario = await this.veterinariaService.logIn(datos)
+      const token = generarToken(usuario, 'veterinaria')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -35,8 +38,9 @@ export class VeterinariaController {
     try {
       const veterinaria = req.body;
       const nuevo = await this.veterinariaService.create(veterinaria);
+      const token = generarToken(nuevo, 'veterinaria');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       next(error);
     }

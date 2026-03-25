@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class PaseadorController {
    constructor(paseadorService, reservaService) {
     this.paseadorService = paseadorService
@@ -24,8 +26,9 @@ export class PaseadorController {
     try {
       const datos = req.body
       const usuario = await this.paseadorService.logIn(datos)
+      const token = generarToken(usuario, 'paseador')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -35,8 +38,9 @@ export class PaseadorController {
     try {
       const paseador = req.body;
       const nuevo = await this.paseadorService.create(paseador);
+      const token = generarToken(nuevo, 'paseador');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       next(error);
     }

@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class ClienteController {
    constructor(clienteService, reservaService) {
     this.clienteService = clienteService
@@ -23,10 +25,10 @@ export class ClienteController {
   async logIn(req, res, next) {
     try {
       const datos = req.body
-      console.log("Datos recibidos en logIn:", JSON.stringify(datos, null, 2));
       const usuario = await this.clienteService.logIn(datos)
+      const token = generarToken(usuario, 'cliente')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -37,8 +39,9 @@ export class ClienteController {
       console.log("Request body recibido:", JSON.stringify(req.body, null, 2));
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
+      const token = generarToken(nuevo, 'cliente');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       console.error("Error en clienteController.create:", error);
       console.error("Stack trace:", error.stack);

@@ -99,14 +99,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithCredentials = async (email: string, contrasenia: string, tipoUsuario: string): Promise<Usuario> => {
     try {
       const response = await loginUsuario({ email, contrasenia }, tipoUsuario);
-      const usuarioCompleto = response.data;
-      
+      const { data: usuarioCompleto, token } = response.data;
+
       setUsuario(usuarioCompleto);
       if (isValidUserType(tipoUsuario)) {
         setTipoUsuario(tipoUsuario);
       }
       localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
       localStorage.setItem('tipoUsuario', tipoUsuario);
+      if (token) {
+        localStorage.setItem('token', token);
+      }
       
       // Cargar contador de notificaciones después del login
       try {
@@ -158,17 +161,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const response = await signinUsuario(datosRegistro, tipoUsuario);
-      const usuarioCompleto = response.data;
+      const { data: usuarioCompleto, token } = response.data;
 
       console.log('Usuario registrado:', usuarioCompleto);
-      
+
       setUsuario(usuarioCompleto);
       if (isValidUserType(tipoUsuario)) {
         setTipoUsuario(tipoUsuario);
       }
       localStorage.setItem('usuario', JSON.stringify(usuarioCompleto));
       localStorage.setItem('tipoUsuario', tipoUsuario);
-      
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+
       return usuarioCompleto;
     } catch (error) {
       console.error('Error en registro:', error);
@@ -319,6 +325,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setTipoUsuario(null);
     localStorage.removeItem('tipoUsuario');
     localStorage.removeItem('usuario');
+    localStorage.removeItem('token');
   };
 
   const cambiarTipoUsuario = (tipo: string) => {

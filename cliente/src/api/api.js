@@ -4,6 +4,29 @@ import qs from "qs";
 const VITE_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const API_URL = `${VITE_API}/petcare`;
 
+// Interceptor: adjunta el token JWT a cada request si existe en localStorage
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Interceptor: si el server responde 401 (token expirado/invalido), limpiar sesion
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401 && !error.config?.url?.includes('/login/')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            localStorage.removeItem('tipoUsuario');
+            window.location.href = '/';
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const getAlojamientos = async (pageNumber, filtros) => {
     try {
         const filtrosLimpiados = Object.fromEntries(

@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class CuidadorController {
    constructor(cuidadorService, reservaService) {
     this.cuidadorService = cuidadorService
@@ -24,8 +26,9 @@ export class CuidadorController {
     try {
       const datos = req.body
       const usuario = await this.cuidadorService.logIn(datos)
+      const token = generarToken(usuario, 'cuidador')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -35,8 +38,9 @@ export class CuidadorController {
     try {
       const cuidador = req.body;
       const nuevo = await this.cuidadorService.create(cuidador);
+      const token = generarToken(nuevo, 'cuidador');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       next(error);
     }

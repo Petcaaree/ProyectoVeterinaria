@@ -1,6 +1,6 @@
 import express from "express"
 import { ServicioPaseadorController } from "../controllers/servicioPaseadorController.js"
-import { authMiddleware } from "../middlewares/authMiddleware.js"
+import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
 
 export default function servicioPaseadorRoutes(getController) {
     const router = express.Router()
@@ -22,24 +22,24 @@ export default function servicioPaseadorRoutes(getController) {
             getController(ServicioPaseadorController).findByEstadoServicioPaseador(req, res, next)
     })
 
-    // --- Rutas protegidas ---
-    router.post("/petcare/servicioPaseadores", authMiddleware, (req, res, next) => {
+    // --- Rutas protegidas (solo paseador) ---
+    router.post("/petcare/servicioPaseadores", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) => {
         getController(ServicioPaseadorController).create(req, res, next)
     })
 
-    router.delete("/petcare/servicios/:id", authMiddleware, (req, res, next) => {
+    router.delete("/petcare/servicios/:id", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) => {
         getController(ServicioPaseadorController).delete(req, res, next)
     })
 
-    router.post("/petcare/serviciosPaseadores/array", authMiddleware, (req, res, next) => {
+    router.post("/petcare/serviciosPaseadores/array", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) => {
         getController(ServicioPaseadorController).importArray(req, res, next)
     })
 
-    router.put("/petcare/paseador/:id/servicioPaseador/:nuevoEstado", authMiddleware, (req, res, next) =>
+    router.put("/petcare/paseador/:id/servicioPaseador/:nuevoEstado", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) =>
         getController(ServicioPaseadorController).cambiarEstadoPaseador(req, res, next)
     )
 
-    router.get("/petcare/paseador/:id/notificaciones", authMiddleware, (req, res, next) => {
+    router.get("/petcare/paseador/:id/notificaciones", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) => {
                 getController(ServicioPaseadorController).obtenerNotificacionesLeidasOnoLeidas(req, res, next)
         })
 

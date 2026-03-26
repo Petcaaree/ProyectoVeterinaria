@@ -1,6 +1,6 @@
 import express from "express"
 import { ServicioVeterinariaController } from "../controllers/servicioVeterinariaController.js"
-import { authMiddleware } from "../middlewares/authMiddleware.js"
+import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
 
 export default function servicioVeterinariaRoutes(getController) {
     const router = express.Router()
@@ -22,20 +22,20 @@ export default function servicioVeterinariaRoutes(getController) {
                 getController(ServicioVeterinariaController).findByEstadoServicioVeterinaria(req, res, next)
     })
 
-    // --- Rutas protegidas ---
-    router.post("/petcare/servicioVet", authMiddleware, (req, res, next) => {
+    // --- Rutas protegidas (solo veterinaria) ---
+    router.post("/petcare/servicioVet", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) => {
         getController(ServicioVeterinariaController).create(req, res, next)
     })
 
-    router.delete("/petcare/servicios/:id", authMiddleware, (req, res, next) => {
+    router.delete("/petcare/servicios/:id", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) => {
         getController(ServicioVeterinariaController).delete(req, res, next)
     })
 
-    router.post("/petcare/serviciosVet/array", authMiddleware, (req, res, next) => {
+    router.post("/petcare/serviciosVet/array", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) => {
         getController(ServicioVeterinariaController).importArray(req, res, next)
     })
 
-    router.put("/petcare/veterinaria/:id/servicioVet/:nuevoEstado", authMiddleware, (req, res, next) =>
+    router.put("/petcare/veterinaria/:id/servicioVet/:nuevoEstado", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) =>
         getController(ServicioVeterinariaController).cambiarEstadoVeterinaria(req, res, next)
     )
 

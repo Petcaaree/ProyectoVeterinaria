@@ -90,56 +90,41 @@ export class ServicioCuidadorService {
 
     async findByFilters(filtro,{page=1,limit=6}) {
         console.log("Filtro recibido:", filtro);
-                const pageNum = Math.max(Number(page), 1)
-                const limitNum = Math.min(Math.max(Number(limit), 1), 100)
-        
-                /* let cuidadores = await this.cuidadorRepository.findByPage(pageNum, limit)
-                const cuidadorIds = cuidadores.map(v => v.id) */
-        
-        
-        
-                let serviciosCuidadores = await this.servicioCuidadorRepository.findByFilters(filtro);
-        
-                let cuidadorIds = [];
-                for (let i = 0; i < serviciosCuidadores.length; i++) {
-                    const servicio = serviciosCuidadores[i];
-                    if (servicio.usuarioProveedor && servicio.usuarioProveedor.id) {
-                        // Asegurarse de que el ID del cuidador esté en formato ObjectId
-                        if (!mongoose.Types.ObjectId.isValid(servicio.usuarioProveedor.id)) {
-                            throw new ValidationError(`El ID de cuidador ${servicio.usuarioProveedor.id} no es válido`);
-                        }
-                        // Solo agregar si no está ya en el array
-                        if (!cuidadorIds.includes(servicio.usuarioProveedor.id)) {
-                            cuidadorIds.push(servicio.usuarioProveedor.id);
-                        }
-                    }
-                }
-        
-                
-                const startIndex = (pageNum - 1) * limitNum;
-                const endIndex = startIndex + limitNum;
-                const cuidadoresPaginasID = cuidadorIds.slice(startIndex, endIndex);
-                // console.log("Cuidadores Paginas ID:", cuidadoresPaginasID)
-                let todosLosServiciosFiltradosDeEstosCuidadores = serviciosCuidadores.filter(s => cuidadoresPaginasID.includes(s.usuarioProveedor.id))
-        
-                // Calcular totales basándose en los servicios después del filtro por cuidadores distintas
-                const total = todosLosServiciosFiltradosDeEstosCuidadores.length;
-                const total_pages = Math.ceil(cuidadorIds.length / limitNum);
-                
-                // Aplicar paginación
-               
-            
-                const data = todosLosServiciosFiltradosDeEstosCuidadores.map(a => this.toDTO(a));
-        
-                return {
-                    page: pageNum,
-                    per_page: limitNum,
-                    totalServicios: total,
-                    totalCuidadores: cuidadoresPaginasID.length ,  // Total real de servicios disponibles
-                    total_pages: total_pages,
-                    data: data
-                };
-            }
+        const pageNum = Math.max(Number(page), 1)
+        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+
+        // Obtener todos los servicios que cumplen con los filtros
+        let serviciosCuidadores = await this.servicioCuidadorRepository.findByFilters(filtro);
+
+        // Calcular totales basándose en los servicios encontrados
+        const totalServicios = serviciosCuidadores.length;
+        const total_pages = Math.ceil(totalServicios / limitNum);
+
+        // Aplicar paginación directamente a los servicios
+        const startIndex = (pageNum - 1) * limitNum;
+        const endIndex = startIndex + limitNum;
+        const serviciosPaginados = serviciosCuidadores.slice(startIndex, endIndex);
+
+        // Obtener cuidadores únicos de los servicios paginados
+        const cuidadoresUnicosIds = new Set(serviciosPaginados.map(s => s.usuarioProveedor.id));
+        const totalCuidadoresEnPagina = cuidadoresUnicosIds.size;
+
+        // Obtener total de cuidadores únicos en todos los resultados filtrados
+        const todosCuidadoresUnicos = new Set(serviciosCuidadores.map(s => s.usuarioProveedor.id));
+        const totalCuidadoresUnicos = todosCuidadoresUnicos.size;
+
+        const data = serviciosPaginados.map(a => this.toDTO(a));
+
+        return {
+            page: pageNum,
+            per_page: limitNum,
+            totalServicios: totalServicios,
+            totalCuidadores: totalCuidadoresUnicos,  // Total de cuidadores únicos en todos los resultados
+            cuidadoresEnPagina: totalCuidadoresEnPagina, // Cuidadores únicos en esta página
+            total_pages: total_pages,
+            data: data
+        };
+    }
 
     async findById(id) {
         const servicioCuidador = await this.servicioCuidadorRepository.findById(id)

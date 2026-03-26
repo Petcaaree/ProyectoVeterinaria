@@ -4,6 +4,7 @@ import { Ciudad } from "../models/entidades/Ciudad.js"
 import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class PaseadorService {
@@ -44,7 +45,8 @@ export class PaseadorService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -87,7 +89,8 @@ export class PaseadorService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoPaseador = new Paseador(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoPaseador = new Paseador(nombreUsuario, email,objectDireccion, telefono,  contraseniaHasheada)
 
         const paseadorGuardado = await this.paseadorRepository.save(nuevoPaseador)
 
@@ -147,14 +150,14 @@ export class PaseadorService {
         return this.toDTO(actualizado)
     }
 
-     async getNotificaciones(id, leida, { page=1, limit=5 }) {
+     async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const paseador = await this.paseadorRepository.findById(id)
         if(!paseador) {
             throw new NotFoundError(`Paseador con id ${id} no encontrado`)
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = paseador.notificaciones;
+        const notificaciones = paseador.notificaciones.reverse();
 
         let data
         if(leida == "true") {
@@ -180,6 +183,32 @@ export class PaseadorService {
         }
     }
 
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const paseador = await this.paseadorRepository.findById(id)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+        }
+
+        // Invertir el orden para mostrar las más recientes primero
+        const notificaciones = paseador.notificaciones
+            .slice()  // Crear una copia para no modificar el original
+            .reverse() // Invertir el orden (más recientes primero)
+            .map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
     async leerNotificacion(idUsuario, idNotificacion) {
         const paseador = await this.paseadorRepository.findById(idUsuario)
         if(!paseador) {
@@ -217,6 +246,17 @@ export class PaseadorService {
         await this.paseadorRepository.save(paseador)
 
         return paseador.notificaciones.map(n => this.notificacionToDTO(n))
+    }
+
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const paseador = await this.paseadorRepository.findById(id)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = paseador.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
     }
 
     

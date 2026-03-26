@@ -37,6 +37,7 @@ export interface Usuario {
   direccion: Direccion;
   notificaciones: Notificacion[];
   mascotas?: Mascota[]; // Solo para clientes
+  nombreClinica?: string; // Solo para veterinarias
 }
 
 export interface AuthContextType {
@@ -59,7 +60,8 @@ export interface AuthContextType {
         }
       };
     }, 
-    tipoUsuario: string
+    tipoUsuario: string,
+    nombreClinica?: string // Parámetro opcional para veterinarias
   ) => Promise<Usuario>;
   registroMascota: ((usuarioId: string, datosMascota: DatosMascota) => Promise<Mascota>);
   getMascotas: (usuarioId: string) => Promise<Mascota[]>;
@@ -72,7 +74,23 @@ export interface AuthContextType {
    getServiciosCuidador: (usuarioId: string, page: number, estado: string) => Promise<any[]>;
    activarOdesactivarServicio: (serviceId: string,  estado: string, tipoUsuario: string) => Promise<void>;
    getServiciosCuidadores: (page: number, filtro: any) => Promise<any[]>;
-  /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
+   getServiciosPaseadores: (page: number, filtro: any) => Promise<any[]>;
+   getServiciosVeterinarias: (page: number, filtro: any) => Promise<any[]>;
+   crearReserva: (datos: any) => Promise<any>;
+    obtenerTodasLasReservas: (usuarioId: string, userType: string, page: number) => Promise<any[]>;
+   getNotificationes: (usuarioId: string, userType:string,  page: number ) => Promise<any[]>;
+   getNotificacionesNoLeidas: (usuarioId: string , leida : string, userType:string,  page: number) => Promise<any[]>;
+   marcarLeidaDelCliente: (usuarioId: string, notificacionId: string) => Promise<void>;
+   marcarLeidaDelProveedor: (usuarioId: string, notificacionId: string, tipoProveedor: string) => Promise<void>;
+   marcarTodasLeidasDelProveedor: (usuarioId: string, tipoProveedor: string) => Promise<void>;
+   marcarTodasLeidasDelCliente: (usuarioId: string) => Promise<void>;
+   // Contador de notificaciones no leídas
+   contadorNotificacionesNoLeidas: number;
+   cargarContadorNotificaciones: () => Promise<void>;
+   actualizarContadorNotificaciones: (nuevoContador: number) => void;
+   decrementarContadorNotificaciones: () => void;
+   incrementarContadorNotificaciones: () => void;
+   /* getReservas: (usuarioId: string, tipoUsuario: string, page: number) => Promise<any[]>;
   getReservasById: (reservaId: string) => Promise<any>;
   getReservasByMascota: (mascotaId: string) => Promise<any[]>;
   getReservasByServicio: (servicioId: string, tipoServicio: string) => Promise<any[]>;

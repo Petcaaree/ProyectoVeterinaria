@@ -4,6 +4,7 @@ import { Ciudad } from "../models/entidades/Ciudad.js"
 import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class CuidadorService {
@@ -45,7 +46,8 @@ export class CuidadorService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -86,7 +88,8 @@ export class CuidadorService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoCuidador = new Cuidador(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoCuidador = new Cuidador(nombreUsuario, email,objectDireccion, telefono,  contraseniaHasheada)
 
         const cuidadorGuardado = await this.cuidadorRepository.save(nuevoCuidador)
 
@@ -146,14 +149,14 @@ export class CuidadorService {
         return this.toDTO(actualizado)
     }
 
-    async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const cuidador = await this.cuidadorRepository.findById(id)
         if(!cuidador) {
             throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = cuidador.notificaciones;
+        const notificaciones = cuidador.notificaciones.reverse();
 
         let data
         if(leida == "true") {
@@ -169,6 +172,33 @@ export class CuidadorService {
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
+
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const cuidador = await this.cuidadorRepository.findById(id)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+        }
+
+        // Invertir el orden para mostrar las más recientes primero
+        const notificaciones = cuidador.notificaciones
+            .slice()  // Crear una copia para no modificar el original
+            .reverse() // Invertir el orden (más recientes primero)
+            .map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
 
         return {
             page: page,
@@ -216,6 +246,17 @@ export class CuidadorService {
         await this.cuidadorRepository.save(cuidador)
 
         return cuidador.notificaciones.map(n => this.notificacionToDTO(n))
+    }
+
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const cuidador = await this.cuidadorRepository.findById(id)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = cuidador.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
     }
     
 

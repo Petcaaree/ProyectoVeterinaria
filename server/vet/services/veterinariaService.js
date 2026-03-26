@@ -4,6 +4,7 @@ import { Ciudad } from "../models/entidades/Ciudad.js"
 import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class VeterinariaService {
@@ -45,7 +46,8 @@ export class VeterinariaService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -53,9 +55,9 @@ export class VeterinariaService {
     }
 
     async create(veterinaria) {
-        const { nombreUsuario, email, contrasenia, telefono, direccion } = veterinaria
+        const { nombreUsuario, nombreClinica, email, contrasenia, telefono, direccion } = veterinaria
 
-        if(!nombreUsuario || !email || !contrasenia || !telefono || !direccion) {
+        if(!nombreUsuario || !nombreClinica || !email || !contrasenia || !telefono || !direccion) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -86,7 +88,8 @@ export class VeterinariaService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoVeterinaria = new Veterinaria(nombreUsuario, email,objectDireccion, telefono,  contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoVeterinaria = new Veterinaria(nombreUsuario, nombreClinica, email, objectDireccion, telefono, contraseniaHasheada)
 
         const veterinariaGuardada = await this.veterinariaRepository.save(nuevoVeterinaria)
 
@@ -146,14 +149,14 @@ export class VeterinariaService {
         return this.toDTO(actualizado)
     }
 
-     async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const veterinaria = await this.veterinariaRepository.findById(id)
         if(!veterinaria) {
             throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = veterinaria.notificaciones;
+        const notificaciones = veterinaria.notificaciones.reverse();
 
         let data
         if(leida == "true") {
@@ -164,20 +167,50 @@ export class VeterinariaService {
             throw new ValidationError(`${leida} no corresponde a true o false`)
         }
 
-        const total = data.length   
+        const total = data.length
         const total_pages = Math.ceil(total / limit)
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
 
         return {
-            page: page,
-            per_page: limit,
+            page: Number(page),
+            per_page: Number(limit),
             total: total,
             total_pages: total_pages,
             data: dataNew
         }
     }
+
+     async getAllNotificaciones(id, { page=1, limit=5 }) {
+        console.log('🔍 getAllNotificaciones SERVICE - page:', page, 'type:', typeof page);
+        const veterinaria = await this.veterinariaRepository.findById(id)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+        }
+
+        // Invertir el orden para mostrar las más recientes primero
+        const notificaciones = veterinaria.notificaciones
+            .slice()  // Crear una copia para no modificar el original
+            .reverse() // Invertir el orden (más recientes primero)
+            .map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
+
+        const result = {
+            page: Number(page),
+            per_page: Number(limit),
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+        console.log('🔍 getAllNotificaciones SERVICE - result.page:', result.page, 'type:', typeof result.page);
+        return result
+    } 
 
     async leerNotificacion(idUsuario, idNotificacion) {
         const veterinaria = await this.veterinariaRepository.findById(idUsuario)
@@ -218,12 +251,24 @@ export class VeterinariaService {
         return veterinaria.notificaciones.map(n => this.notificacionToDTO(n))
     }
 
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const veterinaria = await this.veterinariaRepository.findById(id)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = veterinaria.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
+    }
+
     
 
     toDTO(veterinaria) {
         return {
             id: veterinaria.id,
             nombreUsuario: veterinaria.nombreUsuario,
+            nombreClinica: veterinaria.nombreClinica,
             telefono: veterinaria.telefono,
             email: veterinaria.email,
             notificaciones: veterinaria.notificaciones,

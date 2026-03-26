@@ -63,7 +63,7 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
       <div className="p-6 flex-1 flex flex-col">
         {/* Descripción del servicio */}
         <div className="mb-4">
-          <h4 className="text-lg font-semibold text-gray-900 mb-2">Servicio de Cuidado</h4>
+          <h4 className="text-lg font-semibold text-gray-900 mb-2">{cuidador.nombreServicio}</h4>
           <p className="text-gray-600 text-sm">
             {cuidador.descripcion}
           </p>
@@ -104,6 +104,21 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
             ))}
           </div>
         </div>
+        <div className="mb-6 flex-1">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    Zonas de servicio:
+                  </h4>
+                  <div className="flex flex-wrap gap-1">
+                    <span
+                      className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs"
+                    >
+                      {typeof cuidador?.direccion?.localidad?.ciudad === 'object' 
+                        ? cuidador?.direccion?.localidad?.nombre + ", " + cuidador?.direccion?.localidad?.ciudad?.nombre  || 'No especificado'
+                        : cuidador  ?.direccion?.localidad?.ciudad || 'No especificado'}
+                    </span>
+                  </div>
+                </div>
         
         <Boton
           onClick={() => alContratar(cuidador)}

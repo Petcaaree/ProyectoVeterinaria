@@ -1,19 +1,21 @@
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config();
 
 import express from "express";
 import cors from 'cors';
+import helmet from 'helmet';
+import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
 
 // import swaggerUi from "swagger-ui-express";
 // import YAML from "yamljs";
 
 import routes from "./vet/routes/routes.js";
+import recordatorioRoutes from "./vet/routes/recordatorioRoutes.js";
 
 import { CiudadRepository } from "./vet/models/repositories/ciudadRepository.js";
 import { LocalidadRepository } from "./vet/models/repositories/localidadRepository.js";
-import { CiudadService } from "./vet/services/ciudadService.js";
-//import { CiudadController } from "./vet/controllers/ciudadController.js";
+import { CiudadController } from "./vet/controllers/ciudadController.js";
 
 import { ServicioVeterinariaRepository } from "./vet/models/repositories/servicioVeterinariaRepository.js";
 import { ServicioPaseadorRepository } from "./vet/models/repositories/servicioPaseadorRepository.js";
@@ -35,6 +37,8 @@ import { ServicioVeterinariaService } from "./vet/services/servicioVeterinariaSe
 import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.js";
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
 import { ReservaService } from "./vet/services/reservaService.js";
+import { CiudadService } from "./vet/services/ciudadService.js";
+import { RecordatorioService } from "./vet/services/recordatorioService.js";
 
 /* 
 */
@@ -62,7 +66,7 @@ const paseadorRepo = new PaseadorRepository();
 const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
 
-const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo);
+const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo, reservaRepo);
 const cuidadorService = new CuidadorService(cuidadorRepo, ciudadRepo, localidadRepo);
 const paseadorService = new PaseadorService(paseadorRepo, ciudadRepo, localidadRepo);
 const veterinariaService = new VeterinariaService(veterinariaRepo, ciudadRepo, localidadRepo);
@@ -70,6 +74,13 @@ const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeteri
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
+const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
+
+// Inicializar servicio de recordatorios
+const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
+
+// Hacer el servicio disponible en el contexto de la aplicación
+//app.set('recordatorioService', recordatorioService);
 
 const clienteController = new ClienteController(clienteService, reservaService);
 const cuidadorController = new CuidadorController(cuidadorService, reservaService);
@@ -79,6 +90,7 @@ const servicioVeterinariaController = new ServicioVeterinariaController(servicio
 const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
 const reservaController = new ReservaController(reservaService);
+const ciudadController = new CiudadController(ciudadService);
 
 
 
@@ -96,10 +108,31 @@ const ciudadController = new CiudadController(ciudadService);
 
 
 const app = express();
+
+// Seguridad: headers HTTP seguros
+app.use(helmet());
+
+// CORS — origins permitidos desde variable de entorno (separados por coma)
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173', 'http://localhost:5174'];
+
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://birbnb.vercel.app"],
+    origin: (origin, callback) => {
+        // Permitir requests sin origin (Postman, curl, apps móviles)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin no permitido → ${origin}`));
+    },
     credentials: true
-}))
+}));
+
+// Rate limiting general: 100 req / 15min por IP
+app.use('/petcare', generalLimiter);
+
+// Rate limiting estricto en rutas de autenticacion: 10 intentos / 15min por IP
+app.use('/petcare/login', authLimiter);
+app.use('/petcare/signin', authLimiter);
 
 // Middleware de logging para todas las peticiones
 app.use((req, res, next) => {
@@ -124,6 +157,7 @@ server.setController(ServicioVeterinariaController, servicioVeterinariaControlle
 server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ReservaController, reservaController);
+server.setController(CiudadController, ciudadController);
 
 /* server.setController(CiudadController, ciudadController);
 
@@ -134,11 +168,18 @@ server.setController(ReservaController, reservaController); */
 routes.forEach(r => {
     server.addRoute(r);
 })
+
+// Agregar rutas de recordatorios
+app.use('/api/recordatorios', recordatorioRoutes);
+
 server.configureRoutes();
 
 // const swaggerDocument = YAML.load("../docs/swagger.yaml")
 // app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
 app.use(errorHandler)
+
+// Iniciar el servicio de recordatorios después de configurar todo
+recordatorioService.iniciar();
 
 server.launch();

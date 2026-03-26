@@ -80,7 +80,7 @@ export class ServicioVeterinaria{
                 const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
                 
                 if (fechaBuscada === fechaAlmacenada && !fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    fechaHorariosNodispo.agregarHorarioNoDisponible(fechaHorarioTurno.horario);
+                    fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
                 } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
                     // Si el horario ya existe, no hacer nada
                     throw new ValidationError("Horario ya está reservado para la fecha especificada.    ");

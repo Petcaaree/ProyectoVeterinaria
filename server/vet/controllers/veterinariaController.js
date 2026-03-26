@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class VeterinariaController {
   constructor(veterinariaService, reservaService) {
     this.veterinariaService = veterinariaService
@@ -24,8 +26,9 @@ export class VeterinariaController {
     try {
       const datos = req.body
       const usuario = await this.veterinariaService.logIn(datos)
+      const token = generarToken(usuario, 'veterinaria')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -35,8 +38,9 @@ export class VeterinariaController {
     try {
       const veterinaria = req.body;
       const nuevo = await this.veterinariaService.create(veterinaria);
+      const token = generarToken(nuevo, 'veterinaria');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       next(error);
     }
@@ -89,6 +93,19 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
+  // Nuevo endpoint para obtener solo el contador de notificaciones no leídas
+  async obtenerContadorNotificacionesNoLeidas(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const contador = await this.veterinariaService.getContadorNotificacionesNoLeidas(id);
+      
+      res.json({ contador });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateReserva(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
@@ -115,18 +132,30 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
-  async getNotificaciones(req, res, next) {
-    try {
-      const { id, tipoLeida } = req.params
-      const { page, limit } = req.query
-
-      const notificaciones = await this.veterinariaService.getNotificaciones(id, tipoLeida, { page, limit })
-
-      res.json(notificaciones)
-    } catch(error) {
-      next(error)
+  async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            console.log('🔍 obtenerNotificacionesLeidasOnoLeidas - page:', page, 'type:', typeof page);
+            const result = await this.veterinariaService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
     }
-  }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            console.log('🔍 obtenerTodasLasNotificaciones - page:', page, 'type:', typeof page);
+            const result = await this.veterinariaService.getAllNotificaciones(id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 
     
 }

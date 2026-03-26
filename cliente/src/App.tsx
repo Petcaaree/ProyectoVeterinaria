@@ -75,9 +75,37 @@ function App() {
 
   const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services'>('home');
 
+  // Función de scroll al top ultra suave
+  const smoothScrollToTop = () => {
+    const startPosition = window.pageYOffset;
+    const duration = 1000; // 1 segundo para scroll al top
+    let start = 0;
+
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    };
+
+    const animation = (currentTime: number) => {
+      if (start === 0) start = currentTime;
+      const timeElapsed = currentTime - start;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      const easedProgress = easeInOutCubic(progress);
+      const currentPosition = startPosition * (1 - easedProgress);
+      
+      window.scrollTo(0, currentPosition);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  };
+
   // Scroll al top cada vez que cambia la vista
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    smoothScrollToTop();
   }, [currentView]);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
@@ -141,17 +169,9 @@ function App() {
   };
 
   const handleUserLogout = () => {
-    // Vistas que requieren autenticación
-    const vistasQueRequierenAutenticacion = [
-      'appointments', 'notifications', 'my-pets', 'register-pet', 
-      'my-walks', 'my-vet-services', 'my-care-services'
-    ];
-
-    // Si estamos en una vista que requiere autenticación, ir a home
-    if (vistasQueRequierenAutenticacion.includes(currentView)) {
-      setCurrentView('home');
-      setCurrentService('overview');
-    }
+    // Siempre redirigir a home cuando se desloguee, sin importar la vista actual
+    setCurrentView('home');
+    setCurrentService('overview');
   };
 
   const handleRegistrarMascota = () => {
@@ -164,6 +184,68 @@ function App() {
       setModoAuth('registro');
       setEstaModalAbierto(true);
     }
+  };
+
+  // Función de scroll ultra suave personalizada
+  const smoothScrollTo = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const startPosition = window.pageYOffset;
+    const targetPosition = element.offsetTop - 100; // 100px de offset para headers
+    const distance = targetPosition - startPosition;
+    const duration = 1200; // 1.2 segundos para un scroll muy suave
+    let start = 0;
+
+    // Función de easing para hacer el scroll más natural
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+    };
+
+    const animation = (currentTime: number) => {
+      if (start === 0) start = currentTime;
+      const timeElapsed = currentTime - start;
+      const progress = Math.min(timeElapsed / duration, 1);
+      
+      const easedProgress = easeInOutCubic(progress);
+      const currentPosition = startPosition + (distance * easedProgress);
+      
+      window.scrollTo(0, currentPosition);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animation);
+      }
+    };
+
+    requestAnimationFrame(animation);
+  };
+
+  const handleExploreServices = () => {
+    // Determinar a qué sección hacer scroll según el tipo de usuario
+    let targetId = 'veterinaria'; // Por defecto, servicios veterinarios (igual que para clientes)
+    
+    if (tipoUsuario) {
+      switch (tipoUsuario) {
+        case 'cliente':
+          // Los dueños van directamente a servicios veterinarios
+          targetId = 'veterinaria';
+          break;
+        case 'veterinaria':
+          targetId = 'veterinaria';
+          break;
+        case 'paseador':
+          targetId = 'paseadores';
+          break;
+        case 'cuidador':
+          targetId = 'cuidadores';
+          break;
+        default:
+          targetId = 'veterinaria';
+      }
+    }
+    
+    // Usar nuestra función de scroll ultra suave
+    smoothScrollTo(targetId);
   };
 
   const getUserTypeLabel = (tipo: string) => {
@@ -213,15 +295,15 @@ function App() {
     }
     
     if (currentView === 'my-walks') {
-      return <MisPaseos userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisPaseos userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-vet-services') {
-      return <MisServiciosVeterinarios userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisServiciosVeterinarios userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-care-services') {
-      return <MisServiciosCuidadores userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisServiciosCuidadores userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
 
     switch (currentService) {
@@ -236,8 +318,12 @@ function App() {
           <>
             <Heroe 
               onRegisterPetClick={handleRegistrarMascota}
+              onLoginClick={() => {
+                setModoAuth('login');
+                setEstaModalAbierto(true);
+              }}
               onAddServiceClick={handleAddService}
-              userType={tipoUsuario}
+              onExploreServicesClick={handleExploreServices}
             />
             <Servicios />
             <ServiciosVeterinarios userType={tipoUsuario} />
@@ -275,20 +361,20 @@ function App() {
 
       {/* Modal de Error */}
       {showErrorModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4 md:p-6">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-xs sm:max-w-md w-full p-4 sm:p-6 mx-2">
             <div className="text-center">
-              <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-red-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <svg className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Acceso Restringido</h3>
-              <p className="text-gray-600 mb-6">{errorMessage}</p>
-              <div className="flex space-x-3">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Acceso Restringido</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">{errorMessage}</p>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowErrorModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm sm:text-base touch-manipulation"
                 >
                   Cerrar
                 </button>
@@ -299,7 +385,7 @@ function App() {
                     setModoAuth('registro');
                     setEstaModalAbierto(true);
                   }}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base touch-manipulation"
                 >
                   Cambiar Cuenta
                 </button>

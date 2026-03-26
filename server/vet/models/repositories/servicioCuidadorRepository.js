@@ -48,7 +48,7 @@ export class ServicioCuidadorRepository {
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum
-        const servicioCuidador = await this.model.find()
+        const servicioCuidador = await this.model.find({ estado: "Activada" })
             .skip(skip)
             .limit(limitNum)
             .populate('usuarioProveedor')
@@ -62,7 +62,7 @@ export class ServicioCuidadorRepository {
 
    async findByFilters(filtro) {
               
-              const query = {}
+              const query = { estado: "Activada" }  // Siempre filtrar por estado Activada
       
               if(filtro.precioMax != null) {
                   query.precio = {}
@@ -106,9 +106,10 @@ export class ServicioCuidadorRepository {
                     populate: { path: 'ciudad' }
                     });
 
-
+             
               return resultadosFiltro1.filter(r => {
                   const localidad = r.direccion?.localidad
+                  const ciudad = r.direccion?.localidad?.ciudad
                   const nombreServicio = r.nombreServicio
       
                   const coincideLocalidad = filtro.localidad ? localidad?.nombre === filtro.localidad : true
@@ -151,7 +152,7 @@ export class ServicioCuidadorRepository {
     }
 
     async findAll() {
-        return await this.model.find()
+        return await this.model.find({ estado: "Activada" })
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',

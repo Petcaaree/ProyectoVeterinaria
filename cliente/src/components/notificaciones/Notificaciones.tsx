@@ -1,133 +1,142 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { ArrowLeft, Bell, CheckCircle, AlertCircle, Info, Calendar, User, Star, Clock, Trash2, BookMarked as MarkAsRead, ChevronLeft, ChevronRight, X, CalendarCheck, AlarmClock } from 'lucide-react';
+import { useAuth } from '../../context/authContext.tsx';
 
 interface NotificacionesProps {
-  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' ;
   onBack: () => void;
 }
 
-interface Notification {
-  id: string;
-  type: 'appointment' | 'reminder' | 'review' | 'payment' | 'system';
-  title: string;
-  message: string;
-  date: string;
-  read: boolean;
-  priority: 'low' | 'medium' | 'high';
-  actionUrl?: string;
-}
 
 const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => {
-  const [filter, setFilter] = useState<'all' | 'unread' | 'appointment' | 'reminder' | 'review' | 'payment' | 'system'>('all');
+  const [filter, setFilter] = useState<'todas' | 'Noleidas' | 'appointment' | 'reminder' | 'review' | 'payment' | 'system'>('todas');
+  const { usuario, getNotificationes, getNotificacionesNoLeidas, marcarLeidaDelCliente, marcarLeidaDelProveedor, marcarTodasLeidasDelCliente, marcarTodasLeidasDelProveedor, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
+  const [notifications, setNotifications] = useState<any>([]);
+  const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState<any>([]);
+  
+  // Referencia para hacer scroll al navegador de filtros
+  const filtersRef = useRef<HTMLDivElement>(null);
+  
+  // Estados para paginación
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [totalNoLeidas, setTotalNoLeidas] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    cargarTotasNotificacions();
+    cargarNotificacionesNoLeidas();
+  }, [page, filter]);
 
-  // Mock data - diferentes según el tipo de usuario
-  const getNotifications = (): Notification[] => {
-    if (userType === 'cliente') {
-      return [
-        {
-          id: '1',
-          type: 'reminder',
-          title: 'Recordatorio de Cita',
-          message: 'Tu cita con Dr. Carlos López es mañana a las 10:00 AM. No olvides llevar la cartilla de vacunación de Max.',
-          date: '2024-01-14T18:00:00Z',
-          read: false,
-          priority: 'high'
-        },
-        {
-          id: '2',
-          type: 'reminder',
-          title: 'Cita Confirmada',
-          message: 'María Rodríguez ha confirmado el paseo para Luna el 18 de enero a las 3:30 PM.',
-          date: '2024-01-13T14:30:00Z',
-          read: false,
-          priority: 'medium'
-        },
-        {
-          id: '3',
-          type: 'reminder',
-          title: 'Cita Cancelada',
-          message: 'Tu cita con Dr. Carlos López para el 20 de enero ha sido cancelada. Por favor, programa una nueva cita.',
-          date: '2024-01-12T20:00:00Z',
-          read: false,
-          priority: 'high'
-        },
-        {
-          id: '4',
-          type: 'reminder',
-          title: 'Recordatorio de Cita',
-          message: 'Tienes una cita programada con Pedro Martínez para el cuidado de Rocky el viernes a las 9:00 AM.',
-          date: '2024-01-12T19:45:00Z',
-          read: true,
-          priority: 'medium'
-        }
-      ];
-    } else {
-      return [
-        {
-          id: '1',
-          type: 'reminder',
-          title: 'Nueva Reserva',
-          message: `Ana García ha reservado ${userType === 'veterinaria' ? 'una consulta general' : userType === 'paseador' ? 'un paseo básico' : 'cuidado 24/7'} para el 15 de enero a las 10:00 AM.`,
-          date: '2024-01-14T16:00:00Z',
-          read: false,
-          priority: 'high'
-        },
-        {
-          id: '2',
-          type: 'reminder',
-          title: 'Recordatorio de Cita',
-          message: `Tienes ${userType === 'veterinaria' ? 'una consulta' : userType === 'paseador' ? 'un paseo' : 'un servicio de cuidado'} programado mañana a las 10:00 AM con Ana García.`,
-          date: '2024-01-14T18:00:00Z',
-          read: false,
-          priority: 'medium'
-        },
-        {
-          id: '3',
-          type: 'reminder',
-          title: 'Cita Confirmada',
-          message: 'Has confirmado la cita con María López para el 18 de enero a las 2:00 PM.',
-          date: '2024-01-12T15:30:00Z',
-          read: true,
-          priority: 'medium'
-        },
-        {
-          id: '4',
-          type: 'reminder',
-          title: 'Cita Cancelada',
-          message: 'Carlos Mendoza ha cancelado su cita del 18 de enero. El horario está nuevamente disponible.',
-          date: '2024-01-12T20:15:00Z',
-          read: true,
-          priority: 'medium'
-        },
-        {
-          id: '5',
-          type: 'reminder',
-          title: 'Recordatorio de Cita',
-          message: 'Recuerda que tienes una cita programada con Luis Fernández mañana a las 4:00 PM.',
-          date: '2024-01-11T11:20:00Z',
-          read: true,
-          priority: 'low'
-        }
-      ];
+  const cargarTotasNotificacions = async () => {
+    if (!usuario?.id) return;
+    
+    setIsLoading(true);
+    try {
+      let data;
+      if (filter === 'Noleidas') {
+        data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, page);
+      } else {
+        data = await getNotificationes(usuario.id, userType as string, page);
+      }
+      setNotifications(data?.data || []);
+      setTotalPages(data?.total_pages || 0);
+      setTotal(data?.total || 0);
+      // Solo actualizar el número de página si la respuesta del backend es válida y diferente
+      if (typeof data?.page === 'number' && data.page > 0 && data.page !== page) {
+        setPage(data.page);
+      }
+    } catch (error) {
+      console.error('Error al cargar notificaciones:', error);
+      setNotifications([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const [notifications, setNotifications] = useState(getNotifications());
+  const cargarNotificacionesNoLeidas = async () => {
+    if (!usuario?.id) return;
+    
+    try {
+      const data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, 1);
+      
+      // Si es respuesta paginada
+      if (data?.data) {
+        setNotificacionesNoLeidas(data.data);
+        setTotalNoLeidas(data.total || 0);
+      } else {
+        // Si es array directo
+        setNotificacionesNoLeidas(data || []);
+        setTotalNoLeidas((data as any[])?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error al cargar notificaciones no leídas:', error);
+    }
+  };
 
-  const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !notification.read;
-    return notification.type === filter;
-  });
+  // Función para hacer scroll al navegador de filtros
+  const scrollToFilters = () => {
+    if (filtersRef.current) {
+      filtersRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const handleFilterChange = (newFilter: typeof filter) => {
+    setFilter(newFilter);
+    setPage(1); // Resetear a la primera página cuando cambie el filtro
+    // Hacer scroll a los filtros cuando cambie el filtro
+    setTimeout(() => scrollToFilters(), 100);
+  };
 
-  const getNotificationIcon = (type: string, priority: string) => {
-    switch (type) {
-      case 'reminder':
-        return { icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100' };
-      default:
-        return { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' };
+  // Funciones de paginación - usando backend pagination
+  const handlePrevious = () => {
+    if (page > 1) {
+      setPage(page - 1);
+      // Agregar delay para asegurar que el DOM se actualice antes del scroll
+      setTimeout(() => scrollToFilters(), 100);
+    }
+  };
+
+  const handleNext = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+      // Agregar delay para asegurar que el DOM se actualice antes del scroll
+      setTimeout(() => scrollToFilters(), 100);
+    }
+  };
+
+  const goToPage = (pageNumber: number) => {
+    setPage(pageNumber);
+    setTimeout(() => scrollToFilters(), 100);
+  };
+
+ 
+
+  // Usar directamente las notificaciones que vienen del backend (ya paginadas)
+  const paginatedNotifications = notifications;
+
+  // Para el contador de no leídas, usar el total del backend
+  const unreadCount = totalNoLeidas;
+
+  const getNotificationIcon = (message: string) => {
+    // Detectar tipo de mensaje basado en el contenido
+    if (message.toLowerCase().includes('cancelada automáticamente')) {
+      return { icon: X, color: 'text-orange-600', bg: 'bg-orange-100' };
+    } else if (message.toLowerCase().includes('recordatorio')) {
+      return { icon: AlarmClock, color: 'text-orange-600', bg: 'bg-orange-100' };
+    } else if (message.toLowerCase().includes('confirmada')) {
+      return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-100' };
+    } else if (message.toLowerCase().includes('cancelada')) {
+      return { icon: X, color: 'text-red-600', bg: 'bg-red-100' };
+    } else if (message.toLowerCase().includes('realizada')) {
+      return { icon: CalendarCheck, color: 'text-blue-600', bg: 'bg-blue-100' };
+    } else {
+      // Para cualquier otro tipo de mensaje
+      return { icon: Bell, color: 'text-gray-600', bg: 'bg-gray-100' };
     }
   };
 
@@ -158,20 +167,46 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
     });
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
+
+  const markAsRead = async (id: string) => {
+    if (!usuario?.id) return;
+    
+    try {
+      if (userType === 'cliente') {
+        await marcarLeidaDelCliente(usuario.id, id);
+      } else {
+        await marcarLeidaDelProveedor(usuario.id, id, userType);
+      }
+      
+      // Recargar todas las notificaciones después de marcar como leída
+      await cargarTotasNotificacions();
+      await cargarNotificacionesNoLeidas();
+      
+      // Actualizar contador del encabezado
+      await cargarContadorNotificaciones();
+    } catch (error) {
+      console.error('Error al marcar notificación como leída:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllAsRead = async () => {
+    if (!usuario?.id) return;
+    try {
+      if (userType === 'cliente') {
+        await marcarTodasLeidasDelCliente(usuario.id);
+      } else {
+        await marcarTodasLeidasDelProveedor(usuario.id, userType);
+      }
+
+      // Recargar todas las notificaciones después de marcar como leída
+      await cargarTotasNotificacions();
+      await cargarNotificacionesNoLeidas();
+      
+      // Actualizar contador del encabezado
+      await cargarContadorNotificaciones();
+    } catch (error) {
+      console.error('Error al marcar todas las notificaciones como leídas:', error);
+    }
   };
 
   const deleteNotification = (id: string) => {
@@ -180,13 +215,21 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
 
   const getTitle = () => {
     switch (userType) {
-      case 'owner': return 'Mis Notificaciones';
-      case 'veterinary': return 'Notificaciones de Clínica';
-      case 'walker': return 'Notificaciones de Paseos';
-      case 'caregiver': return 'Notificaciones de Cuidado';
+      case 'cliente': return 'Mis Notificaciones';
+      case 'veterinaria': return 'Notificaciones de Clínica';
+      case 'paseador': return 'Notificaciones de Paseos';
+      case 'cuidador': return 'Notificaciones de Cuidado';
       default: return 'Notificaciones';
     }
   };
+
+  // Efecto para recargar notificaciones cuando cambia el contador global
+  useEffect(() => {
+    if (usuario?.id) {
+      cargarTotasNotificacions();
+      cargarNotificacionesNoLeidas();
+    }
+  }, [contadorNotificacionesNoLeidas]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -216,7 +259,7 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                   <h1 className="text-2xl font-bold text-gray-900">{getTitle()}</h1>
                   <p className="text-gray-600">
                     {unreadCount > 0 
-                      ? `Tienes ${unreadCount} notificación${unreadCount > 1 ? 'es' : ''} sin leer`
+                      ? `Tienes ${totalNoLeidas} notificación${unreadCount > 1 ? 'es' : ''} sin leer`
                       : 'Todas las notificaciones están al día'
                     }
                   </p>
@@ -237,16 +280,15 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+        <div ref={filtersRef} className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'all', label: 'Todas' },
-              { key: 'unread', label: 'No leídas' },
-              { key: 'reminder', label: 'Recordatorios' },
+              { key: 'todas', label: 'Todas' },
+              { key: 'Noleidas', label: 'No leídas' },
             ].map(({ key, label }) => (
               <button
                 key={key}
-                onClick={() => setFilter(key as any)}
+                onClick={() => handleFilterChange(key as any)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filter === key
                     ? 'bg-blue-600 text-white'
@@ -254,7 +296,7 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                 }`}
               >
                 {label}
-                {key === 'unread' && unreadCount > 0 && (
+                {key === 'Noleidas' && unreadCount > 0 && (
                   <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
                     {unreadCount}
                   </span>
@@ -265,28 +307,33 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
         </div>
 
         {/* Notifications List */}
-        {filteredNotifications.length === 0 ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : paginatedNotifications.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay notificaciones</h3>
             <p className="text-gray-600">
-              {filter === 'unread' 
+              {filter === 'Noleidas' 
                 ? 'No tienes notificaciones sin leer'
                 : 'No hay notificaciones para mostrar'
               }
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredNotifications.map((notification) => {
-              const iconConfig = getNotificationIcon(notification.type, notification.priority);
+          <>
+            <div className="space-y-4">
+               {paginatedNotifications.map((notification: any) => {
+              const iconConfig = getNotificationIcon(notification.mensaje || '');
               const Icon = iconConfig.icon;
 
               return (
                 <div
                   key={notification.id}
-                  className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${getPriorityColor(notification.priority)} ${
-                    !notification.read ? 'ring-2 ring-blue-100' : ''
+                  className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${getPriorityColor(notification.priority || 'low')} ${
+                    !notification.fechaLeida ? 'ring-2 ring-blue-100' : ''
                   }`}
                 >
                   <div className="p-6">
@@ -298,31 +345,23 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h3 className={`text-lg font-semibold ${!notification.read ? 'text-gray-900' : 'text-gray-700'} mb-1`}>
-                              {notification.title}
-                              {!notification.read && (
+                            <h3 className={`text-lg font-semibold ${!notification.fechaLeida ? 'text-gray-900' : 'text-gray-700'} mb-1`}>
+                              {notification.title || 'Notificación'}
+                              {!notification.fechaLeida && (
                                 <span className="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
                               )}
                             </h3>
                             <p className="text-gray-600 mb-3 leading-relaxed">
-                              {notification.message}
+                              {notification.mensaje}
                             </p>
                             <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span>{formatDate(notification.date)}</span>
-                              <span className="capitalize">{notification.type}</span>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                notification.priority === 'high' ? 'bg-red-100 text-red-700' :
-                                notification.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-green-100 text-green-700'
-                              }`}>
-                                {notification.priority === 'high' ? 'Alta' : 
-                                 notification.priority === 'medium' ? 'Media' : 'Baja'} prioridad
-                              </span>
+                              <span>{formatDate(notification.fechaAlta)}</span>
+                              
                             </div>
                           </div>
                           
                           <div className="flex items-center space-x-2 ml-4">
-                            {!notification.read && (
+                            {!notification.fechaLeida && (
                               <button
                                 onClick={() => markAsRead(notification.id)}
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -354,7 +393,81 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                 </div>
               );
             })}
-          </div>
+            </div>
+
+            {/* Navegación de páginas centrada */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-4 mt-8">
+                {/* Botón Anterior */}
+                <button
+                  onClick={handlePrevious}
+                  disabled={page === 1}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    page === 1 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="text-sm font-medium">Anterior</span>
+                </button>
+
+                {/* Indicadores de páginas */}
+                <div className="flex items-center space-x-2">
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 7) {
+                      pageNumber = i + 1;
+                    } else if (page <= 4) {
+                      pageNumber = i + 1;
+                    } else if (page >= totalPages - 3) {
+                      pageNumber = totalPages - 6 + i;
+                    } else {
+                      pageNumber = page - 3 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => goToPage(pageNumber)}
+                        className={`w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium ${
+                          page === pageNumber
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-gray-200 text-gray-700 hover:bg-blue-100 hover:text-blue-600'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Botón Siguiente */}
+                <button
+                  onClick={handleNext}
+                  disabled={page === totalPages}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    page === totalPages 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  <span className="text-sm font-medium">Siguiente</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Información de páginas */}
+            {totalPages > 1 && (
+              <div className="text-center mt-4">
+                <p className="text-gray-600 text-sm">
+                  Página <span className="font-semibold text-blue-600">{page}</span> de{' '}
+                  <span className="font-semibold text-blue-600">{totalPages}</span>
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

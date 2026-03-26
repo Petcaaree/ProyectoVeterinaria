@@ -36,7 +36,7 @@ const reservaSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    enum: ["PENDIENTE", "ACEPTADA", "CANCELADA", "RECHAZADA", "COMPLETADA"],
+    enum: ["PENDIENTE", "CONFIRMADA", "CANCELADA", "COMPLETADA"],
   },
   horario: {
     type: String,
@@ -62,9 +62,9 @@ const reservaSchema = new mongoose.Schema({
   },
   notaAdicional: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
-    minlength: 1,
+    minlength: 0,
     maxlength: 1000,
   },
   cantidadDias: {
@@ -96,6 +96,10 @@ const reservaSchema = new mongoose.Schema({
       },
       message: (props) => `${props.value} no es un email valido!`,
     },
+  },
+  recordatorioEnviado: {
+    type: Boolean,
+    default: false,
   },
 });
 

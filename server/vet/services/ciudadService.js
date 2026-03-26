@@ -9,20 +9,15 @@ export class CiudadService {
     }
 
     async findAll({page = 1, limit = 10}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        
 
-        let ciudades = await this.ciudadRepository.findByPage(pageNum, limit)
+        let localidades = await this.localidadRepository.findAll()
 
-        const total = await this.ciudadRepository.countAll()
-        const total_pages = Math.ceil(total / limitNum)
-        const data = ciudades.map(a => this.toDTO(a))
+        const total = await this.localidadRepository.countAll()
+        const data = localidades.map(a => this.toDTO(a))
 
         return {
-            page: pageNum,
-            per_page: limitNum,
             total: total,
-            total_pages: total_pages,
             data: data
         };
     }
@@ -48,11 +43,11 @@ export class CiudadService {
         
     }
 
-    toDTO(ciudad) {
+    toDTO(localidad) {
         return {
-            id: ciudad.id,
-            nombre: ciudad.nombre,
-            localidad: ciudad.localidad.nombre
+            idLocalidad: localidad.id,
+            localidad: localidad.nombre,
+            ciudad: localidad.ciudad.nombre,
         }
     }
 }

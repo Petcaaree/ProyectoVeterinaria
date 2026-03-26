@@ -28,6 +28,10 @@ export class LocalidadRepository {
         return await this.model.findByPage(pageNum, limitNum)
     }
 
+    async findAll() {
+        return await this.model.find().populate('ciudad')
+    }
+
     async countAll() {
         return await this.model.countDocuments()
     }

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Shield, Home, Clock, Star, Award, CheckCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Shield, Home, Clock, Star, Award, CheckCircle, Calendar, ChevronLeft, ChevronRight, Search, ChevronDown } from 'lucide-react';
 //import { cuidadorServices } from '../data/mockData';
 import ModalReserva from './ModalReserva';
 import EncabezadoPagina from './comun/EncabezadoPagina';
@@ -8,7 +8,7 @@ import SinResultados from './comun/SinResultados';
 import TarjetaCuidador from './cuidadores/TarjetaCuidador';
 import CalendarioModerno from './comun/CalendarioModerno';
 import { useAuth } from '../context/authContext.tsx';
-import ServiciosCuidadores from './ServiciosCuidadores';
+import { getLocalidades } from '../api/api';
 
 
 interface PaginaCuidadoresProps {
@@ -16,149 +16,232 @@ interface PaginaCuidadoresProps {
 }
 
 const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
+  // Referencia para el scroll hacia las cards
+  const cardsContainerRef = useRef<HTMLDivElement>(null);
+  
   const [selectedCuidador, setSelectedCuidador] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [experienceFilter, setExperienceFilter] = useState('all');
+  const [selectedPetTypes, setSelectedPetTypes] = useState<string[]>([]);
+
+  // Tipos de mascotas disponibles
+  const petTypes = [
+    { value: 'dog', label: 'Perros' },
+    { value: 'cat', label: 'Gatos' },
+    { value: 'bird', label: 'Aves' },
+    { value: 'other', label: 'Otros' }
+  ];
+
+  // Función para manejar selección múltiple de tipos de mascotas
+  const handlePetTypeToggle = (petType: string) => {
+    setSelectedPetTypes(prev => {
+      const newSelection = prev.includes(petType) 
+        ? prev.filter(type => type !== petType)
+        : [...prev, petType];
+      
+      // Actualizar filtros para backend
+      setFiltros(prevFiltros => ({
+        ...prevFiltros,
+        mascotasAceptadas: newSelection
+      }));
+      
+      setPage(1);
+      return newSelection;
+    });
+  };
+
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
   const [mostrarCalendarioInicio, setMostrarCalendarioInicio] = useState(false);
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
-  const [locationFilter, setLocationFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [localidades, setLocalidades] = useState<{ id: number; nombre: string }[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<{ id: number; nombre: string }[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [cuidadorServices, setCuidadorServicios] = useState<any[]>([]);
 
   const { usuario, getServiciosCuidadores } = useAuth();
 
+  // Cargar localidades del backend al montar
+  useEffect(() => {
+    getLocalidades().then((data) => {
+      if (Array.isArray(data)) {
+        setLocalidades(data);
+      } else if (data && Array.isArray(data.data)) {
+        setLocalidades(data.data.map((l: any) => ({
+          id: l.idLocalidad,
+          nombre: l.localidad,
+          ciudad: l.ciudad
+        })));
+      }
+    });
+  }, []);
+
+  // ...otros filtros y lógica...
+
+  // Cerrar dropdown de localidades al hacer click fuera (hook debe ir aquí, antes del return principal)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.localidad-dropdown-container')) {
+        setShowSuggestions(false);
+      }
+    };
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
+  // Helper para parsear fecha DD/MM/AAAA a Date object
+  const parsearFecha = (fechaStr: string): Date | null => {
+    if (!fechaStr || fechaStr.length === 0) return null;
+    
+    // Si ya es formato DD/MM/AAAA
+    if (fechaStr.includes('/')) {
+      const [dia, mes, año] = fechaStr.split('/');
+      return new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+    }
+    
+    // Si es formato ISO (YYYY-MM-DD) - para compatibilidad
+    return new Date(fechaStr);
+  };
+
   const [filtros, setFiltros] = useState({
     nombreServicio: '',
     precioMin: '',
     precioMax: '',
-    mascotasAceptadas: [],
+    mascotasAceptadas: [] as string[],
     fechaInicio: '',
     fechaFin: '',
+    localidad: '',
   });
 
+  // Función para aplicar filtros manualmente
+  const aplicarFiltros = () => {
+    // Mapeo de inglés a español para tipos de mascotas
+    const mapeoTiposMascotas = {
+      'dog': 'PERRO',
+      'cat': 'GATO', 
+      'bird': 'AVE',
+      'other': 'OTROS'
+    };
+
+    const nuevosFiltros = {
+      nombreServicio: searchTerm,
+      precioMin: minPrice,
+      precioMax: maxPrice,
+      localidad: locationFilter === 'all' ? '' : locationFilter,
+      mascotasAceptadas: selectedPetTypes.map(tipo => mapeoTiposMascotas[tipo as keyof typeof mapeoTiposMascotas] || tipo.toUpperCase()),
+      fechaInicio: fechaInicio,
+      fechaFin: fechaFin
+    };
+    
+    console.log('Aplicando filtros manualmente:', nuevosFiltros);
+    setFiltros(nuevosFiltros);
+    setPage(1);
+    // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
+    cargarServicios(nuevosFiltros);
+  };
+
+  // Función para buscar con filtros
+  const buscarConFiltros = () => {
+    aplicarFiltros();
+  };
+
+  // Cargar servicios iniciales al montar el componente
   useEffect(() => {
     cargarServicios();
   }, [page]);
 
-    const cargarServicios = async () => {
+  // Efecto para actualizar filtros cuando cambien las fechas (solo actualiza estado, no busca)
+  useEffect(() => {
+    // Solo actualizamos el estado, no disparamos búsqueda automática
+    console.log('📅 Fechas actualizadas - Inicio:', fechaInicio, 'Fin:', fechaFin);
+  }, [fechaInicio, fechaFin]);
+
+    const cargarServicios = async (filtrosPersonalizados?: any) => {
     // Simular carga de servicios
-    const servicios = await getServiciosCuidadores(page, filtros);
+    const filtrosAUsar = filtrosPersonalizados || filtros;
+    console.log('Cargando servicios con filtros:', filtrosAUsar);
+    const servicios = await getServiciosCuidadores(page, filtrosAUsar);
     setCuidadorServicios(servicios.data);
     setTotalPages(servicios.total_pages); // Suponiendo 10 servicios por página
   };
+
+  // Estado para controlar el scroll después de cargar datos
+  const [shouldScrollToCards, setShouldScrollToCards] = useState(false);
+
+  // Función para hacer scroll hacia las cards
+  const scrollToCards = () => {
+    setTimeout(() => {
+      if (cardsContainerRef.current) {
+        cardsContainerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 100); // Pequeño delay para asegurar que el contenido se haya renderizado
+  };
+
+  // useEffect para hacer scroll cuando se carguen nuevos datos
+  useEffect(() => {
+    if (shouldScrollToCards && cuidadorServices.length > 0) {
+      scrollToCards();
+      setShouldScrollToCards(false);
+    }
+  }, [cuidadorServices, shouldScrollToCards]);
 
   // Funciones para navegación de carrusel
   const handlePreviousPage = () => {
     if (page > 1) {
       setPage(page - 1);
-      // Scroll suave hacia arriba
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setShouldScrollToCards(true); // Activar scroll después de cargar datos
     }
   };
 
   const handleNextPage = () => {
     if (page < totalPages) {
       setPage(page + 1);
-      // Scroll suave hacia arriba
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setShouldScrollToCards(true); // Activar scroll después de cargar datos
     }
   };
 
   const goToPage = (pageNumber: number) => {
     setPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShouldScrollToCards(true); // Activar scroll después de cargar datos
   };
 
-  const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
-  };
+  
 
   const handleBookCuidador = (cuidador: any) => {
     setSelectedCuidador(cuidador);
     setIsBookingOpen(true);
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ));
+  // Función para manejar reserva exitosa
+  const handleReservaExitosa = () => {
+    // Recargar los datos de la página actual
+    cargarServicios();
+    // Cerrar el modal
+    setIsBookingOpen(false);
+    setSelectedCuidador(null);
   };
+
+ 
 
   // Check if cuidador is available on selected date
-  const isAvailableOnDateRange = (cuidador: any, startDate: string, endDate: string) => {
-    if (!startDate && !endDate) return true;
-    
-    // Si solo hay fecha de inicio, verificar ese día
-    if (startDate && !endDate) {
-      const date = new Date(startDate);
-      const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-      const dayName = dayNames[date.getDay()];
-      return cuidador.availability.some((period: string) => 
-        period.includes(dayName) || period.includes('Lunes a Domingo') || period.includes('Lunes a Viernes')
-      );
-    }
-    
-    // Para rangos de fechas, verificar disponibilidad general
-    return cuidador.availability.some((period: string) => 
-      period.includes('Lunes a Domingo') || 
-      (period.includes('Lunes a Viernes') && !isWeekendRange(startDate, endDate))
-    );
-  };
+  
 
-  const isWeekendRange = (startDate: string, endDate: string) => {
-    if (!startDate || !endDate) return false;
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    // Verificar si el rango incluye solo fines de semana
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dayOfWeek = d.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // No es domingo (0) ni sábado (6)
-        return false;
-      }
-    }
-    return true;
-  };
+  
 
-  // Filter cuidadors based on search and filters
-  /* const filteredCuidadors = cuidadorServices.filter(cuidador => {
-    const matchesSearch = cuidador.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         cuidador.services.some(service => 
-                           service.toLowerCase().includes(searchTerm.toLowerCase())
-                         );
-    
-    const matchesPrice = (!minPrice && !maxPrice) ||
-                        (() => {
-                          const price = cuidador.pricePerDay;
-                          const min = minPrice ? parseInt(minPrice) : 0;
-                          const max = maxPrice ? parseInt(maxPrice) : Infinity;
-                          return price >= min && price <= max;
-                        })();
-    
-    const matchesExperience = experienceFilter === 'all' ||
-                             (experienceFilter === 'junior' && cuidador.experience <= 3) ||
-                             (experienceFilter === 'mid' && cuidador.experience > 3 && cuidador.experience <= 6) ||
-                             (experienceFilter === 'senior' && cuidador.experience > 6);
-    
-    const matchesDate = isAvailableOnDateRange(cuidador, fechaInicio, fechaFin);
-    
-    return matchesSearch && matchesPrice && matchesExperience && matchesDate;
-  }); */
+  
 
   const today = new Date().toISOString().split('T')[0];
   return (
@@ -200,19 +283,151 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white"
             />
 
-            {/* Experience Filter */}
-            <select
-              value={experienceFilter}
-              onChange={(e) => setExperienceFilter(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white"
-            >
-              <option value="all">Todos los tipos</option>
-              <option value="dog">Perros</option>
-              <option value="cat">Gatos</option>
-              <option value="bird">Aves</option>
-              <option value="other">Otros</option>
-            </select>
+            {/* Location Filter Autocomplete (usando localidades del backend) */}
+            <div className="relative localidad-dropdown-container z-[9998]">
+              <input
+                type="text"
+                value={locationFilter}
+                onChange={e => {
+                  const value = e.target.value;
+                  setLocationFilter(value);
+                  setShowSuggestions(true);
+                  if (value.length === 0) {
+                    setFilteredSuggestions([]);
+                  } else {
+                    setFilteredSuggestions(
+                      localidades.filter(l => l.nombre.toLowerCase().includes(value.toLowerCase()))
+                    );
+                  }
+                  setPage(1);
+                  setFiltros(prev => ({ ...prev, localidad: value }));
+                }}
+                onFocus={() => {
+                  if (localidades.length > 0) setShowSuggestions(true);
+                }}
+                placeholder="Buscar localidad..."
+                className={`w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white ${filteredSuggestions.length > 0 && showSuggestions ? 'rounded-b-none' : ''}`}
+                autoComplete="off"
+              />
+              {/* Icono de búsqueda y flecha */}
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <Search className="h-4 w-4 text-gray-400" />
+                {localidades.length > 0 && (
+                  <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${showSuggestions ? 'rotate-180' : ''}`} />
+                )}
+              </div>
+              {/* Dropdown de sugerencias */}
+              {showSuggestions && (
+                <div className="absolute z-[9999] mt-1 w-full bg-white border border-gray-200 rounded-b-xl shadow-lg max-h-60 overflow-y-auto animate-fade-in">
+                  {/* Header de ayuda */}
+                  {!locationFilter.trim() && (
+                    <div className="px-4 py-2 bg-orange-50 border-b border-orange-100">
+                      <p className="text-sm font-medium text-orange-800">
+                        💡 Escribí para buscar localidades o elegí de la lista
+                      </p>
+                      <p className="text-xs text-orange-600">
+                        Hay {localidades.length} localidades disponibles
+                      </p>
+                    </div>
+                  )}
+                  {locationFilter.trim() && (
+                    <div className="px-4 py-2 bg-green-50 border-b border-green-100">
+                      <p className="text-sm font-medium text-green-800">
+                        🔍 Resultados para "{locationFilter}"
+                      </p>
+                      <p className="text-xs text-green-600">
+                        {filteredSuggestions.length} localidad{filteredSuggestions.length !== 1 ? 'es' : ''} encontrada{filteredSuggestions.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
+                  {/* Lista de sugerencias */}
+                  {filteredSuggestions.length > 0 ? (
+                    filteredSuggestions.map((l) => (
+                      <div
+                        key={l.id}
+                        onMouseDown={() => {
+                          setLocationFilter(l.nombre);
+                          setFiltros(prev => ({ ...prev, localidad: l.nombre }));
+                          setShowSuggestions(false);
+                          setPage(1);
+                        }}
+                        className={`px-4 py-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors group ${locationFilter === l.nombre ? 'bg-orange-100 font-semibold text-orange-700' : ''}`}
+                      >
+                        <span className="font-medium">{l.nombre}</span>
+                        {l.ciudad && (
+                          <span className="block text-xs text-gray-500 mt-1">{l.ciudad}</span>
+                        )}
+                        {locationFilter === l.nombre && (
+                          <CheckCircle className="inline ml-2 h-4 w-4 text-orange-600 align-middle" />
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <div className="w-12 h-12 mx-auto mb-3 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Search className="h-6 w-6 text-yellow-600" />
+                      </div>
+                      <p className="text-sm text-yellow-700 font-medium">No se encontraron localidades</p>
+                      <p className="text-xs text-yellow-600">Verificá que esté bien escrito o probá con otra ciudad</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
+  
+
+            {/* Pet Types Filter - Multi-select */}
+            <div className="col-span-full">
+              <div className="flex items-center justify-between mb-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Tipos de mascotas
+                </label>
+                {selectedPetTypes.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setSelectedPetTypes([]);
+                      setFiltros(prev => ({ ...prev, mascotasAceptadas: [] }));
+                      setPage(1);
+                    }}
+                    className="text-xs text-orange-600 hover:text-orange-800 font-medium"
+                  >
+                    Limpiar selección
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {petTypes.map(petType => (
+                  <label
+                    key={petType.value}
+                    className={`flex items-center space-x-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 ${
+                      selectedPetTypes.includes(petType.value)
+                        ? 'border-orange-500 bg-orange-50 text-orange-700'
+                        : 'border-gray-200 bg-gray-50 hover:border-orange-300 hover:bg-orange-25'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPetTypes.includes(petType.value)}
+                      onChange={() => handlePetTypeToggle(petType.value)}
+                      className="sr-only"
+                    />
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                      selectedPetTypes.includes(petType.value)
+                        ? 'border-orange-500 bg-orange-500'
+                        : 'border-gray-300'
+                    }`}>
+                      {selectedPetTypes.includes(petType.value) && (
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium">{petType.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             {/* Date Range Filter */}
             <div className="col-span-full md:col-span-2">
@@ -233,11 +448,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
                     >
                       {fechaInicio 
-                        ? new Date(fechaInicio).toLocaleDateString('es-ES', { 
-                            day: '2-digit', 
-                            month: '2-digit', 
-                            year: 'numeric' 
-                          })
+                        ? fechaInicio
                         : 'Seleccionar fecha'
                       }
                     </button>
@@ -257,11 +468,7 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                       className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 bg-gray-50 focus:bg-white text-sm text-left text-gray-500"
                     >
                       {fechaFin 
-                        ? new Date(fechaFin).toLocaleDateString('es-ES', { 
-                            day: '2-digit', 
-                            month: '2-digit', 
-                            year: 'numeric' 
-                          })
+                        ? fechaFin
                         : 'Seleccionar fecha'
                       }
                     </button>
@@ -275,13 +482,31 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-orange-700">Duración del servicio:</span>
                     <span className="font-bold text-orange-800">
-                      {Math.ceil((new Date(fechaFin).getTime() - new Date(fechaInicio).getTime()) / (1000 * 60 * 60 * 24)) + 1} días
+                      {(() => {
+                        const fechaInicioDate = parsearFecha(fechaInicio);
+                        const fechaFinDate = parsearFecha(fechaFin);
+                        if (fechaInicioDate && fechaFinDate) {
+                          return Math.ceil((fechaFinDate.getTime() - fechaInicioDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                        }
+                        return 0;
+                      })()} días
                     </span>
                   </div>
                 </div>
               )}
             </div>
             </>
+          }
+          elementoFijo={
+            /* Botón de búsqueda siempre visible */
+            <div className="flex justify-center mt-4">
+              <button
+                onClick={buscarConFiltros}
+                className="px-8 py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                🔍 Buscar Cuidadores
+              </button>
+            </div>
           }
         />
 
@@ -290,8 +515,9 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           <p className="text-gray-600">
             Mostrando {cuidadorServices.length} cuidador{cuidadorServices.length !== 1 ? 'es' : ''} 
             {searchTerm && ` para "${searchTerm}"`}
-            {fechaInicio && fechaFin && ` disponibles del ${new Date(fechaInicio).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} al ${new Date(fechaFin).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-            {fechaInicio && !fechaFin && ` disponibles desde el ${new Date(fechaInicio).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
+            {selectedPetTypes.length > 0 && ` para ${selectedPetTypes.map(type => petTypes.find(pt => pt.value === type)?.label).join(', ')}`}
+            {fechaInicio && fechaFin && ` disponibles del ${fechaInicio} al ${fechaFin}`}
+            {fechaInicio && !fechaFin && ` disponibles desde el ${fechaInicio}`}
           </p>
         </div>
 
@@ -302,79 +528,77 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           <>
             {/* Carrusel de Cuidadores */}
             <div className="relative mb-16">
-              {/* Contenedor del carrusel */}
-              <div className="flex items-center">
-                {/* Botón Anterior - Lado Izquierdo */}
-                {totalPages > 1 && (
+              {/* Grid de Tarjetas */}
+              <div ref={cardsContainerRef} className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+                {cuidadorServices.map((cuidador) => (
+                  <TarjetaCuidador
+                    key={cuidador.id}
+                    cuidador={cuidador}
+                    alContratar={handleBookCuidador}
+                  />
+                ))}
+              </div>
+
+              {/* Navegación de páginas centrada */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-4 mt-8">
+                  {/* Botón Anterior */}
                   <button
                     onClick={handlePreviousPage}
                     disabled={page === 1}
-                    className={`absolute left-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                       page === 1 
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                        : 'bg-orange-600 text-white hover:bg-orange-700 hover:scale-110 shadow-xl'
+                        : 'bg-orange-600 text-white hover:bg-orange-700 shadow-md hover:shadow-lg'
                     }`}
-                    style={{ left: '-60px' }}
                   >
-                    <ChevronLeft className="h-6 w-6 mx-auto" />
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="text-sm font-medium">Anterior</span>
                   </button>
-                )}
 
-                {/* Grid de Tarjetas */}
-                <div className="w-full grid md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-                  {cuidadorServices.map((cuidador) => (
-                    <TarjetaCuidador
-                      key={cuidador.id}
-                      cuidador={cuidador}
-                      alContratar={handleBookCuidador}
-                    />
-                  ))}
-                </div>
+                  {/* Indicadores de páginas */}
+                  <div className="flex items-center space-x-2">
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      let pageNumber;
+                      if (totalPages <= 7) {
+                        pageNumber = i + 1;
+                      } else if (page <= 4) {
+                        pageNumber = i + 1;
+                      } else if (page >= totalPages - 3) {
+                        pageNumber = totalPages - 6 + i;
+                      } else {
+                        pageNumber = page - 3 + i;
+                      }
 
-                {/* Botón Siguiente - Lado Derecho */}
-                {totalPages > 1 && (
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => goToPage(pageNumber)}
+                          className={`w-8 h-8 rounded-full transition-all duration-300 text-sm font-medium ${
+                            page === pageNumber
+                              ? 'bg-orange-600 text-white shadow-md'
+                              : 'bg-gray-200 text-gray-700 hover:bg-orange-100 hover:text-orange-600'
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Botón Siguiente */}
                   <button
                     onClick={handleNextPage}
                     disabled={page === totalPages}
-                    className={`absolute right-0 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 rounded-full shadow-lg transition-all duration-300 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
                       page === totalPages 
                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                        : 'bg-orange-600 text-white hover:bg-orange-700 hover:scale-110 shadow-xl'
+                        : 'bg-orange-600 text-white hover:bg-orange-700 shadow-md hover:shadow-lg'
                     }`}
-                    style={{ right: '-60px' }}
                   >
-                    <ChevronRight className="h-6 w-6 mx-auto" />
+                    <span className="text-sm font-medium">Siguiente</span>
+                    <ChevronRight className="h-4 w-4" />
                   </button>
-                )}
-              </div>
-
-              {/* Indicadores de páginas - Centrados debajo */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center space-x-2 mt-8">
-                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                    let pageNumber;
-                    if (totalPages <= 7) {
-                      pageNumber = i + 1;
-                    } else if (page <= 4) {
-                      pageNumber = i + 1;
-                    } else if (page >= totalPages - 3) {
-                      pageNumber = totalPages - 6 + i;
-                    } else {
-                      pageNumber = page - 3 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => goToPage(pageNumber)}
-                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                          page === pageNumber
-                            ? 'bg-orange-600 scale-125'
-                            : 'bg-gray-300 hover:bg-orange-300'
-                        }`}
-                      />
-                    );
-                  })}
                 </div>
               )}
 
@@ -384,7 +608,6 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
                   <p className="text-gray-600 text-sm">
                     Página <span className="font-semibold text-orange-600">{page}</span> de{' '}
                     <span className="font-semibold text-orange-600">{totalPages}</span>
-                    
                   </p>
                 </div>
               )}
@@ -445,7 +668,8 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
         onClose={() => setIsBookingOpen(false)}
         service={selectedCuidador}
         serviceType="cuidador"
-       userType={userType}
+        userType={userType}
+        onReservaExitosa={handleReservaExitosa}
       />
       </div>
 
@@ -455,6 +679,17 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
           fechaSeleccionada={fechaInicio}
           onFechaSeleccionada={(fecha) => {
             setFechaInicio(fecha);
+            
+            // Si hay una fecha fin seleccionada y la nueva fecha inicio es posterior, limpiar fecha fin
+            if (fechaFin) {
+              const fechaInicioDate = parsearFecha(fecha);
+              const fechaFinDate = parsearFecha(fechaFin);
+              
+              if (fechaInicioDate && fechaFinDate && fechaInicioDate > fechaFinDate) {
+                setFechaFin('');
+              }
+            }
+            
             setMostrarCalendarioInicio(false);
           }}
           onCerrar={() => setMostrarCalendarioInicio(false)}

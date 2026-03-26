@@ -18,7 +18,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('login');
   
   // Usar el contexto de autenticación
-  const { usuario, tipoUsuario, login, logout } = useAuth();
+  const { usuario, tipoUsuario, login, logout, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
   
   // Mapear tipos del contexto a los tipos del componente
   const usuarioLogueado = usuario ? {
@@ -32,6 +32,19 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
 
   const toggleUserMenu = () => {
     setIsUserMenuOpen(!isUserMenuOpen);
+  };
+
+  const handleLogoClick = () => {
+    // Cambiar a la vista de inicio y al servicio overview
+    if (onViewChange) {
+      onViewChange('home');
+    }
+    if (onServiceChange) {
+      onServiceChange('overview');
+    }
+    // Cerrar menús si están abiertos
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
   };
 
   const handleServiceClick = (service: 'overview' | 'veterinaria' | 'paseador' | 'cuidador') => {
@@ -112,6 +125,8 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         break;
       case 'notifications':
         if (onViewChange) onViewChange('notifications');
+        // Actualizar el contador de notificaciones cuando se abre la vista
+        cargarContadorNotificaciones();
         break;
       case 'register-pet':
         // Verificar si es dueño antes de permitir registrar mascota
@@ -180,7 +195,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
       case 'paseador':
         return [
           { id: 'add-service', label: 'Agregar Paseo', icon: Plus },
-          { id: 'my-walks', label: 'Mis Paseos', icon: MapPin },
+          { id: 'my-walks', label: 'Mis Servicios', icon: MapPin },
           ...commonOptions,
           { id: 'logout', label: 'Cerrar Sesión', icon: X }
         ];
@@ -192,7 +207,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
           { id: 'logout', label: 'Cerrar Sesión', icon: X }
         ];
       default:
-        return commonOptions;
+        return [...commonOptions, { id: 'logout', label: 'Cerrar Sesión', icon: X }];
     }
   };
 
@@ -214,7 +229,10 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={handleLogoClick}
+          >
             <div className="bg-blue-600 p-2 rounded-lg">
               <Heart className="h-6 w-6 text-white" />
             </div>
@@ -230,7 +248,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
               {usuarioLogueado ? (
                 <>
                   <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold">{usuarioLogueado.nombre.charAt(0)}</span>
+                    <span className="text-sm font-bold">{usuarioLogueado.nombre?.charAt(0) ?? 'U'}</span>
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-semibold">{usuarioLogueado.nombre}</div>
@@ -272,9 +290,9 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                       >
                         {Icon && <Icon className="h-4 w-4" />}
                         <span>{option.label}</span>
-                        {option.id === 'notifications' && usuario?.notificaciones && usuario.notificaciones.length > 0 && (
+                        {option.id === 'notifications' && contadorNotificacionesNoLeidas > 0 && (
                           <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {usuario.notificaciones.filter(n => !n.leida).length}
+                            {contadorNotificacionesNoLeidas}
                           </span>
                         )}
                       </button>
@@ -340,7 +358,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                   <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-bold">{usuarioLogueado.nombre.charAt(0)}</span>
+                        <span className="text-white font-bold">{usuarioLogueado.nombre?.charAt(0) ?? 'U'}</span>
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900">{usuarioLogueado.nombre}</div>
@@ -414,9 +432,9 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
                       >
                         {Icon && <Icon className="h-4 w-4" />}
                         <span>{option.label}</span>
-                        {option.id === 'notifications' && usuario?.notificaciones && usuario.notificaciones.length > 0 && (
+                        {option.id === 'notifications' && contadorNotificacionesNoLeidas > 0 && (
                           <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                            {usuario.notificaciones.filter(n => !n.leida).length}
+                            {contadorNotificacionesNoLeidas}
                           </span>
                         )}
                       </button>

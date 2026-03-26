@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class PaseadorController {
    constructor(paseadorService, reservaService) {
     this.paseadorService = paseadorService
@@ -24,8 +26,9 @@ export class PaseadorController {
     try {
       const datos = req.body
       const usuario = await this.paseadorService.logIn(datos)
+      const token = generarToken(usuario, 'paseador')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -35,8 +38,9 @@ export class PaseadorController {
     try {
       const paseador = req.body;
       const nuevo = await this.paseadorService.create(paseador);
+      const token = generarToken(nuevo, 'paseador');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       next(error);
     }
@@ -89,6 +93,19 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
+  // Nuevo endpoint para obtener solo el contador de notificaciones no leídas
+  async obtenerContadorNotificacionesNoLeidas(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const contador = await this.paseadorService.getContadorNotificacionesNoLeidas(id);
+      
+      res.json({ contador });
+    } catch (error) {
+      next(error);
+    }
+  }
+
    async updateReserva(req, res, next) {
     try {
       const { id, idNotificacion} = req.params
@@ -115,18 +132,28 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   } 
 
-  async getNotificaciones(req, res, next) {
-    try {
-      const { id, tipoLeida } = req.params
-      const { page, limit } = req.query
-
-      const notificaciones = await this.paseadorService.getNotificaciones(id, tipoLeida, { page, limit })
-
-      res.json(notificaciones)
-    } catch(error) {
-      next(error)
+  async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.paseadorService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
     }
-  }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.paseadorService.getAllNotificaciones(id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
 
     
 }

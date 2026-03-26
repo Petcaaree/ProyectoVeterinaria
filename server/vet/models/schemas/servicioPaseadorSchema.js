@@ -68,16 +68,18 @@ const servicioPaseadorSchema = new mongoose.Schema({
       type: Date,
       required: true
     },
-    horariosNoDisponibles: {
-      type: [String], // Solo array de strings
-      required: true,
-      validate: {
-        validator: function(v) {
-          return Array.isArray(v) && v.every(item => typeof item === 'string');
-        },
-        message: "horariosNoDisponibles debe ser un array de strings"
+    horariosNoDisponibles: [{
+      horario: {
+        type: String,
+        required: true
+      },
+      perrosReservados: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1
       }
-    }
+    }]
   }],
   diasDisponibles: {
     type: [String],
@@ -118,6 +120,12 @@ const servicioPaseadorSchema = new mongoose.Schema({
     required: true,
     default: 0,
     min: 0
+  },
+  maxPerros: {
+    type: Number,
+    required: true,
+    min: 1,
+    default: 1
   },
   direccion: {
       calle: {
@@ -236,12 +244,30 @@ function parseFechaToDate(fecha) {
 function normalizarHorarios(horarios) {
   if (!Array.isArray(horarios)) return [];
   return horarios.map(h => {
-    if (typeof h === 'string') {
-      return h;
-    } else if (h && h.horario) {
-      return h.horario;
+    if (typeof h === 'object' && h !== null && 'horario' in h && 'perrosReservados' in h) {
+      // Ya es el formato correcto
+      return {
+        horario: h.horario,
+        perrosReservados: h.perrosReservados
+      };
+    } else if (typeof h === 'object' && h !== null && 'horario' in h) {
+      // Si solo tiene horario, asignar perrosReservados = 1 por defecto
+      return {
+        horario: h.horario,
+        perrosReservados: 1
+      };
+    } else if (typeof h === 'string') {
+      // Si es solo string, convertir a objeto
+      return {
+        horario: h,
+        perrosReservados: 1
+      };
     }
-    return '00:00';
+    // Si no cumple nada, devolver un objeto por defecto
+    return {
+      horario: '00:00',
+      perrosReservados: 1
+    };
   });
 }
 

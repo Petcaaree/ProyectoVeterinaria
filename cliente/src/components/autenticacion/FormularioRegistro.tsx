@@ -26,6 +26,7 @@ interface FormularioRegistroProps {
       };
     };
     tipoUsuario: string;
+    nombreClinica?: string; // Campo opcional para veterinarias
   }) => void;
   onSwitchToLogin: () => void;
 }
@@ -56,7 +57,8 @@ const FormularioRegistro: React.FC<FormularioRegistroProps> = ({ onSubmit, onSwi
         }
       }
     },
-    tipoUsuario: 'cliente'
+    tipoUsuario: 'cliente',
+    nombreClinica: '' // Campo para veterinarias
   });
 
   // --- Autocompletado de ciudades principales (municipios) de Buenos Aires y CABA ---
@@ -177,24 +179,73 @@ useEffect(() => {
   ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
-  
-  // Manejar campos anidados
-  if (name.includes('.')) {
-    const parts = name.split('.');
-  } else {
-    // Manejar campos planos
-    setFormData(prev => ({
-      ...prev,
-      [name === 'nombre' ? 'nombreUsuario' : name]: value // Corregir el mapeo de 'nombre' a 'nombreUsuario'
-    }));
-  }
-};
+    const { name, value } = e.target;
+    
+    // Manejar campos anidados
+    if (name.includes('.')) {
+      const parts = name.split('.');
+      if (parts[0] === 'direccion') {
+        if (parts[1] === 'localidad' && parts[2] === 'ciudad' && parts[3] === 'nombre') {
+          // direccion.localidad.ciudad.nombre
+          setFormData(prev => ({
+            ...prev,
+            direccion: {
+              ...prev.direccion,
+              localidad: {
+                ...prev.direccion.localidad,
+                ciudad: {
+                  ...prev.direccion.localidad.ciudad,
+                  nombre: value
+                }
+              }
+            }
+          }));
+        } else if (parts[1] === 'localidad' && parts[2] === 'nombre') {
+          // direccion.localidad.nombre
+          setFormData(prev => ({
+            ...prev,
+            direccion: {
+              ...prev.direccion,
+              localidad: {
+                ...prev.direccion.localidad,
+                nombre: value
+              }
+            }
+          }));
+        } else if (parts[1] === 'calle') {
+          // direccion.calle
+          setFormData(prev => ({
+            ...prev,
+            direccion: {
+              ...prev.direccion,
+              calle: value
+            }
+          }));
+        } else if (parts[1] === 'altura') {
+          // direccion.altura
+          setFormData(prev => ({
+            ...prev,
+            direccion: {
+              ...prev.direccion,
+              altura: value
+            }
+          }));
+        }
+      }
+    } else {
+      // Manejar campos planos
+      setFormData(prev => ({
+        ...prev,
+        [name === 'nombre' ? 'nombreUsuario' : name]: value // Corregir el mapeo de 'nombre' a 'nombreUsuario'
+      }));
+    }
+  };
 
   const handleUserTypeChange = (tipoUsuario: string) => {
     setFormData(prev => ({
       ...prev,
-      tipoUsuario
+      tipoUsuario,
+      nombreClinica: tipoUsuario === 'veterinaria' ? prev.nombreClinica : '' // Limpiar si no es veterinaria
     }));
   };
 
@@ -227,7 +278,17 @@ useEffect(() => {
     }
 
     try {
-      await registerWithCredentials(formData.nombreUsuario, formData.email, formData.contrasenia, formData.telefono, formData.direccion, formData.tipoUsuario);
+      // Pasar nombreClinica solo si es veterinaria
+      const nombreClinica = formData.tipoUsuario === 'veterinaria' ? formData.nombreClinica : undefined;
+      await registerWithCredentials(
+        formData.nombreUsuario, 
+        formData.email, 
+        formData.contrasenia, 
+        formData.telefono, 
+        formData.direccion, 
+        formData.tipoUsuario,
+        nombreClinica
+      );
       // El contexto ya maneja la navegación y el almacenamiento
     } catch (error: any) {
       // Aquí manejamos el error del backend
@@ -253,7 +314,8 @@ useEffect(() => {
     setMostrarContrasenia(!mostrarContrasenia);
   };
 
-  const canProceedStep1 = formData.tipoUsuario && formData.nombreUsuario && formData.email && formData.telefono;
+  const canProceedStep1 = formData.tipoUsuario && formData.nombreUsuario && formData.email && formData.telefono && 
+    (formData.tipoUsuario !== 'veterinaria' || formData.nombreClinica); // Para veterinarias, nombreClinica es obligatorio
 
   const nextStep = () => {
     if (currentStep === 1) {
@@ -425,6 +487,28 @@ useEffect(() => {
                 />
               </div>
             </div>
+
+            {/* Campo Nombre de Clínica - Solo para veterinarias */}
+            {formData.tipoUsuario === 'veterinaria' && (
+              <div>
+                <label htmlFor="nombreClinica" className="block text-sm font-semibold text-gray-700 mb-1">
+                  Nombre de la Clínica
+                </label>
+                <div className="relative">
+                  <Stethoscope className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    id="nombreClinica"
+                    name="nombreClinica"
+                    value={formData.nombreClinica}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
+                    placeholder="Nombre de tu clínica veterinaria"
+                    required
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 

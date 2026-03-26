@@ -1,87 +1,56 @@
 import React from 'react';
-import { ArrowRight, Shield, Clock, Star, Heart } from 'lucide-react';
+import { ArrowRight, Shield, Clock, Star, Heart, Plus, Briefcase } from 'lucide-react';
+import { useAuth } from '../context/authContext';
 
 interface HeroeProps {
   onRegisterPetClick: () => void;
+  onLoginClick: () => void;
   onAddServiceClick: () => void;
-  userType?: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  onExploreServicesClick: () => void;
 }
 
-const Heroe: React.FC<HeroeProps> = ({ 
-  onRegisterPetClick, 
-  onAddServiceClick,
-  userType 
-}) => {
-  const handleExploreClick = () => {
-    const serviciosSection = document.getElementById('veterinaria');
-    if (serviciosSection) {
-      smoothScrollTo(serviciosSection);
-    }
-  };
-
-  // Función personalizada para scroll suave
-  const smoothScrollTo = (target: HTMLElement) => {
-    const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
-    const startPosition = window.pageYOffset;
-    const distance = targetPosition - startPosition;
-    const duration = 1000; // Duración en milisegundos (1 segundo)
-    let startTime: number | null = null;
-
-    const animation = (currentTime: number) => {
-      if (startTime === null) startTime = currentTime;
-      const timeElapsed = currentTime - startTime;
-      const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
-      window.scrollTo(0, run);
-      if (timeElapsed < duration) requestAnimationFrame(animation);
-    };
-
-    // Función de easing para un efecto más natural
-    const easeInOutQuad = (t: number, b: number, c: number, d: number) => {
-      t /= d / 2;
-      if (t < 1) return c / 2 * t * t + b;
-      t--;
-      return -c / 2 * (t * (t - 2) - 1) + b;
-    };
-
-    requestAnimationFrame(animation);
-  };
+const Heroe: React.FC<HeroeProps> = ({ onRegisterPetClick, onLoginClick, onAddServiceClick, onExploreServicesClick }) => {
+  const { usuario, tipoUsuario } = useAuth();
 
   return (
     <section id="inicio" className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
-          <div className="md:w-1/2 mb-10 md:mb-0">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">
-              Cuidamos a tus <span className="text-blue-600">mascotas</span> como se merecen
-            </h1>
-            <p className="text-lg text-gray-700 mb-8 max-w-lg">
-              Encuentra los mejores profesionales para el cuidado de tu mascota. 
-              Veterinarios, paseadores y cuidadores verificados cerca de ti.
-            </p>
-            
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                El mejor cuidado para tu
+                <span className="text-blue-600 block">mascota</span>
+              </h1>
+              <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
+                Conectamos a tu mascota con profesionales expertos en veterinaria, 
+                paseos y cuidado. Todo en un solo lugar, con la confianza y calidad 
+                que tu mejor amigo merece.
+              </p>
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4">
               <button 
-                onClick={handleExploreClick}
+                onClick={onExploreServicesClick}
                 className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
               >
                 <span>Explorar Servicios</span>
                 <ArrowRight className="h-5 w-5" />
               </button>
               
-              {userType && ['veterinaria', 'paseador', 'cuidador'].includes(userType) ? (
+              {/* Botón condicional basado en el tipo de usuario */}
+              {!usuario ? (
+                // Usuario no logueado - Mostrar botón de registrar mascota que abre el modal de login
                 <button 
-                  onClick={onAddServiceClick}
+                  onClick={onLoginClick}
                   className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
                 >
                   <Heart className="h-5 w-5" />
-                  <span>
-                    {userType === 'veterinaria' && 'Agregar Servicio'}
-                    {userType === 'paseador' && 'Agregar Paseo'}
-                    {userType === 'cuidador' && 'Agregar Cuidado'}
-                  </span>
+                  <span>Registrar Mascota</span>
                 </button>
-              ) : (
+              ) : tipoUsuario === 'cliente' ? (
+                // Usuario logueado como cliente - Botón para registrar mascota
                 <button 
                   onClick={onRegisterPetClick}
                   className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg hover:bg-blue-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
@@ -89,7 +58,34 @@ const Heroe: React.FC<HeroeProps> = ({
                   <Heart className="h-5 w-5" />
                   <span>Registrar Mascota</span>
                 </button>
-              )}
+              ) : tipoUsuario === 'veterinaria' ? (
+                // Usuario logueado como veterinaria - Botón para agregar servicio
+                <button 
+                  onClick={onAddServiceClick}
+                  className="border-2 border-green-600 text-green-600 px-8 py-4 rounded-lg hover:bg-green-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Agregar Servicio</span>
+                </button>
+              ) : tipoUsuario === 'cuidador' ? (
+                // Usuario logueado como cuidador - Botón para agregar servicio
+                <button 
+                  onClick={onAddServiceClick}
+                  className="border-2 border-green-600 text-green-600 px-8 py-4 rounded-lg hover:bg-green-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+                >
+                  <Briefcase className="h-5 w-5" />
+                  <span>Agregar Cuidado</span>
+                </button>
+              ) : tipoUsuario === 'paseador' ? (
+                // Usuario logueado como paseador - Botón para agregar servicio
+                <button 
+                  onClick={onAddServiceClick}
+                  className="border-2 border-green-600 text-green-600 px-8 py-4 rounded-lg hover:bg-green-600 hover:text-white transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-2 font-semibold"
+                >
+                  <Briefcase className="h-5 w-5" />
+                  <span>Agregar Paseo</span>
+                </button>
+              ) : null}
             </div>
 
             {/* Stats */}
@@ -118,23 +114,21 @@ const Heroe: React.FC<HeroeProps> = ({
             </div>
           </div>
 
-           {/* Right Content - Imagen con mayor tamaño y parte inferior visible */}
-          <div className="relative w-full md:w-1/2 max-w-lg">
-            {/* Contenedor con altura aumentada y relación de aspecto */}
-            <div className="relative bg-white rounded-2xl shadow-2xl p-4 md:p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300 overflow-hidden aspect-[9/10]">
+          {/* Right Content - Hero Image */}
+          <div className="relative">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300">
               <img
                 src="https://images.pexels.com/photos/4587998/pexels-photo-4587998.jpeg?auto=compress&cs=tinysrgb&w=600"
                 alt="Veterinario cuidando mascota"
-                className="w-full h-full object-cover object-bottom rounded-xl"
+                className="w-full h-96 object-cover rounded-xl"
               />
-              <div className="absolute top-4 right-4 bg-green-500 text-white p-2 md:p-3 rounded-full shadow-lg">
-                <Shield className="h-4 w-4 md:h-6 md:w-6" />
+              <div className="absolute -top-4 -right-4 bg-green-500 text-white p-3 rounded-full shadow-lg">
+                <Shield className="h-6 w-6" />
               </div>
-              <div className="absolute bottom-4 left-4 bg-blue-500 text-white p-2 md:p-3 rounded-full shadow-lg">
-                <Heart className="h-4 w-4 md:h-6 md:w-6" />
+              <div className="absolute -bottom-4 -left-4 bg-blue-500 text-white p-3 rounded-full shadow-lg">
+                <Heart className="h-6 w-6" />
               </div>
             </div>
-            
             
             {/* Floating Cards */}
             <div className="absolute top-10 -left-6 bg-white rounded-lg shadow-lg p-4 transform -rotate-6 hover:rotate-0 transition-transform duration-300">
@@ -167,4 +161,5 @@ const Heroe: React.FC<HeroeProps> = ({
   );
 };
 
-export default Heroe;
+
+export default Heroe

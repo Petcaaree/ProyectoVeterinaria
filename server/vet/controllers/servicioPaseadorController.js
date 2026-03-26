@@ -9,7 +9,7 @@ export class ServicioPaseadorController {
 
     async findAll(req, res, next){
         try {
-            const { page = 1, limit = 4} = req.query
+            const { page = 1, limit = 6} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null,  fecha=null } = req.query
@@ -120,6 +120,29 @@ export class ServicioPaseadorController {
             const estado = req.params.estado;
             const { page = 1, limit = 4 } = req.query;
             const result = await this.servicioPaseadorService.findByEstado(estado, id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioPaseadorService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioPaseadorService.getAllNotificaciones(id, { page, limit });
             res.json(result);
         } catch (error) {
             next(error);

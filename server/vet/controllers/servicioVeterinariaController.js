@@ -10,7 +10,7 @@ export class ServicioVeterinariaController {
     async findAll(req, res, next){
         try {
             console.log("🚀 INICIO ServicioVeterinariaController.findAll");
-            const { page = 1, limit = 4} = req.query
+            const { page = 1, limit = 3} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null, tipoServicio=null, fecha=null, mascotasAceptadas=[]} = req.query
@@ -140,6 +140,29 @@ export class ServicioVeterinariaController {
             const estado = req.params.estado;
             const { page = 1, limit = 3 } = req.query;
             const result = await this.servicioVeterinariaService.findByEstado(estado, id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioVeterinariaService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.servicioVeterinariaService.getAllNotificaciones(id, { page, limit });
             res.json(result);
         } catch (error) {
             next(error);

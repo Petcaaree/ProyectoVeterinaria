@@ -3,5 +3,4 @@ export const EstadoReserva = {
     CONFIRMADA: 'CONFIRMADA',
     CANCELADA: 'CANCELADA',
     COMPLETADA: 'COMPLETADA',
-    RECHAZADA: 'RECHAZADA'
   };

@@ -1,14 +1,17 @@
 import { ArrowLeft, Heart, Calendar, Clock, User, MapPin, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, Plus, Edit, Trash2, ArrowRight } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import {useAuth} from '../../context/authContext.tsx';
+import Toast from '../comun/Toast.tsx';
+import { useToast } from '../../hooks/useToast.ts';
 
 interface MisPaseosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
   onBack: () => void;
+  onCreateService?: () => void;
 }
 
 
-const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
+const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack, onCreateService }) => {
   const [activeTab, setActiveTab] = useState<'activos' | 'inactivos'>('activos');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0)
@@ -18,6 +21,7 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { usuario , getServiciosPaseador, activarOdesactivarServicio} = useAuth();
   const [seleccionoEstado, setSeleccionoEstado] = useState<boolean>(false);
+  const { toast, showError, showSuccess, hideToast } = useToast();
   
   // Mock data para servicios
   const [services, setServices] = useState<any>([])
@@ -128,9 +132,16 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
         await cargarTotales();
         
         console.log("Estado cambiado exitosamente");
-      } catch (error) {
+        showSuccess(`Servicio ${nuevoEstado.toLowerCase()} exitosamente`);
+      } catch (error: any) {
         console.error("Error al cambiar el estado del servicio:", error);
-        alert("Error al cambiar el estado del servicio. Por favor, intenta de nuevo.");
+        
+        // Mostrar el mensaje específico del backend si está disponible
+        const errorMessage = error?.response?.data?.message || 
+                            error?.message || 
+                            "Error al cambiar el estado del servicio. Por favor, intenta de nuevo.";
+        
+        showError(errorMessage);
       }
     }
   
@@ -183,9 +194,12 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                 </div>
               </div>
               
-              <button className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg">
+              <button 
+                onClick={onCreateService}
+                className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+              >
                 <Plus className="h-5 w-5" />
-                <span>Nuevo Servicio</span>
+                <span>Nuevo Paseo</span>
               </button>
             </div>
           </div>
@@ -257,7 +271,10 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
                         }
                       </p>
                       {activeTab === 'activos' && (
-                        <button className="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <button 
+                          onClick={onCreateService}
+                          className="inline-flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        >
                           <Plus className="h-5 w-5" />
                           <span>Crear Primer Servicio</span>
                         </button>
@@ -399,6 +416,14 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack }) => {
       
         </div>
       </div>
+      
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   );
 };

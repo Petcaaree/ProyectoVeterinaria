@@ -9,6 +9,13 @@ const veterinariaSchema = new mongoose.Schema({
     minlength: 1,
     maxlength: 100,
   },
+  nombreClinica: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 1,
+    maxlength: 100,
+  },
   email: {
     type: String,
     required: true,
@@ -25,14 +32,8 @@ const veterinariaSchema = new mongoose.Schema({
   contrasenia: {
     type: String,
     required: true,
-    trim: true,
-    validate: {
-      validator: function (v) {
-        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(v);
-      },
-      message: (props) =>
-        `La contraseña debe ser segura (8 caracteres, letras, número y símbolo)`,
-    },
+    // No trim ni validate: el hash de bcrypt se almacena tal cual.
+    // La validacion de complejidad se hace en el servicio antes de hashear.
   },
   telefono: {
     type: String,

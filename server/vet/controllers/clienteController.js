@@ -1,3 +1,5 @@
+import { generarToken } from '../utils/jwtUtils.js';
+
 export class ClienteController {
    constructor(clienteService, reservaService) {
     this.clienteService = clienteService
@@ -23,10 +25,10 @@ export class ClienteController {
   async logIn(req, res, next) {
     try {
       const datos = req.body
-      console.log("Datos recibidos en logIn:", JSON.stringify(datos, null, 2));
       const usuario = await this.clienteService.logIn(datos)
+      const token = generarToken(usuario, 'cliente')
 
-      res.json(usuario)
+      res.json({ data: usuario, token })
     } catch (error) {
       next(error)
     }
@@ -37,8 +39,9 @@ export class ClienteController {
       console.log("Request body recibido:", JSON.stringify(req.body, null, 2));
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
+      const token = generarToken(nuevo, 'cliente');
 
-      res.status(201).json(nuevo);
+      res.status(201).json({ data: nuevo, token });
     } catch (error) {
       console.error("Error en clienteController.create:", error);
       console.error("Stack trace:", error.stack);
@@ -69,17 +72,7 @@ export class ClienteController {
     }
   }
 
-async marcarLeidaNotificacion(req, res, next) {
-    try {
-      const { id, idNotificacion} = req.params
 
-      const actualizado = await this.clienteService.leerNotificacion(id, idNotificacion);
-
-      res.json(actualizado);
-    } catch (error) {
-      next(error);
-    }
-  }
 
    async updateReserva(req, res, next) {
     try {
@@ -107,16 +100,38 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   } 
 
-  async getNotificaciones(req, res, next) {
+
+  async obtenerNotificacionesLeidasOnoLeidas(req, res, next) {
+        try {
+            const id = req.params.id;
+            const leida = req.params.leida;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.clienteService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async obtenerTodasLasNotificaciones(req, res, next) {
+        try {
+            const id = req.params.id;
+            const { page = 1, limit = 5 } = req.query;
+            const result = await this.clienteService.getAllNotificaciones(id, { page, limit });
+            res.json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+  async marcarLeidaNotificacion(req, res, next) {
     try {
-      const { id, tipoLeida } = req.params
-      const { page, limit } = req.query
+      const { id, idNotificacion} = req.params
 
-      const notificaciones = await this.clienteService.getNotificaciones(id, tipoLeida, { page, limit })
+      const actualizado = await this.clienteService.leerNotificacion(id, idNotificacion);
 
-      res.json(notificaciones)
-    } catch(error) {
-      next(error)
+      res.json(actualizado);
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -127,6 +142,20 @@ async marcarLeidaNotificacion(req, res, next) {
       const actualizado = await this.clienteService.marcarTodasLeidas(id);
 
       res.json(actualizado);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Nuevo endpoint para obtener solo el contador de notificaciones no leídas
+  async obtenerContadorNotificacionesNoLeidas(req, res, next) {
+    try {
+      const { id } = req.params;
+      
+      const contador = await this.clienteService.getContadorNotificacionesNoLeidas(id);
+      console.log("Contador de notificaciones no leídas:", contador);
+
+      res.json({contador});
     } catch (error) {
       next(error);
     }

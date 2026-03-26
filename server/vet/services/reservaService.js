@@ -29,9 +29,12 @@ export class ReservaService {
 
         const reservas = await this.reservaRepository.findAll();
 
+        // Invertir array para mostrar las más recientes primero
+        const reservasInvertidas = reservas.reverse();
+
         // Aplicar paginación manualmente en el servicio
         const skip = (pageNum - 1) * limitNum;
-        const reservasPaginadas = reservas.slice(skip, skip + limitNum);
+        const reservasPaginadas = reservasInvertidas.slice(skip, skip + limitNum);
 
         const total = reservas.length;
         const total_pages = Math.ceil(total / limitNum);
@@ -51,7 +54,7 @@ export class ReservaService {
         return reserva ? this.toDTO(reserva) : null;
     }
 
-    async findByCliente({page = 1, limit = 10, id}) {
+    async findByCliente({page = 1, limit = 4}, id, estado) {
 
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
@@ -62,14 +65,28 @@ export class ReservaService {
         }
 
 
+        let reservas
+        let total
+        let total_pages
+        let data
 
-        const reservas = await this.reservaRepository.findByCliente(pageNum, limitNum, id)
+        if (estado === 'TODAS') {
+            reservas = await this.reservaRepository.findByCliente( cliente)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
+            total = reservas.length
+            total_pages = Math.ceil(total / limitNum)
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        } else   {
+            reservas = await this.reservaRepository.findByClienteByEstado(cliente, estado)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
+             total = reservas.length;
+             total_pages = Math.ceil(total / limitNum);
+             data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        }
 
-        const total = reservas.length;
-        const total_pages = Math.ceil(total / limitNum);
-
-        const data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
-
+        
         return {
             page: pageNum,
             per_page: limitNum,
@@ -79,7 +96,9 @@ export class ReservaService {
         }
     }
 
-    async findByProveedorServicio(id, {page = 1, limit = 10}) {
+
+
+    async findByProveedorServicio(id, estado,{page = 1, limit = 4}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
@@ -91,24 +110,69 @@ export class ReservaService {
             throw new NotFoundError("Proveedor de servicio no encontrado")
         }
 
-        let servicios
+        
 
-        if (veterinaria) {
-            servicios = await this.servicioVeterinariaRepository.findByVeterinariaId(id)
-        } else if (cuidador) {
-             servicios = await this.servicioCuidadorRepository.findByCuidadorId(id)
-        } else if (paseador) {
+        /* if (estado === 'TODAS') {
+            if (veterinaria) {
+            reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, veterinaria)
+            } else if (cuidador) {
+                reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, cuidador)
+            } else if (paseador) {
+                reservas = await this.reservaRepository.findByProveedor(pageNum, limitNum, paseador)
+            }
+              total = reservas.length
+             total_pages = Math.ceil(total / limitNum);
+            data = reservas.map(r => this.toDTO(r))
+
+        }else {
+            if (veterinaria) {
+            reservas = await this.reservaRepository.findByProveedorByEstado(veterinaria, estado)
+            } else if (cuidador) {
+                reservas = await this.reservaRepository.findByProveedorByEstado(cuidador, estado)
+            } else if (paseador) {
+                reservas = await this.reservaRepository.findByProveedorByEstado(paseador, estado)
+            }
+              total = reservas.length
+            total_pages = Math.ceil(total / limitNum);
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        } */
+
+
+         let servicios
+
+             if (veterinaria) {
+                 servicios = await this.servicioVeterinariaRepository.findByVeterinariaId(id)
+             } else if (cuidador) {
+                 servicios = await this.servicioCuidadorRepository.findByCuidadorId(id)
+            } else if (paseador) {
              servicios = await this.servicioPaseadorRepository.findByPaseadorId(id)
-        }
+            }
 
         const serviciosIds = servicios.map(s => s.id)
+        let reservas
+        let total
+        let total_pages
+        let data
+        if (estado === 'TODAS') {
+            reservas = await this.reservaRepository.findByUsuarioProveedorByPage( serviciosIds)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
+            total = reservas.length
+             total_pages = Math.ceil(total / limitNum);
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        } else{
+             reservas = await this.reservaRepository.findByProveedorByEstado(serviciosIds, estado)
+            // Invertir array para mostrar las más recientes primero
+            reservas = reservas.reverse()
+            total = reservas.length
+            total_pages = Math.ceil(total / limitNum);
+            data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
+        
+        }
 
-        const reservas = await this.reservaRepository.findByUsuarioProveedor(serviciosIds)
+        
 
-        const total = reservas.length
-        const total_pages = Math.ceil(total / limitNum);
-        const data = reservas.slice((pageNum - 1) * limitNum, pageNum * limitNum).map(r => this.toDTO(r))
-
+        
         return {
             page: pageNum,
             per_page: limitNum,
@@ -122,8 +186,19 @@ export class ReservaService {
         const { clienteId, serviciOfrecido, servicioReservadoId, IdMascota, rangoFechas, horario, notaAdicional, nombreDeContacto, telefonoContacto, emailContacto } = reserva
 
         // Validar datos obligatorios básicos (sin horario, que es condicional)
-        if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas || !notaAdicional || !nombreDeContacto || !telefonoContacto || !emailContacto) {
-            throw new ValidationError("Faltan datos obligatorios")
+        if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas  || !nombreDeContacto || !telefonoContacto || !emailContacto) {
+            
+            const faltantes = []
+            if (!clienteId) faltantes.push("clienteId")
+            if (!serviciOfrecido) faltantes.push("serviciOfrecido")
+            if (!servicioReservadoId) faltantes.push("servicioReservadoId")
+            if (!IdMascota) faltantes.push("IdMascota")
+            if (!rangoFechas) faltantes.push("rangoFechas")
+            if (!nombreDeContacto) faltantes.push("nombreDeContacto")
+            if (!telefonoContacto) faltantes.push("telefonoContacto")
+            if (!emailContacto) faltantes.push("emailContacto")
+            throw new ValidationError(`Faltan datos obligatorios: ${faltantes.join(", ")}`)
+            //throw new ValidationError("Faltan datos obligatorios")
         }
 
         
@@ -279,6 +354,8 @@ export class ReservaService {
             
             await this.clienteRepository.save(reserva.cliente)
             await this.reservaRepository.save(reserva)
+
+            return this.toDTO(reserva)
         
         } else if(nuevoEstado == "CANCELADA") {
             if(reserva.estado == EstadoReserva.CANCELADA) {
@@ -313,6 +390,9 @@ export class ReservaService {
             if(reserva.rangoFechas.fechaInicio < fechaActual) {
                 throw new ValidationError("No se puede cancelar luego de pasada la fecha inicio")
             }
+
+            // Validar restricciones específicas de cancelación por tipo de servicio
+            this.validarRestriccionesCancelacion(reserva);
             
             const fechasReserva = reserva.rangoFechas
             if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
@@ -386,6 +466,8 @@ export class ReservaService {
             
             await this.reservaRepository.save(reserva)
 
+            return this.toDTO(reserva)
+
         } else {
             throw new ValidationError(`Estado ${nuevoEstado} desconocido`)
         }
@@ -443,12 +525,26 @@ export class ReservaService {
         return borrado;
     }
 
+    async updateEstadoReserva(idReserva, estado) {
+        const reserva = await this.reservaRepository.findById(idReserva);
+        if (!reserva) {
+            throw new NotFoundError(`Reserva con id ${idReserva} no encontrada`);
+        }
+
+        reserva.estado = estado;
+        await this.reservaRepository.save(reserva);
+        return this.toDTO(reserva);
+    }
+
+    
+
     toDTO(reserva) {
         const fechaInicio = dayjs(reserva.rangoFechas.fechaInicio).format("DD/MM/YYYY");
         const fechaFin = dayjs(reserva.rangoFechas.fechaFin).format("DD/MM/YYYY");
 
         
         return {
+            _id: reserva._id,  // Agregar _id para compatibilidad con frontend
             id: reserva.id,
             cliente: {
                 nombreUsuario: reserva.cliente.nombreUsuario,
@@ -469,6 +565,36 @@ export class ReservaService {
             telefonoContacto: reserva.telefonoContacto,
             emailContacto: reserva.emailContacto,
             fechaAlta: reserva.fechaAlta
+        }
+    }
+
+    // Validar restricciones específicas de cancelación según el tipo de servicio
+    validarRestriccionesCancelacion(reserva) {
+        const ahora = dayjs();
+        const fechaInicio = dayjs(reserva.rangoFechas.fechaInicio);
+
+        if (reserva.serviciOfrecido === "ServicioCuidador") {
+            // Para cuidadores: solo se puede cancelar con mínimo 3 días de anticipación
+            const tresDiasAntes = fechaInicio.subtract(3, 'days').hour(23).minute(59).second(59);
+            if (ahora.isAfter(tresDiasAntes)) {
+                throw new ValidationError("No se puede cancelar un servicio de cuidado con menos de 3 días de anticipación");
+            }
+        } else if (reserva.serviciOfrecido === "ServicioVeterinaria" || reserva.serviciOfrecido === "ServicioPaseador") {
+            // Para veterinarias y paseadores: verificar horario y permitir cancelación hasta 3 horas antes
+            if (reserva.horario) {
+                const [horas, minutos] = reserva.horario.split(':');
+                const fechaHoraServicio = fechaInicio
+                    .hour(parseInt(horas))
+                    .minute(parseInt(minutos))
+                    .second(0);
+
+                const tresHorasAntes = fechaHoraServicio.subtract(3, 'hours');
+                
+                if (ahora.isAfter(tresHorasAntes)) {
+                    const tipoServicio = reserva.serviciOfrecido === "ServicioVeterinaria" ? "veterinario" : "de paseo";
+                    throw new ValidationError(`No se puede cancelar un servicio ${tipoServicio} con menos de 3 horas de anticipación`);
+                }
+            }
         }
     }
 }

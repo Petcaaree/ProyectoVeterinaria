@@ -4,6 +4,29 @@ import qs from "qs";
 const VITE_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const API_URL = `${VITE_API}/petcare`;
 
+// Interceptor: adjunta el token JWT a cada request si existe en localStorage
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// Interceptor: si el server responde 401 (token expirado/invalido), limpiar sesion
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401 && !error.config?.url?.includes('/login/')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            localStorage.removeItem('tipoUsuario');
+            window.location.href = '/';
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const getAlojamientos = async (pageNumber, filtros) => {
     try {
         const filtrosLimpiados = Object.fromEntries(
@@ -49,19 +72,49 @@ export const loginUsuario = async (datos, tipo) => {
         return response;
     } catch (error) {
         console.error("Error al obtener el usuario:", error);
-        throw error;
+        
+        // Mejorar el manejo de errores del servidor
+        if (error.response?.status === 404) {
+            const errorMessage = error.response.data?.message || "Email o contraseña incorrectos";
+            throw new Error(errorMessage);
+        }
+        
+        if (error.response?.status === 400) {
+            const errorMessage = error.response.data?.message || "Datos de login inválidos";
+            throw new Error(errorMessage);
+        }
+        
+        // Para otros errores del servidor
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        
+        // Error de red o conexión
+        if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+            throw new Error("No se pudo conectar con el servidor. Verifica tu conexión a internet.");
+        }
+        
+        // Error genérico
+        throw new Error("Error al iniciar sesión. Intenta nuevamente.");
     }
 };
 
 export const signinUsuario = async (datos, tipo) => {
     try {
-        const response = await axios.post(`${API_URL}/signin/${tipo}`, {
+        const requestData = {
             "nombreUsuario": datos.nombreUsuario,
             "email": datos.email,
             "contrasenia": datos.contrasenia,
             "telefono": datos.telefono,
             "direccion": datos.direccion,
-        });
+        };
+
+        // Si es veterinaria, agregar nombreClinica
+        if (tipo === 'veterinaria' && datos.nombreClinica) {
+            requestData.nombreClinica = datos.nombreClinica;
+        }
+
+        const response = await axios.post(`${API_URL}/signin/${tipo}`, requestData);
         return response;
     } catch (error) {
         console.error("Error al crear el usuario:", error);
@@ -69,14 +122,27 @@ export const signinUsuario = async (datos, tipo) => {
     }
 };
 
-export const reservarAlojamiento = async (datos) => {
+export const createReserva = async (datos) => {
     try {
-        const response = await axios.post(`${API_URL}/reservar`, {
-            "reservador": datos.reservador,
-            "cantHuespedes": datos.cantHuespedes,
-            "alojamiento": datos.alojamiento,
-            "rangoFechas": datos.rangoFechas,
-        });
+        const body = {
+            clienteId: datos.clienteId,
+            serviciOfrecido: datos.serviciOfrecido,
+            servicioReservadoId: datos.servicioReservadoId,
+            IdMascota: datos.mascota,
+            rangoFechas: {
+                fechaInicio: datos.rangoFechas.fechaInicio,
+                fechaFin: datos.rangoFechas.fechaFin
+            },
+            notaAdicional: datos.notaAdicional,
+            nombreDeContacto: datos.nombreDeContacto,
+            telefonoContacto: datos.telefonoContacto,
+            emailContacto: datos.emailContacto
+        };
+        // Solo agregar horario si no es cuidador
+        if (datos.serviciOfrecido !== "SERVICIOCUIDADOR" && datos.horario) {
+            body.horario = datos.horario;
+        }
+        const response = await axios.post(`${API_URL}/reservar`, body);
         return response;
     } catch (error) {
         console.error("Error al crear la reserva:", error);
@@ -180,23 +246,7 @@ export const getNotificacionesAnfitrion = async (usuarioId, leida, pageNumber) =
     }
 };
 
-export const marcarLeidaHuesped = async (usuarioId, notificacionId) => {
-    try {
-        await axios.put(`${API_URL}/huesped/${usuarioId}/notificaciones/${notificacionId}`)
-    } catch(error) {
-        console.error("Error al marcar la notificación como leída");
-        throw error;
-    }
-}
 
-export const marcarLeidaAnfitrion = async (usuarioId, notificacionId) => {
-    try {
-        await axios.put(`${API_URL}/anfitrion/${usuarioId}/notificaciones/${notificacionId}`);
-    } catch (error) {
-        console.error("Error al marcar la notificación como leída");
-        throw error;
-    }
-}
 
 export const crearAlojamiento = async (data) => {
     try {
@@ -260,28 +310,29 @@ export const crearServiciooVeterinaria = async (data) => {
 
 export const crearServicioPaseador = async (data) => {
     try {
-        const response = await axios.post(`${API_URL}/servicioPaseadores`, {
-            "idPaseador": data.idPaseador,
-            "nombreServicio": data.nombreServicio,
-            "duracionMinutos": data.duracionMinutos,
-            "precio": data.precio,
-            "descripcion": data.descripcion,
-            "nombreContacto": data.nombreContacto,
-            "emailContacto": data.emailContacto,
-            "telefonoContacto": data.telefonoContacto,
-            "diasDisponibles": data.diasDisponibles,
-            "horariosDisponibles": data.horariosDisponibles,
-            "direccion": {
-              "calle": data.direccion.calle,
-              "altura": data.direccion.altura,
-              "localidad": {
-                "nombre": data.direccion.localidad.nombre,
-                "ciudad": {
-                  "nombre": data.direccion.localidad.ciudad.nombre
-                }
-              }
-            }
-        });
+                const response = await axios.post(`${API_URL}/servicioPaseadores`, {
+                        "idPaseador": data.idPaseador,
+                        "nombreServicio": data.nombreServicio,
+                        "duracionMinutos": data.duracionMinutos,
+                        "precio": data.precio,
+                        "descripcion": data.descripcion,
+                        "nombreContacto": data.nombreContacto,
+                        "emailContacto": data.emailContacto,
+                        "telefonoContacto": data.telefonoContacto,
+                        "diasDisponibles": data.diasDisponibles,
+                        "horariosDisponibles": data.horariosDisponibles,
+                        "direccion": {
+                            "calle": data.direccion.calle,
+                            "altura": data.direccion.altura,
+                            "localidad": {
+                                "nombre": data.direccion.localidad.nombre,
+                                "ciudad": {
+                                    "nombre": data.direccion.localidad.ciudad.nombre
+                                }
+                            }
+                        },
+                        "maxPerros": data.maxPerros
+                });
 
         console.log("Servicio creado:", response.data);
 
@@ -451,17 +502,20 @@ export const obetenerServiciosCuidadores = async (pageNumber, filtros) => {
     }
 };
 
-export const getServiciosPaseadores = async (pageNumber, filtros = {}) => {
+export const obetenerServiciosPaseadores = async (pageNumber, filtros ) => {
   try {
     const filtrosLimpiados = Object.fromEntries(
-      Object.entries(filtros).filter(([_, v]) => {
-        if (Array.isArray(v)) return v.length > 0;
-        return v !== null && v !== undefined && v !== '';
-      })
+            Object.entries(filtros).filter(([_, v]) => {
+                if (Array.isArray(v)) return v.length > 0;
+                return v !== null && v !== undefined && v !== '';
+            })
     );
 
     const response = await axios.get(`${API_URL}/serviciosPaseadores`, {
-      params: { page: pageNumber, limit: 6, ...filtrosLimpiados },
+      params: {
+                page: pageNumber,
+                ...filtrosLimpiados
+        },
       paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
     });
 
@@ -470,4 +524,170 @@ export const getServiciosPaseadores = async (pageNumber, filtros = {}) => {
     console.error("Error al obtener servicios de paseadores:", error);
     throw error;
   }
+};
+
+export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
+  try {
+    const filtrosLimpiados = Object.fromEntries(
+            Object.entries(filtros).filter(([_, v]) => {
+                if (Array.isArray(v)) return v.length > 0;
+                return v !== null && v !== undefined && v !== '';
+            })
+    );
+
+    const response = await axios.get(`${API_URL}/serviciosVet`, {
+      params: {
+                page: pageNumber,
+                ...filtrosLimpiados
+        },
+      paramsSerializer: params => qs.stringify(params, { arrayFormat: "repeat" })
+    });
+
+    return response.data; // { page, per_page, total_pages, data, ... }
+  } catch (error) {
+    console.error("Error al obtener servicios de veterinarias:", error);
+    throw error;
+  }
+};
+// Obtener todas las reservas (paginadas)
+export const getReservasPorEstado = async (userId, userType, estado, page) => {
+    try {
+        let tipoUsuario;
+        if (userType === 'cliente'){
+            tipoUsuario = 'cliente';
+        } else {
+            tipoUsuario = 'proveedor';
+        }
+        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}/${estado}`, {
+            params: { page }
+        });
+        return response.data; // { page, per_page, total, total_pages, data }
+    } catch (error) {
+        console.error("Error al obtener todas las reservas:", error);
+        throw error;
+    }
+};
+
+export const getTodasReservas = async (userId, userType, estado, page) => {
+    try {
+        let tipoUsuario;
+        if (userType === 'cliente'){
+            tipoUsuario = 'cliente';
+        } else {
+            tipoUsuario = 'proveedor';
+        }
+        const response = await axios.get(`${API_URL}/reservas/${tipoUsuario}/${userId}/${estado}`, {
+            params: { page }
+        });
+        return response.data; // { page, per_page, total, total_pages, data }
+    } catch (error) {
+        console.error("Error al obtener todas las reservas:", error);
+        throw error;
+    }
+};
+
+export const cambiarEstadoReserva = async (idUsuario, reservaId, estado) => {
+    try {
+        const response = await axios.put(`${API_URL}/usuario/${idUsuario}/reserva/${reservaId}/${estado}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error al cambiar el estado de la reserva:", error);
+        throw error;
+    }
+};
+
+/// ----------------------NOTIFICACIONES-------------------------
+
+export const obtenerNotificacionesNoLeidas = async (usuarioId, leida, tipoUsuario, pageNumber) => {
+    try {
+        const response = await axios.get(`${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones/${leida}`, {
+            params: {
+                page: pageNumber
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener notificaciones no leídas:", error);
+        throw error;
+    }
+};
+
+export const obtenerNotificaciones = async (usuarioId, tipoUsuario, pageNumber) => {
+    try {
+        const response = await axios.get(`${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones`, {
+            params: {
+                page: pageNumber
+            }
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener notificaciones:", error);
+        throw error;
+    }
+};
+
+
+
+export const marcarLeidaCliente = async (usuarioId, notificacionId) => {
+    try {
+        await axios.put(`${API_URL}/cliente/${usuarioId}/notificaciones/${notificacionId}`)
+    } catch(error) {
+        console.error("Error al marcar la notificación como leída");
+        throw error;
+    }
+}
+
+export const marcarLeidaProveedor = async (usuarioId, notificacionId, tipoProveedor) => {
+    try {
+        await axios.put(`${API_URL}/${tipoProveedor}/${usuarioId}/notificaciones/${notificacionId}`);
+    } catch (error) {
+        console.error("Error al marcar la notificación como leída");
+        throw error;
+    }
+}
+
+export const marcarTodasLeidasProveedor = async (usuarioId, tipoProveedor) => {
+    try {
+        await axios.put(`${API_URL}/${tipoProveedor}/${usuarioId}/marcarNotificacionLeidas`);
+    } catch (error) {
+        console.error("Error al marcar todas las notificaciones como leídas del proveedor");
+        throw error;
+    }
+};
+
+export const marcarTodasLeidasCliente = async (usuarioId) => {
+    try {
+        await axios.put(`${API_URL}/cliente/${usuarioId}/marcarNotificacionLeidas`);
+    } catch (error) {
+        console.error("Error al marcar todas las notificaciones como leídas del cliente");
+        throw error;
+    }
+};
+
+// Función para obtener solo el contador de notificaciones no leídas
+export const obtenerContadorNotificacionesNoLeidas = async (usuarioId, tipoUsuario) => {
+    try {
+        let endpoint;
+        if (tipoUsuario === 'cliente') {
+            endpoint = `${API_URL}/cliente/${usuarioId}/notificaciones/contador`;
+        } else {
+            endpoint = `${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones/contador`;
+        }
+        
+        const response = await axios.get(endpoint);
+        return response.data.contador;
+    } catch (error) {
+        console.error("Error al obtener contador de notificaciones no leídas:", error);
+        throw error;
+    }
+};
+
+export const getLocalidades = async () => {
+    try {
+        const response = await axios.get(`${API_URL}/localidades`);
+        return response.data;
+    } catch (error) {
+        console.error("Error al obtener localidades:", error);
+        throw error;
+    }
 };

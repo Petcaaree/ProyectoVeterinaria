@@ -1,3 +1,51 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Scroll ultra suave y fluido */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px; /* Espacio extra para headers sticky */
+}
+
+/* Scroll personalizado con animación más suave */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Animación de scroll ultra fluida usando CSS */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Transición suave para elementos que hacen scroll */
+  [data-scroll-smooth] {
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+}
+
+/* Mejora adicional para webkit browsers (Chrome, Safari) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Asegurar que todos los elementos respeten el scroll suave */
+body, html {
+  scroll-behavior: smooth;
+}

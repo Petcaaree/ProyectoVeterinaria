@@ -5,13 +5,15 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { Mascota } from "../models/entidades/Mascota.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
+import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 
 
 export class ClienteService {
-    constructor(clienteRepository, ciudadRepository, localidadRepository) {
+    constructor(clienteRepository, ciudadRepository, localidadRepository, reservaRepository) {
         this.clienteRepository = clienteRepository
         this.ciudadRepository = ciudadRepository
         this.localidadRepository = localidadRepository
+        this.reservaRepository = reservaRepository
     }
 
     async findAll({page = 1, limit = 10}) {
@@ -45,7 +47,8 @@ export class ClienteService {
             throw new NotFoundError("Email o Contraseña incorrectas")
         }
 
-        if(usuario.contrasenia != contrasenia) {
+        const contraseniaValida = await comparePassword(contrasenia, usuario.contrasenia)
+        if(!contraseniaValida) {
             throw new ValidationError("Email o Contraseña incorrectas")
         }
 
@@ -90,7 +93,8 @@ export class ClienteService {
 
         const objectDireccion = new Direccion(direccion.calle, direccion.altura, localidadExistente)
 
-        const nuevoCliente = new Cliente(nombreUsuario, email, objectDireccion, telefono, contrasenia)
+        const contraseniaHasheada = await hashPassword(contrasenia)
+        const nuevoCliente = new Cliente(nombreUsuario, email, objectDireccion, telefono, contraseniaHasheada)
 
         const clienteGuardado = await this.clienteRepository.save(nuevoCliente)
 
@@ -155,14 +159,14 @@ export class ClienteService {
 
 
 
-    async getNotificaciones(id, leida, { page=1, limit=5 }) {
+    async getNotificacionesLeidasOnoLeidas(id, leida, { page=1, limit=5 }) {
         const cliente = await this.clienteRepository.findById(id)
         if(!cliente) {
             throw new NotFoundError(`Cliente con id ${id} no encontrado`)
         }
 
         leida = leida.toLowerCase()
-        const notificaciones = cliente.notificaciones;
+        const notificaciones = cliente.notificaciones.reverse();
 
         let data
         if(leida == "true") {
@@ -178,6 +182,33 @@ export class ClienteService {
         const startIndex = (page - 1) * limit;
         const endIndex = startIndex + limit;
         const dataNew = data.slice(startIndex, endIndex)
+
+        return {
+            page: page,
+            per_page: limit,
+            total: total,
+            total_pages: total_pages,
+            data: dataNew
+        }
+    }
+
+    async getAllNotificaciones(id, { page=1, limit=5 }) {
+        const cliente = await this.clienteRepository.findById(id)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+        }
+
+        // Invertir el orden para mostrar las más recientes primero
+        const notificaciones = cliente.notificaciones
+            .slice()  // Crear una copia para no modificar el original
+            .reverse() // Invertir el orden (más recientes primero)
+            .map(n => this.notificacionToDTO(n))
+
+        const total = notificaciones.length
+        const total_pages = Math.ceil(total / limit)
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const dataNew = notificaciones.slice(startIndex, endIndex)
 
         return {
             page: page,
@@ -225,6 +256,17 @@ export class ClienteService {
         await this.clienteRepository.save(cliente)
 
         return cliente.notificaciones.map(n => this.notificacionToDTO(n))
+    }
+
+    // Método para obtener solo el contador de notificaciones no leídas
+    async getContadorNotificacionesNoLeidas(id) {
+        const cliente = await this.clienteRepository.findById(id)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+        }
+
+        const notificacionesNoLeidas = cliente.notificaciones.filter(n => !n.leida)
+        return notificacionesNoLeidas.length
     }
 
     async getMascotas(idUsuario) {
@@ -305,6 +347,11 @@ export class ClienteService {
         const mascota = cliente.mascotas.find(m => m._id.toString() == idMascota)
         if(!mascota) {
             throw new NotFoundError(`Mascota con id ${idMascota} no encontrada`)
+        }
+
+        const totalReservas = await this.reservaRepository.findAllByMacota(idMascota)
+        if (totalReservas.length > 0) {
+            throw new ConflictError(`No se puede eliminar la mascota porque tiene reservas activas`)
         }
 
         cliente.eliminarMascota(mascota)

@@ -1,6 +1,6 @@
 import { EstadoServicio } from "./enums/enumEstadoServicio.js";
 import { FechaHorarioTurno } from "./FechaHorarioTurno.js";
-import { FechaHorariosNoDisponibles } from "./FechaHorariosNoDisponibles.js";
+import { FechaHorariosNoDisponiblesPaseador } from "./FechaHorariosNoDisponiblesPaseador.js";
 import { NotFoundError, ValidationError } from "../../errors/AppError.js";
 import { error } from "console";
 
@@ -8,7 +8,7 @@ import { error } from "console";
 
 export class ServicioPaseador{
 
-    constructor(usuarioProveedor, nombreServicio, precio, descripcion, duracionMinutos,nombreContacto,emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, direccion)  {
+    constructor(usuarioProveedor, nombreServicio, precio, descripcion, duracionMinutos, nombreContacto, emailContacto, telefonoContacto, diasDisponibles, horariosDisponibles, direccion, maxPerros)  {
         this.usuarioProveedor = usuarioProveedor; // Referencia al cuidador o veterinario
         this.nombreServicio = nombreServicio; // Nombre del servicio
         this.precio = precio; // Precio del servicio
@@ -24,6 +24,7 @@ export class ServicioPaseador{
         this.direccion = direccion; // Dirección del servicio
         this.fechaCreacion = new Date(); // Fecha de creación del servicio
         this.cantidadReservas = 0; // Cantidad de reservas realizadas
+        this.maxPerros = maxPerros ?? 1; // Cantidad máxima de perros por paseo
     }
 
     actualizarPrecio(nuevoPrecio) {
@@ -35,17 +36,19 @@ export class ServicioPaseador{
     }
 
     estaDisponibleParaFechaYHorario(fechaHorarioTurno) {
-        this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
+        for (const fechaHorariosNodispo of this.fechasNoDisponibles) {
             // Comparar solo la fecha (año-mes-día) ignorando hora
             const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
-            
             if (fechaBuscada === fechaAlmacenada) {
-                if (fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    return false; // La fecha y horario están en la lista de no disponibles
+                if (Array.isArray(fechaHorariosNodispo.horariosNoDisponibles)) {
+                    const horarioObj = fechaHorariosNodispo.horariosNoDisponibles.find(h => h.horario === fechaHorarioTurno.horario);
+                    if (horarioObj && horarioObj.perrosReservados >= this.maxPerros) {
+                        return false; // El máximo de perros para ese horario ya fue alcanzado
+                    }
                 }
             }
-        });
+        }
         return true; // Si no se encontró ninguna coincidencia, está disponible
     }
 
@@ -53,58 +56,55 @@ export class ServicioPaseador{
         if (!(fechaHorarioTurno instanceof FechaHorarioTurno)) {
             throw new Error("Se esperaba una instancia de FechaHorarioTurno");
         }
-        
-        // Buscar si ya existe una fecha igual en el array
-        let fechaExistente = this.fechasNoDisponibles.find(fechaHorariosNodispo => {
-            const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+        const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+        let idx = this.fechasNoDisponibles.findIndex(fechaHorariosNodispo => {
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
             return fechaBuscada === fechaAlmacenada;
         });
-        
-        if (fechaExistente) {
-            // Si la fecha existe, buscar esa fecha en el array y agregar el horario
-            this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
-                const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
-                const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
-                if (fechaBuscada === fechaAlmacenada && !fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    fechaHorariosNodispo.horariosNoDisponibles.push(fechaHorarioTurno.horario);
-                } else if (fechaBuscada === fechaAlmacenada && fechaHorariosNodispo.horariosNoDisponibles.includes(fechaHorarioTurno.horario)) {
-                    // Si el horario ya existe, no hacer nada
-                    throw new ValidationError("Horario ya está reservado para la fecha especificada.    ");
-                }
-            });
+        if (idx !== -1) {
+            // Ya existe la fecha, buscar el horario
+            let horarios = this.fechasNoDisponibles[idx].horariosNoDisponibles;
+            let horarioObj = horarios.find(h => h.horario === fechaHorarioTurno.horario);
+            if (horarioObj) {
+                // Sumar el contador
+                horarioObj.perrosReservados = Number.isInteger(horarioObj.perrosReservados) ? horarioObj.perrosReservados + 1 : 1;
+            } else {
+                // Agregar nuevo horario
+                horarios.push({ horario: fechaHorarioTurno.horario, perrosReservados: 1 });
+            }
         } else {
-            // Si la fecha no existe, crear una nueva instancia de FechaHorariosNoDisponibles
-            const nuevaFechaNoDisponible = new FechaHorariosNoDisponibles(fechaHorarioTurno.fecha);
-            nuevaFechaNoDisponible.agregarHorarioNoDisponible(fechaHorarioTurno.horario);
-            this.fechasNoDisponibles.push(nuevaFechaNoDisponible);
+            // Nueva fecha, agregar con el horario
+            this.fechasNoDisponibles.push({
+                fecha: fechaHorarioTurno.fecha,
+                horariosNoDisponibles: [{ horario: fechaHorarioTurno.horario, perrosReservados: 1 }]
+            });
         }
+        // Limpiar fechas que hayan quedado sin horarios (por si acaso)
+        this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => Array.isArray(fecha.horariosNoDisponibles) && fecha.horariosNoDisponibles.length > 0);
+        console.log('[agregarFechasReserva] Estado final fechasNoDisponibles:', JSON.stringify(this.fechasNoDisponibles, null, 2));
     }
+    
 
     cancelarHorarioReserva(fechaHorarioTurno) {
-        this.fechasNoDisponibles.forEach(fechaHorariosNodispo => {
-            const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+        const fechaBuscada = new Date(fechaHorarioTurno.fecha).toISOString().split('T')[0];
+        let idx = this.fechasNoDisponibles.findIndex(fechaHorariosNodispo => {
             const fechaAlmacenada = new Date(fechaHorariosNodispo.fecha).toISOString().split('T')[0];
-            
-            if (fechaBuscada === fechaAlmacenada) {
-                // Asegurar que es una instancia de FechaHorariosNoDisponibles
-                if (!(fechaHorariosNodispo instanceof FechaHorariosNoDisponibles)) {
-                    // Si no es una instancia, usar eliminación manual
-                    const index = fechaHorariosNodispo.horariosNoDisponibles.indexOf(fechaHorarioTurno.horario);
-                    if (index > -1) {
-                        fechaHorariosNodispo.horariosNoDisponibles.splice(index, 1);
-                    }
+            return fechaBuscada === fechaAlmacenada;
+        });
+        if (idx !== -1) {
+            let horarios = this.fechasNoDisponibles[idx].horariosNoDisponibles;
+            let horarioObj = horarios.find(h => h.horario === fechaHorarioTurno.horario);
+            if (horarioObj) {
+                if (horarioObj.perrosReservados > 1) {
+                    horarioObj.perrosReservados -= 1;
                 } else {
-                    // Si es una instancia, usar el método
-                    fechaHorariosNodispo.eliminarHorarioNoDisponible(fechaHorarioTurno.horario);
+                    // Eliminar el horario si el contador llega a 0
+                    this.fechasNoDisponibles[idx].horariosNoDisponibles = horarios.filter(h => h.horario !== fechaHorarioTurno.horario);
                 }
             }
-        });
-        
-        // Opcional: limpiar fechas que no tienen horarios
-        this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => 
-            fecha.horariosNoDisponibles.length > 0
-        );
+        }
+        // Limpiar fechas que hayan quedado sin horarios
+        this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => Array.isArray(fecha.horariosNoDisponibles) && fecha.horariosNoDisponibles.length > 0);
     }
 
 

@@ -25,45 +25,33 @@ export class ServicioVeterinariaService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        // Buscar veterinarias distintas
-        let veterinarias = await this.veterinariaRepository.findByPage(pageNum, limit)
-
-        // console.log("Veterinarias encontradas:", veterinarias.length)
+        // Primero buscar todos los servicios para saber qué veterinarias tienen servicios
+        const todosLosServicios = await this.servicioVeterinariaRepository.findAll()
         
-        // Extraer los IDs de las veterinarias
-        const veterinariaIds = veterinarias.map(v => v.id)
-        
-        // Buscar todos los servicios de estas veterinarias
-        const todosLosServiciosPorVeterinaria = await Promise.all(
-            veterinariaIds.map(async (veterinariaId) => {
-                return await this.servicioVeterinariaRepository.findByVeterinariaId(veterinariaId);
-            })
-        );
+        // Obtener IDs únicos de veterinarias que tienen servicios
+        const veterinariaIdsConServicios = [...new Set(
+            todosLosServicios.map(servicio => servicio.usuarioProveedor.id)
+        )]
 
-        // Filtrar solo las veterinarias que tienen servicios
-        const veterinariasConServicios = [];
-        const serviciosValidos = [];
+        // Aplicar paginación a las veterinarias que tienen servicios
+        const totalVeterinariasConServicios = veterinariaIdsConServicios.length
+        const startIndex = (pageNum - 1) * limitNum
+        const endIndex = startIndex + limitNum
+        const veterinariasPaginadas = veterinariaIdsConServicios.slice(startIndex, endIndex)
 
-        for (let i = 0; i < veterinariaIds.length; i++) {
-            const serviciosDeVeterinaria = todosLosServiciosPorVeterinaria[i];
-            if (serviciosDeVeterinaria && serviciosDeVeterinaria.length > 0) {
-                veterinariasConServicios.push(veterinariaIds[i]);
-                serviciosValidos.push(...serviciosDeVeterinaria);
-            }
-        }
+        // Buscar solo los servicios de las veterinarias paginadas
+        const serviciosPaginados = todosLosServicios.filter(servicio => 
+            veterinariasPaginadas.includes(servicio.usuarioProveedor.id)
+        )
 
-        // Aplanar el array de servicios (solo de veterinarias con servicios)
-        const todosLosServicios = serviciosValidos
-
-        const total = await this.veterinariaRepository.countAll()
-        const total_pages = Math.ceil(total / limitNum)
-        const data = todosLosServicios.map(s => this.toDTO(s))
+        const total_pages = Math.ceil(totalVeterinariasConServicios / limitNum)
+        const data = serviciosPaginados.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: todosLosServicios.length,
-            totalVeterinarias: veterinariasConServicios.length,
+            totalServicios: serviciosPaginados.length,
+            totalVeterinarias: veterinariasPaginadas.length,
             total_pages: total_pages,
             data: data
         };
@@ -154,9 +142,9 @@ export class ServicioVeterinariaService {
     }
 
     async create(servicioVeterinaria) {
-        const { idVeterinaria, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, nombreClinica, direccion, emailClinica, telefonoClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioVeterinaria
+        const { idVeterinaria, nombreServicio, tipoServicio, precio, descripcion, duracionMinutos, direccion, emailClinica, telefonoClinica, diasDisponibles, horariosDisponibles, mascotasAceptadas } = servicioVeterinaria
 
-        if(!idVeterinaria || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !nombreClinica || !direccion || !emailClinica || !telefonoClinica || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
+        if(!idVeterinaria || !nombreServicio || !tipoServicio || !precio || !descripcion || !duracionMinutos || !direccion || !emailClinica || !telefonoClinica || !diasDisponibles || !horariosDisponibles || !mascotasAceptadas) {
             throw new ValidationError("Faltan datos obligatorios")
         }
 
@@ -222,7 +210,7 @@ export class ServicioVeterinariaService {
             precio,                        // precio
             descripcion,                   // descripcion
             duracionMinutos,               // duracionMinutos
-            nombreClinica,                 // nombreClinica
+            existenteVeterinaria.nombreClinica, // nombreClinica - obtenido de la veterinaria
             objectDireccion,               // direccion
             emailClinica,                  // emailClinica
             telefonoClinica,               // telefonoClinica

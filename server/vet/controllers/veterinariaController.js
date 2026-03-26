@@ -137,7 +137,6 @@ async marcarLeidaNotificacion(req, res, next) {
             const id = req.params.id;
             const leida = req.params.leida;
             const { page = 1, limit = 5 } = req.query;
-            console.log('🔍 obtenerNotificacionesLeidasOnoLeidas - page:', page, 'type:', typeof page);
             const result = await this.veterinariaService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
             res.json(result);
         } catch (error) {
@@ -149,7 +148,6 @@ async marcarLeidaNotificacion(req, res, next) {
         try {
             const id = req.params.id;
             const { page = 1, limit = 5 } = req.query;
-            console.log('🔍 obtenerTodasLasNotificaciones - page:', page, 'type:', typeof page);
             const result = await this.veterinariaService.getAllNotificaciones(id, { page, limit });
             res.json(result);
         } catch (error) {

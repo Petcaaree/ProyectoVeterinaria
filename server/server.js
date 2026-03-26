@@ -1,4 +1,5 @@
 import express from 'express';
+import logger from './vet/utils/logger.js';
 
 export class Server {
   #controllers = {};
@@ -35,8 +36,8 @@ export class Server {
 
   launch() {
     this.app.listen(this.port, () => {
-      console.log("Server running on port " + this.port);
-      console.log("Documentación en http://localhost:3000/api-docs")
+      logger.info(`Server running on port ${this.port}`);
+      logger.info(`Documentación en http://localhost:${this.port}/api-docs`);
     });
   }
 

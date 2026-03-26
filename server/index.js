@@ -5,6 +5,7 @@ import express from "express";
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
+import logger from './vet/utils/logger.js';
 import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
 
@@ -138,12 +139,19 @@ app.use('/petcare', generalLimiter);
 app.use('/petcare/login', authLimiter);
 app.use('/petcare/signin', authLimiter);
 
-// Middleware de logging para todas las peticiones
+// Middleware de logging estructurado para todas las peticiones
 app.use((req, res, next) => {
-    console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
-    if (Object.keys(req.query).length > 0) {
-        console.log("📋 Query params:", req.query);
-    }
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        logger.info('request', {
+            method: req.method,
+            url: req.originalUrl,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+            ip: req.ip
+        });
+    });
     next();
 });
 

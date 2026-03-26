@@ -183,7 +183,7 @@ export class VeterinariaService {
     }
 
      async getAllNotificaciones(id, { page=1, limit=5 }) {
-        console.log('🔍 getAllNotificaciones SERVICE - page:', page, 'type:', typeof page);
+        // pagination params already sanitized
         const veterinaria = await this.veterinariaRepository.findById(id)
         if(!veterinaria) {
             throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
@@ -208,7 +208,7 @@ export class VeterinariaService {
             total_pages: total_pages,
             data: dataNew
         }
-        console.log('🔍 getAllNotificaciones SERVICE - result.page:', result.page, 'type:', typeof result.page);
+        // result ready
         return result
     } 
 

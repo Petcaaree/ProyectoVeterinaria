@@ -342,7 +342,7 @@ export class ClienteService {
             throw new NotFoundError(`Cliente con id ${idUsuario} no encontrado`)
         }
 
-        console.log(cliente.mascotas)
+        // mascotas logged for debug only in dev
 
         const mascota = cliente.mascotas.find(m => m._id.toString() == idMascota)
         if(!mascota) {

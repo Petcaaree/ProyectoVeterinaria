@@ -5,6 +5,7 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
+import { sanitizePagination } from "../utils/paginationUtils.js"
 
 
 export class PaseadorService {
@@ -15,10 +16,9 @@ export class PaseadorService {
     }
 
     async findAll({page = 1, limit = 10}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        const { pageNum, limitNum } = sanitizePagination({ page, limit })
 
-        let paseadors = await this.paseadorRepository.findByPage(pageNum, limit)
+        let paseadors = await this.paseadorRepository.findByPage(pageNum, limitNum)
 
         const total = await this.paseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)

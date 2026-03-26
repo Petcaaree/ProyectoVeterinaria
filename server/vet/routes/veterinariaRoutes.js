@@ -1,20 +1,22 @@
 import express from "express"
 import { VeterinariaController } from "../controllers/veterinariaController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { validate } from "../middlewares/validateMiddleware.js"
+import { loginSchema, registroVeterinariaSchema, paginationSchema } from "../validators/schemas.js"
 
 export default function veterinariaRoutes(getController) {
     const router = express.Router()
 
     // --- Rutas publicas ---
-    router.get("/petcare/veterinarias", (req, res, next) => {
+    router.get("/petcare/veterinarias", validate(paginationSchema, 'query'), (req, res, next) => {
         getController(VeterinariaController).findAll(req, res, next)
     })
 
-    router.post("/petcare/login/veterinaria", (req, res, next) => {
+    router.post("/petcare/login/veterinaria", validate(loginSchema), (req, res, next) => {
         getController(VeterinariaController).logIn(req, res, next)
     })
 
-    router.post("/petcare/signin/veterinaria", (req, res, next) =>
+    router.post("/petcare/signin/veterinaria", validate(registroVeterinariaSchema), (req, res, next) =>
         getController(VeterinariaController).create(req, res, next)
     )
 

@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from 'cors';
 import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
 import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
 
@@ -111,6 +112,9 @@ const app = express();
 
 // Seguridad: headers HTTP seguros
 app.use(helmet());
+
+// Sanitización: elimina operadores $ de MongoDB en body/query/params para prevenir NoSQL injection
+app.use(mongoSanitize());
 
 // CORS — origins permitidos desde variable de entorno (separados por coma)
 const allowedOrigins = process.env.CORS_ORIGINS

@@ -1,8 +1,10 @@
 import dotenv from "dotenv";
-dotenv.config(); 
+dotenv.config();
 
 import express from "express";
 import cors from 'cors';
+import helmet from 'helmet';
+import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
 
 // import swaggerUi from "swagger-ui-express";
@@ -106,10 +108,22 @@ const ciudadController = new CiudadController(ciudadService);
 
 
 const app = express();
+
+// Seguridad: headers HTTP seguros
+app.use(helmet());
+
+// CORS
 app.use(cors({
     origin: ["http://localhost:5173", "http://localhost:5174", "https://birbnb.vercel.app"],
     credentials: true
-}))
+}));
+
+// Rate limiting general: 100 req / 15min por IP
+app.use('/petcare', generalLimiter);
+
+// Rate limiting estricto en rutas de autenticacion: 10 intentos / 15min por IP
+app.use('/petcare/login', authLimiter);
+app.use('/petcare/signin', authLimiter);
 
 // Middleware de logging para todas las peticiones
 app.use((req, res, next) => {

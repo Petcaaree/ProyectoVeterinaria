@@ -5,6 +5,7 @@ import { Direccion } from "../models/entidades/Direccion.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
+import { sanitizePagination } from "../utils/paginationUtils.js"
 
 
 export class CuidadorService {
@@ -16,10 +17,9 @@ export class CuidadorService {
     }
 
     async findAll({page = 1, limit = 10}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        const { pageNum, limitNum } = sanitizePagination({ page, limit })
 
-        let cuidadors = await this.cuidadorRepository.findByPage(pageNum, limit)
+        let cuidadors = await this.cuidadorRepository.findByPage(pageNum, limitNum)
 
         const total = await this.cuidadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)

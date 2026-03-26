@@ -1,20 +1,22 @@
 import express from "express"
 import { PaseadorController } from "../controllers/paseadorController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { validate } from "../middlewares/validateMiddleware.js"
+import { loginSchema, registroPaseadorSchema, paginationSchema } from "../validators/schemas.js"
 
 export default function paseadorRoutes(getController) {
     const router = express.Router()
 
     // --- Rutas publicas ---
-    router.get("/petcare/paseadores", (req, res, next) => {
+    router.get("/petcare/paseadores", validate(paginationSchema, 'query'), (req, res, next) => {
         getController(PaseadorController).findAll(req, res, next)
     })
 
-    router.post("/petcare/login/paseador", (req, res, next) => {
+    router.post("/petcare/login/paseador", validate(loginSchema), (req, res, next) => {
         getController(PaseadorController).logIn(req, res, next)
     })
 
-    router.post("/petcare/signin/paseador", (req, res, next) =>
+    router.post("/petcare/signin/paseador", validate(registroPaseadorSchema), (req, res, next) =>
         getController(PaseadorController).create(req, res, next)
     )
 

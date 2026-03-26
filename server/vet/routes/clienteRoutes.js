@@ -1,20 +1,22 @@
 import express from "express"
 import { ClienteController } from "../controllers/clienteController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { validate } from "../middlewares/validateMiddleware.js"
+import { loginSchema, registroClienteSchema, mascotaSchema, paginationSchema } from "../validators/schemas.js"
 
 export default function clienteRoutes(getController) {
     const router = express.Router()
 
     // --- Rutas publicas ---
-    router.get("/petcare/clientes", (req, res, next) => {
+    router.get("/petcare/clientes", validate(paginationSchema, 'query'), (req, res, next) => {
         getController(ClienteController).findAll(req, res, next)
     })
 
-    router.post("/petcare/login/cliente", (req, res, next) => {
+    router.post("/petcare/login/cliente", validate(loginSchema), (req, res, next) => {
         getController(ClienteController).logIn(req, res, next)
     })
 
-    router.post("/petcare/signin/cliente", (req, res, next) =>
+    router.post("/petcare/signin/cliente", validate(registroClienteSchema), (req, res, next) =>
         getController(ClienteController).create(req, res, next)
     )
 
@@ -63,7 +65,7 @@ export default function clienteRoutes(getController) {
     router.get("/petcare/cliente/:id/mismascotas", authMiddleware, authorizationMiddleware('cliente'), (req, res, next) =>
         getController(ClienteController).findMascotasByCliente(req, res, next)
     )
-    router.post("/petcare/cliente/:id/mascota", authMiddleware, authorizationMiddleware('cliente'), (req, res, next) =>
+    router.post("/petcare/cliente/:id/mascota", authMiddleware, authorizationMiddleware('cliente'), validate(mascotaSchema), (req, res, next) =>
         getController(ClienteController).addMascota(req, res, next)
     )
     router.delete("/petcare/cliente/:id/mascota/:idMascota", authMiddleware, authorizationMiddleware('cliente'), (req, res, next) =>

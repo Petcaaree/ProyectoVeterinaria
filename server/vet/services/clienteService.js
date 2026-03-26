@@ -6,6 +6,7 @@ import { Mascota } from "../models/entidades/Mascota.js"
 import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
+import { sanitizePagination } from "../utils/paginationUtils.js"
 
 
 export class ClienteService {
@@ -17,10 +18,9 @@ export class ClienteService {
     }
 
     async findAll({page = 1, limit = 10}) {
-        const pageNum = Math.max(Number(page), 1)
-        const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        const { pageNum, limitNum } = sanitizePagination({ page, limit })
 
-        let clientes = await this.clienteRepository.findByPage(pageNum, limit)
+        let clientes = await this.clienteRepository.findByPage(pageNum, limitNum)
 
         const total = await this.clienteRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)

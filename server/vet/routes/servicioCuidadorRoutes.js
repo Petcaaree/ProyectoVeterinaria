@@ -1,12 +1,14 @@
 import express from "express"
 import { ServicioCuidadorController } from "../controllers/servicioCuidadorController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { validate } from "../middlewares/validateMiddleware.js"
+import { servicioCuidadorSchema, paginationSchema } from "../validators/schemas.js"
 
 export default function servicioCuidadorRoutes(getController) {
     const router = express.Router()
 
     // --- Rutas publicas (browse) ---
-    router.get("/petcare/serviciosCuidadores", (req, res, next) => {
+    router.get("/petcare/serviciosCuidadores", validate(paginationSchema, 'query'), (req, res, next) => {
         getController(ServicioCuidadorController).findAll(req, res, next)
     })
 
@@ -23,7 +25,7 @@ export default function servicioCuidadorRoutes(getController) {
     })
 
     // --- Rutas protegidas (solo cuidador) ---
-    router.post("/petcare/servicioCuidador", authMiddleware, authorizationMiddleware('cuidador'), (req, res, next) => {
+    router.post("/petcare/servicioCuidador", authMiddleware, authorizationMiddleware('cuidador'), validate(servicioCuidadorSchema), (req, res, next) => {
         getController(ServicioCuidadorController).create(req, res, next)
     })
 

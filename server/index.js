@@ -112,9 +112,18 @@ const app = express();
 // Seguridad: headers HTTP seguros
 app.use(helmet());
 
-// CORS
+// CORS — origins permitidos desde variable de entorno (separados por coma)
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
+    : ['http://localhost:5173', 'http://localhost:5174'];
+
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://birbnb.vercel.app"],
+    origin: (origin, callback) => {
+        // Permitir requests sin origin (Postman, curl, apps móviles)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin no permitido → ${origin}`));
+    },
     credentials: true
 }));
 

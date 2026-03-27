@@ -234,11 +234,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         {/* Filtros (mismo bloque visual que cuidadores, adaptado a paseadores) */}
         <Filtros
           busqueda={searchTerm}
-<<<<<<< HEAD
           alCambiarBusqueda={(v: string) => {
-=======
-          alCambiarBusqueda={(v: string) => { 
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
             setSearchTerm(v);
           }}
           placeholderBusqueda="Buscar paseador o zona..."
@@ -250,11 +246,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio mín/hora"
                 value={minPrice}
-<<<<<<< HEAD
                 onChange={(e) => {
-=======
-                onChange={(e) => { 
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
                   setMinPrice(e.target.value);
                 }}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
@@ -265,11 +257,7 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio máx/hora"
                 value={maxPrice}
-<<<<<<< HEAD
                 onChange={(e) => {
-=======
-                onChange={(e) => { 
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
                   setMaxPrice(e.target.value);
                 }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"

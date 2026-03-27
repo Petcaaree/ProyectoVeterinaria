@@ -67,10 +67,6 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         setModoAuth('registro');
         setEstaModalAbierto(true);
         break;
-<<<<<<< HEAD
-      // B3 FIX: Demo users eliminados — usar login/registro real
-=======
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       case 'my-pets':
         if (onViewChange) onViewChange('my-pets' as any);
         break;

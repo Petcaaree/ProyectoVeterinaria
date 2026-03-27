@@ -130,10 +130,6 @@ class BreedsService {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       this.birdBreedsCache = this.commonBirdBreeds;
-<<<<<<< HEAD
-=======
-
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       return this.formatBirdBreeds(this.commonBirdBreeds);
 
     } catch (error) {

@@ -68,10 +68,6 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
               if (data?.page !== page) {
                 setPage(data?.page || 1);
               }
-<<<<<<< HEAD
-=======
-
->>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
             } catch (error) {
               console.error('Error al obtener servicios:', error);
               setServices([]); // Asegurar que sea un array vacío en caso de error

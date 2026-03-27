@@ -122,6 +122,9 @@ const clienteSchema = new mongoose.Schema({
     }]
 });
 
+// Indice para busqueda por nombreUsuario (findByNombreUsuario)
+clienteSchema.index({ nombreUsuario: 1 });
+
 clienteSchema.loadClass(Cliente);
 
 export const ClienteModel = mongoose.model("Cliente", clienteSchema);

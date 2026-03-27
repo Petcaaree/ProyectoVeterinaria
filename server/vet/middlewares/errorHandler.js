@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ValidationError as CustomValidationError, AppError } from "../errors/AppError.js";
+import logger from "../utils/logger.js";
 
 /**
  * Convierte errores conocidos (Mongoose, MongoDB, Joi) en AppError operacionales.
@@ -58,7 +59,7 @@ export const errorHandler = (err, req, res, next) => {
       });
     } else {
       // Error de programación: no enviar detalles al cliente
-      console.error('ERROR 💥', err);
+      logger.error('Error no operacional', err);
       res.status(500).json({
         status: 'error',
         message: 'Algo salió mal'

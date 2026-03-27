@@ -1,4 +1,6 @@
 import { generarToken } from '../utils/jwtUtils.js';
+import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
+import logger from '../utils/logger.js';
 
 export class ClienteController {
    constructor(clienteService, reservaService) {
@@ -28,7 +30,11 @@ export class ClienteController {
       const usuario = await this.clienteService.logIn(datos)
       const token = generarToken(usuario, 'cliente')
 
-      res.json({ data: usuario, token })
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(usuario.id, 'cliente'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
+
+      res.json({ data: usuario, token, refreshToken })
     } catch (error) {
       next(error)
     }
@@ -36,15 +42,18 @@ export class ClienteController {
 
   async create(req, res, next) {
     try {
-      console.log("Request body recibido:", JSON.stringify(req.body, null, 2));
+      logger.debug('Registro cliente - body recibido', { body: req.body });
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
       const token = generarToken(nuevo, 'cliente');
 
-      res.status(201).json({ data: nuevo, token });
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(nuevo.id, 'cliente'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
+
+      res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {
-      console.error("Error en clienteController.create:", error);
-      console.error("Stack trace:", error.stack);
+      logger.error('Error en clienteController.create', error);
       next(error);
     }
   }
@@ -153,7 +162,7 @@ export class ClienteController {
       const { id } = req.params;
       
       const contador = await this.clienteService.getContadorNotificacionesNoLeidas(id);
-      console.log("Contador de notificaciones no leídas:", contador);
+      logger.debug('Contador notificaciones no leídas', { contador });
 
       res.json({contador});
     } catch (error) {

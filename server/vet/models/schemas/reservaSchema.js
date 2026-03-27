@@ -128,6 +128,12 @@ reservaSchema.virtual('mascotaCompleta', {
   }
 });
 
+// ─── Indices para queries frecuentes ────────────────────
+reservaSchema.index({ cliente: 1, estado: 1 });           // findByCliente + estado
+reservaSchema.index({ servicioReservado: 1, estado: 1 }); // findByProveedor + estado
+reservaSchema.index({ estado: 1 });                        // filtrar por estado
+reservaSchema.index({ 'rangoFechas.fechaInicio': 1 });    // recordatorios por fecha
+
 reservaSchema.loadClass(Reserva);
 
 export const ReservaModel = mongoose.model("Reserva", reservaSchema);

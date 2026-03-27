@@ -25,7 +25,14 @@ export function validate(schema, source = 'body') {
         }
 
         // Reemplazar con los valores sanitizados por Joi (trim, defaults, etc.)
-        req[source] = value;
+        // En Express 5, req.query es de solo lectura, así que copiamos las propiedades
+        if (source === 'query') {
+            Object.keys(value).forEach(key => {
+                req.query[key] = value[key];
+            });
+        } else {
+            req[source] = value;
+        }
         next();
     };
 }

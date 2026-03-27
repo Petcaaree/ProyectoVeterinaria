@@ -1,19 +1,20 @@
 import mongoose from "mongoose";
+import logger from "../utils/logger.js";
 
 export class MongoDBClient {
     static async connect() {
         const uri = process.env.MONGODB_URI;
         if (!uri) {
-            console.error('❌ MONGODB_URI no está definida en las variables de entorno.');
+            logger.error('MONGODB_URI no está definida en las variables de entorno.');
             process.exit(1);
         }
         try {
             const conn = await mongoose.connect(uri);
-            console.log(`✅ MongoDB conectado: ${conn.connection.host}`);
-            console.log(`📦 Base de datos usada: ${conn.connection.name}`);
+            logger.info(`MongoDB conectado: ${conn.connection.host}`);
+            logger.info(`Base de datos: ${conn.connection.name}`);
 
         } catch (error) {
-            console.error(`❌ Error de conexión: ${error.message}`);
+            logger.error(`Error de conexión MongoDB: ${error.message}`);
             process.exit(1);
         }
     }

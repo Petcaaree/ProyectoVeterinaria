@@ -1,0 +1,66 @@
+name: PetCare CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: server
+        run: npm run unit-test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test_jwt_secret_ci
+
+      - name: Run integration tests
+        working-directory: server
+        run: npm run integration-test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test_jwt_secret_ci
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Check for syntax errors (dry-run)
+        working-directory: server
+        run: node --check index.js

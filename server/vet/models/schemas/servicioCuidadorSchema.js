@@ -124,6 +124,10 @@ const servicioCuidadorSchema = new mongoose.Schema({
     },
 });
 
+// ─── Indices para queries frecuentes ────────────────────
+servicioCuidadorSchema.index({ usuarioProveedor: 1, estado: 1 });
+servicioCuidadorSchema.index({ estado: 1 });
+
 servicioCuidadorSchema.loadClass(ServicioCuidador);
 
 export const ServicioCuidadorModel = mongoose.model(

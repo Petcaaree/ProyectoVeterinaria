@@ -1,4 +1,6 @@
 import { generarToken } from '../utils/jwtUtils.js';
+import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
+import logger from '../utils/logger.js';
 
 export class VeterinariaController {
   constructor(veterinariaService, reservaService) {
@@ -28,7 +30,11 @@ export class VeterinariaController {
       const usuario = await this.veterinariaService.logIn(datos)
       const token = generarToken(usuario, 'veterinaria')
 
-      res.json({ data: usuario, token })
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(usuario.id, 'veterinaria'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
+
+      res.json({ data: usuario, token, refreshToken })
     } catch (error) {
       next(error)
     }
@@ -40,7 +46,11 @@ export class VeterinariaController {
       const nuevo = await this.veterinariaService.create(veterinaria);
       const token = generarToken(nuevo, 'veterinaria');
 
-      res.status(201).json({ data: nuevo, token });
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(nuevo.id, 'veterinaria'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
+
+      res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {
       next(error);
     }
@@ -137,7 +147,6 @@ async marcarLeidaNotificacion(req, res, next) {
             const id = req.params.id;
             const leida = req.params.leida;
             const { page = 1, limit = 5 } = req.query;
-            console.log('🔍 obtenerNotificacionesLeidasOnoLeidas - page:', page, 'type:', typeof page);
             const result = await this.veterinariaService.getNotificacionesLeidasOnoLeidas(id, leida, { page, limit });
             res.json(result);
         } catch (error) {
@@ -149,7 +158,6 @@ async marcarLeidaNotificacion(req, res, next) {
         try {
             const id = req.params.id;
             const { page = 1, limit = 5 } = req.query;
-            console.log('🔍 obtenerTodasLasNotificaciones - page:', page, 'type:', typeof page);
             const result = await this.veterinariaService.getAllNotificaciones(id, { page, limit });
             res.json(result);
         } catch (error) {

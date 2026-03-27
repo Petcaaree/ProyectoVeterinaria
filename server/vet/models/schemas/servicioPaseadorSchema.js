@@ -271,6 +271,10 @@ function normalizarHorarios(horarios) {
   });
 }
 
+// ─── Indices para queries frecuentes ────────────────────
+servicioPaseadorSchema.index({ usuarioProveedor: 1, estado: 1 });
+servicioPaseadorSchema.index({ estado: 1 });
+
 servicioPaseadorSchema.loadClass(ServicioPaseador);
 
 export const ServicioPaseadorModel = mongoose.model("ServicioPaseador", servicioPaseadorSchema);

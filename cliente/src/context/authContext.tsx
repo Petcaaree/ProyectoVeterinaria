@@ -99,7 +99,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const loginWithCredentials = async (email: string, contrasenia: string, tipoUsuario: string): Promise<Usuario> => {
     try {
       const response = await loginUsuario({ email, contrasenia }, tipoUsuario);
-      const { data: usuarioCompleto, token } = response.data;
+      const { data: usuarioCompleto, token, refreshToken } = response.data;
 
       setUsuario(usuarioCompleto);
       if (isValidUserType(tipoUsuario)) {
@@ -110,7 +110,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (token) {
         localStorage.setItem('token', token);
       }
-      
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
+      }
+
       // Cargar contador de notificaciones después del login
       try {
         const contador = await obtenerContadorNotificacionesNoLeidas(usuarioCompleto.id, tipoUsuario);
@@ -118,7 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (counterError) {
         console.error('Error al cargar contador de notificaciones tras login:', counterError);
       }
-      
+
       return usuarioCompleto;
     } catch (error) {
       console.error('Error en login:', error);
@@ -161,9 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       const response = await signinUsuario(datosRegistro, tipoUsuario);
-      const { data: usuarioCompleto, token } = response.data;
-
-      console.log('Usuario registrado:', usuarioCompleto);
+      const { data: usuarioCompleto, token, refreshToken } = response.data;
 
       setUsuario(usuarioCompleto);
       if (isValidUserType(tipoUsuario)) {
@@ -173,6 +174,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.setItem('tipoUsuario', tipoUsuario);
       if (token) {
         localStorage.setItem('token', token);
+      }
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
 
       return usuarioCompleto;
@@ -326,6 +330,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('tipoUsuario');
     localStorage.removeItem('usuario');
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   };
 
   const cambiarTipoUsuario = (tipo: string) => {

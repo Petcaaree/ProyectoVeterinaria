@@ -1,5 +1,6 @@
 import { generarToken } from '../utils/jwtUtils.js';
 import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
+import logger from '../utils/logger.js';
 
 export class CuidadorController {
    constructor(cuidadorService, reservaService) {
@@ -28,7 +29,10 @@ export class CuidadorController {
       const datos = req.body
       const usuario = await this.cuidadorService.logIn(datos)
       const token = generarToken(usuario, 'cuidador')
-      const refreshToken = await generarRefreshToken(usuario.id, 'cuidador')
+
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(usuario.id, 'cuidador'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
 
       res.json({ data: usuario, token, refreshToken })
     } catch (error) {
@@ -41,7 +45,10 @@ export class CuidadorController {
       const cuidador = req.body;
       const nuevo = await this.cuidadorService.create(cuidador);
       const token = generarToken(nuevo, 'cuidador');
-      const refreshToken = await generarRefreshToken(nuevo.id, 'cuidador');
+
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(nuevo.id, 'cuidador'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
 
       res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {

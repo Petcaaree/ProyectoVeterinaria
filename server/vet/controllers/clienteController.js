@@ -29,7 +29,10 @@ export class ClienteController {
       const datos = req.body
       const usuario = await this.clienteService.logIn(datos)
       const token = generarToken(usuario, 'cliente')
-      const refreshToken = await generarRefreshToken(usuario.id, 'cliente')
+
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(usuario.id, 'cliente'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
 
       res.json({ data: usuario, token, refreshToken })
     } catch (error) {
@@ -43,7 +46,10 @@ export class ClienteController {
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
       const token = generarToken(nuevo, 'cliente');
-      const refreshToken = await generarRefreshToken(nuevo.id, 'cliente');
+
+      let refreshToken = null;
+      try { refreshToken = await generarRefreshToken(nuevo.id, 'cliente'); }
+      catch (e) { logger.warn('No se pudo generar refresh token', { error: e.message }); }
 
       res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {

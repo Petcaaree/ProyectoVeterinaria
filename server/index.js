@@ -116,8 +116,8 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-// Responder preflight OPTIONS en todas las rutas
-app.options('*', cors(corsOptions));
+// Responder preflight OPTIONS en todas las rutas (Express 5 syntax)
+app.options('/{*path}', cors(corsOptions));
 app.use(cors(corsOptions));
 
 // Seguridad: headers HTTP seguros (después de CORS para no interferir)

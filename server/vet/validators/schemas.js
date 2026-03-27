@@ -118,18 +118,24 @@ export const servicioCuidadorSchema = Joi.object({
 
 export const reservaSchema = Joi.object({
     clienteId: objectIdSchema.required(),
-    serviciOfrecido: Joi.string().trim().required(),
+    serviciOfrecido: Joi.string().trim().valid('ServicioVeterinaria', 'ServicioPaseador', 'ServicioCuidador').required(),
     servicioReservadoId: objectIdSchema.required(),
     IdMascota: objectIdSchema.required(),
     rangoFechas: Joi.object({
-        fechaInicio: Joi.date().required(),
-        fechaFin: Joi.date().required()
+        fechaInicio: Joi.string().trim().pattern(/^\d{2}\/\d{2}\/\d{4}$/).required().messages({
+            'string.pattern.base': 'fechaInicio debe tener formato DD/MM/AAAA'
+        }),
+        fechaFin: Joi.string().trim().pattern(/^\d{2}\/\d{2}\/\d{4}$/).required().messages({
+            'string.pattern.base': 'fechaFin debe tener formato DD/MM/AAAA'
+        })
     }).required(),
-    horario: Joi.object().optional(),
+    horario: Joi.string().trim().pattern(/^\d{2}:\d{2}$/).optional().allow(null, '', 'null').messages({
+        'string.pattern.base': 'horario debe tener formato HH:MM'
+    }),
     notaAdicional: Joi.string().trim().max(500).optional().allow(''),
-    nombreDeContacto: Joi.string().trim().max(200).optional().allow(''),
-    telefonoContacto: Joi.string().trim().max(15).optional().allow(''),
-    emailContacto: Joi.string().email().optional().allow('')
+    nombreDeContacto: Joi.string().trim().min(1).max(200).required(),
+    telefonoContacto: Joi.string().trim().min(7).max(15).required(),
+    emailContacto: Joi.string().email().required()
 }).unknown(true);
 
 // ─── Params comunes ─────────────────────────────────────────

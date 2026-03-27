@@ -62,6 +62,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     }
   };
 
+<<<<<<< HEAD
   // Función para fetch de reservas
   const fetchReservas = async () => {
     if (!userId || !tipoUsuario) return;
@@ -97,6 +98,38 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   // Reservas cuando cambia filtro/pagina/usuario
   useEffect(() => {
     fetchReservas();
+=======
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      if (!userId || !tipoUsuario) return;
+      setIsLoading(true);
+      try {
+        let data;
+        if (filter === 'TODAS') {
+          data = await getTodasReservas(userId, tipoUsuario, filter, page);
+        } else {
+          data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
+        }
+        if (!cancelled) {
+          setAppointments(data.data || []);
+          setTotalPages(data.total_pages || 0);
+        }
+      } catch {
+        if (!cancelled) setAppointments([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadData();
+    if (userId && tipoUsuario) {
+      cargarTotales();
+    }
+
+    return () => { cancelled = true; };
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
   }, [userId, tipoUsuario, filter, page]);
 
   // Funciones de paginación

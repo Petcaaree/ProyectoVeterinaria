@@ -67,7 +67,10 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         setModoAuth('registro');
         setEstaModalAbierto(true);
         break;
+<<<<<<< HEAD
       // B3 FIX: Demo users eliminados — usar login/registro real
+=======
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       case 'my-pets':
         if (onViewChange) onViewChange('my-pets' as any);
         break;
@@ -114,12 +117,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
     if (!usuarioLogueado) {
       return [
         { id: 'login', label: 'Iniciar Sesión', icon: LogIn },
-        { id: 'register', label: 'Registrarse', icon: UserPlus },
-        { id: 'divider', label: '', icon: null },
-        { id: 'demo-cliente', label: 'Demo: Dueño', icon: User },
-        { id: 'demo-veterinaria', label: 'Demo: Veterinario', icon: Stethoscope },
-        { id: 'demo-paseador', label: 'Demo: Paseador', icon: Heart },
-        { id: 'demo-cuidador', label: 'Demo: Cuidador', icon: Shield }
+        { id: 'register', label: 'Registrarse', icon: UserPlus }
       ];
     }
 

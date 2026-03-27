@@ -1,7 +1,10 @@
 import axios from "axios";
 import qs from "qs";
 
-const VITE_API = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const VITE_API = import.meta.env.VITE_API_URL;
+if (!VITE_API) {
+  console.error('VITE_API_URL no está configurada. Configúrala en el archivo .env');
+}
 const API_URL = `${VITE_API}/petcare`;
 
 // Interceptor: adjunta el token JWT a cada request si existe en localStorage

@@ -75,26 +75,27 @@ function App() {
 
   const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services'>('home');
 
-  // Función de scroll al top ultra suave
-  const smoothScrollToTop = () => {
-    const startPosition = window.pageYOffset;
-    const duration = 1000; // 1 segundo para scroll al top
-    let start = 0;
+  // Función de easing para scroll suave
+  const easeInOutCubic = (t: number): number => {
+    return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+  };
 
-    const easeInOutCubic = (t: number): number => {
-      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-    };
+  // Función de scroll suave reutilizable
+  const smoothScrollTo = (targetPosition: number, duration: number = 1000) => {
+    const startPosition = window.pageYOffset;
+    const distance = targetPosition - startPosition;
+    let start = 0;
 
     const animation = (currentTime: number) => {
       if (start === 0) start = currentTime;
       const timeElapsed = currentTime - start;
       const progress = Math.min(timeElapsed / duration, 1);
-      
+
       const easedProgress = easeInOutCubic(progress);
-      const currentPosition = startPosition * (1 - easedProgress);
-      
+      const currentPosition = startPosition + (distance * easedProgress);
+
       window.scrollTo(0, currentPosition);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animation);
       }
@@ -105,7 +106,7 @@ function App() {
 
   // Scroll al top cada vez que cambia la vista
   useEffect(() => {
-    smoothScrollToTop();
+    smoothScrollTo(0);
   }, [currentView]);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
@@ -183,38 +184,12 @@ function App() {
     }
   };
 
-  // Función de scroll ultra suave personalizada
-  const smoothScrollTo = (elementId: string) => {
+  // Scroll suave a un elemento por ID
+  const smoothScrollToElement = (elementId: string) => {
     const element = document.getElementById(elementId);
     if (!element) return;
-
-    const startPosition = window.pageYOffset;
-    const targetPosition = element.offsetTop - 100; // 100px de offset para headers
-    const distance = targetPosition - startPosition;
-    const duration = 1200; // 1.2 segundos para un scroll muy suave
-    let start = 0;
-
-    // Función de easing para hacer el scroll más natural
-    const easeInOutCubic = (t: number): number => {
-      return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-    };
-
-    const animation = (currentTime: number) => {
-      if (start === 0) start = currentTime;
-      const timeElapsed = currentTime - start;
-      const progress = Math.min(timeElapsed / duration, 1);
-      
-      const easedProgress = easeInOutCubic(progress);
-      const currentPosition = startPosition + (distance * easedProgress);
-      
-      window.scrollTo(0, currentPosition);
-      
-      if (progress < 1) {
-        requestAnimationFrame(animation);
-      }
-    };
-
-    requestAnimationFrame(animation);
+    const targetPosition = element.offsetTop - 100;
+    smoothScrollTo(targetPosition, 1200);
   };
 
   const handleExploreServices = () => {
@@ -241,8 +216,7 @@ function App() {
       }
     }
     
-    // Usar nuestra función de scroll ultra suave
-    smoothScrollTo(targetId);
+    smoothScrollToElement(targetId);
   };
 
   const getUserTypeLabel = (tipo: string) => {

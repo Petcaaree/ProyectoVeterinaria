@@ -199,7 +199,11 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
       };
 
       await registroMascota(usuario.id, mascotaData);
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       // Mostrar popup de éxito
       setShowSuccessPopup(true);
       
@@ -290,7 +294,11 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
             URL.revokeObjectURL(tempUrl); // Limpiar memoria
             newPhotos[tempIndex] = cloudinaryUrl;
             newFormDataPhotos.push(cloudinaryUrl);
+<<<<<<< HEAD
             
+=======
+
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
           } catch (uploadError) {
             // Si falla la subida, remover la imagen temporal
             URL.revokeObjectURL(tempUrl);

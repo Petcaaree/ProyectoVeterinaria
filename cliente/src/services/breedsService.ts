@@ -72,7 +72,6 @@ class BreedsService {
         return this.formatDogBreeds(this.dogBreedsCache);
       }
 
-      console.log('🐕 Obteniendo razas de perros desde The Dog API...');
       const response = await fetch('https://api.thedogapi.com/v1/breeds');
       
       if (!response.ok) {
@@ -82,7 +81,6 @@ class BreedsService {
       const breeds: DogBreed[] = await response.json();
       this.dogBreedsCache = breeds;
       
-      console.log(`✅ ${breeds.length} razas de perros cargadas exitosamente`);
       return this.formatDogBreeds(breeds);
 
     } catch (error) {
@@ -101,7 +99,6 @@ class BreedsService {
         return this.formatCatBreeds(this.catBreedsCache);
       }
 
-      console.log('🐱 Obteniendo razas de gatos desde The Cat API...');
       const response = await fetch('https://api.thecatapi.com/v1/breeds');
       
       if (!response.ok) {
@@ -111,7 +108,6 @@ class BreedsService {
       const breeds: CatBreed[] = await response.json();
       this.catBreedsCache = breeds;
       
-      console.log(`✅ ${breeds.length} razas de gatos cargadas exitosamente`);
       return this.formatCatBreeds(breeds);
 
     } catch (error) {
@@ -134,8 +130,6 @@ class BreedsService {
       await new Promise(resolve => setTimeout(resolve, 100));
       
       this.birdBreedsCache = this.commonBirdBreeds;
-      console.log(`✅ ${this.commonBirdBreeds.length} razas de aves cargadas`);
-      
       return this.formatBirdBreeds(this.commonBirdBreeds);
 
     } catch (error) {
@@ -258,7 +252,6 @@ class BreedsService {
     this.dogBreedsCache = null;
     this.catBreedsCache = null;
     this.birdBreedsCache = null;
-    console.log('🗑️ Caché de razas limpiado');
   }
 
   /**

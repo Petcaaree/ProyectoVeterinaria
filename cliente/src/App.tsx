@@ -131,7 +131,6 @@ function App() {
 
     // Si no hay usuario logueado y está en una vista que requiere autenticación
     if (!tipoUsuario && vistasQueRequierenAutenticacion.includes(currentView)) {
-      console.log(`🔄 Sesión cerrada: redirigiendo desde ${currentView} a home`);
       setCurrentView('home');
       setCurrentService('overview');
       
@@ -146,7 +145,6 @@ function App() {
       const vistasPermitidas = vistasPorTipo[tipoUsuario];
       
       if (!vistasPermitidas.includes(currentView)) {
-        console.log(`🔄 Redirigiendo: ${currentView} no está permitida para ${tipoUsuario}, volviendo a home`);
         setCurrentView('home');
         setCurrentService('overview');
         
@@ -160,7 +158,6 @@ function App() {
   }, [tipoUsuario, currentView]);
 
   const handleViewChange = (view: 'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services') => {
-    console.log('🔍 handleViewChange called with view:', view); // Debug log
     setCurrentView(view);
   };
 
@@ -272,8 +269,6 @@ function App() {
   };
 
   const renderContent = () => {
-    console.log('🔍 renderContent called with currentView:', currentView); // Debug log
-    
     if (currentView === 'create-service') {
       return <CrearServicio userType={tipoUsuario as 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
     }

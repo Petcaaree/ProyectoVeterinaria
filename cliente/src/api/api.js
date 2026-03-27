@@ -107,7 +107,6 @@ export const getAlojamientos = async (pageNumber, filtros) => {
 
         return response.data;
     } catch (error) {
-        console.log("Algo salio mal");
         throw error;
     }
 };
@@ -118,7 +117,6 @@ export const getDestinos = async (pageNumber) => {
         const response = await axios.get(`${API_URL}/ciudades`);
         return response;
     } catch (error) {
-        console.log("Algo salio mal");
         throw error;
 
     }
@@ -220,7 +218,6 @@ export const getReservasHuesped = async (usuarioId, page) => {
             }
         })
 
-        console.log(response)
         return response
     } catch (error) {
         console.error("Error al obtener las reservas del huesped:", error);
@@ -237,7 +234,6 @@ export const getAlojamientosAnfitrion = async (id, page=1) => {
             }
         })
 
-        console.log(response.data)
         return response
     } catch (error) {
         console.error("Error al obtener los alojamientos del anfitrión:", error);
@@ -360,8 +356,6 @@ export const crearServiciooVeterinaria = async (data) => {
           }
         );
 
-        console.log("Servicio creado:", response.data);
-
         return response.data
    } catch(error) {
         console.error("Error al crear el servicio:", error);
@@ -394,8 +388,6 @@ export const crearServicioPaseador = async (data) => {
                         },
                         "maxPerros": data.maxPerros
                 });
-
-        console.log("Servicio creado:", response.data);
 
         return response.data
    } catch(error) {
@@ -470,8 +462,6 @@ export const crearServicioCuidador = async (data) => {
             }
         });
 
-        console.log("Servicio creado:", response.data);
-
         return response.data
    } catch(error) {
         console.error("Error al crear el servicio:", error);
@@ -529,8 +519,6 @@ export const getServiciosCuidadorByUsuario = async (usuarioId, page, estado) => 
 };
 
 export const cambiarEstadoServicio = async (serviceId ,estado , tipoUsuario) => {
-    console.log("Cambiando estado del servicio:", serviceId, estado, tipoUsuario);
-
     const usuario = tipoUsuario === 'servicioCuidador' ? 'cuidador' : tipoUsuario === 'servicioPaseador' ? 'paseador' : 'veterinaria';
     try {
         await axios.put(`${API_URL}/${usuario}/${serviceId}/${tipoUsuario}/${estado}`);

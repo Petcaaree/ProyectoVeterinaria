@@ -201,7 +201,7 @@ export const createReserva = async (datos) => {
             emailContacto: datos.emailContacto
         };
         // Solo agregar horario si no es cuidador
-        if (datos.serviciOfrecido !== "SERVICIOCUIDADOR" && datos.horario) {
+        if (datos.serviciOfrecido !== "ServicioCuidador" && datos.horario) {
             body.horario = datos.horario;
         }
         const response = await axios.post(`${API_URL}/reservar`, body);

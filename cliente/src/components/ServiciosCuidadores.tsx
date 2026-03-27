@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Shield, Home, Clock, Star, Award, CheckCircle, X } from 'lucide-react';
-import { caregiverServices } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { Shield, Home, Clock, Star, Award, CheckCircle, X, MapPin, Phone, DollarSign, Loader2, Calendar } from 'lucide-react';
+import { obtenerServiciosCuidadores } from '../api/api';
 import ModalReserva from './ModalReserva';
 
 interface ServiciosCuidadoresProps {
@@ -8,37 +8,51 @@ interface ServiciosCuidadoresProps {
 }
 
 const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) => {
-  const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
+  const [servicios, setServicios] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [showAccessDeniedPopup, setShowAccessDeniedPopup] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    const cargar = async () => {
+      try {
+        setIsLoading(true);
+        const data = await obtenerServiciosCuidadores(1, {});
+        if (!cancelled) {
+          setServicios(data?.data || []);
+        }
+      } catch {
+        if (!cancelled) setServicios([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    cargar();
+    return () => { cancelled = true; };
+  }, []);
+
   const formatPrice = (price: number) => {
-    return price.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0
-    });
+    return `$${price.toLocaleString('es-AR')}`;
   };
 
-  const handleBookCaregiver = (caregiver: any) => {
+  const handleBookService = (service: any) => {
     if (userType !== 'cliente') {
       setShowAccessDeniedPopup(true);
       return;
     }
-    setSelectedCaregiver(caregiver);
+    setSelectedService(service);
     setIsBookingOpen(true);
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
+  // Agrupar servicios por cuidador (nombreCuidador)
+  const serviciosPorCuidador = servicios.reduce((acc: Record<string, any[]>, servicio: any) => {
+    const cuidador = servicio.nombreCuidador || 'Cuidador sin nombre';
+    if (!acc[cuidador]) acc[cuidador] = [];
+    acc[cuidador].push(servicio);
+    return acc;
+  }, {});
 
   return (
     <section id="cuidadores" className="py-20 bg-orange-50">
@@ -52,92 +66,156 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
             Cuidadores Especializados
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Cuando necesitas ausentarte, nuestros cuidadores especializados brindan 
+            Cuando necesitas ausentarte, nuestros cuidadores especializados brindan
             atención integral y amorosa a tu mascota en un ambiente seguro y cómodo. Servicio por días.
           </p>
         </div>
 
-        {/* Caregivers Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {caregiverServices.map((caregiver) => (
-            <div
-              key={caregiver.id}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden flex flex-col h-full"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-br from-orange-400 to-red-500 p-6 text-white relative">
-                <div className="absolute top-4 right-4">
-                  <div className="bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs font-semibold">
-                    {caregiver.experience} años
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold mb-2">
-                  {caregiver.name}
-                </h3>
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="flex space-x-1">
-                    {renderStars(caregiver.rating)}
-                  </div>
-                  <span className="text-sm">({caregiver.rating})</span>
-                </div>
-                <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-sm font-bold inline-block">
-                  {formatPrice(caregiver.pricePerDay)}/día
-                </div>
-              </div>
-              
-              <div className="p-6 flex-1 flex flex-col">
-                {/* Service Description */}
-                <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">Servicio de Cuidado</h4>
-                  <p className="text-gray-600 text-sm">
-                    Cuidado integral de tu mascota con atención personalizada, alimentación, paseos y compañía las 24 horas.
-                  </p>
-                </div>
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-orange-600" />
+            <span className="ml-3 text-gray-600">Cargando servicios de cuidadores...</span>
+          </div>
+        )}
 
-                {/* Services Included */}
-                <div className="mb-6 flex-1">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                    Servicios incluidos:
-                  </h4>
-                  <div className="space-y-2">
-                    {caregiver.services.map((service, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">{service}</span>
+        {/* Empty state */}
+        {!isLoading && servicios.length === 0 && (
+          <div className="text-center py-16 bg-white rounded-2xl shadow">
+            <Shield className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay servicios de cuidadores disponibles</h3>
+            <p className="text-gray-500">Pronto habrá cuidadores disponibles en tu zona.</p>
+          </div>
+        )}
+
+        {/* Cuidadores grouped */}
+        {!isLoading && Object.entries(serviciosPorCuidador).length > 0 && (
+          <div className="space-y-8 mb-16">
+            {Object.entries(serviciosPorCuidador).map(([nombreCuidador, serviciosCuidador]) => {
+              const primerServicio = serviciosCuidador[0];
+              const direccion = primerServicio?.direccion;
+              const dirTexto = direccion
+                ? `${direccion.calle || ''} ${direccion.altura || ''}, ${direccion.localidad?.nombre || ''}`
+                : '';
+
+              return (
+                <div key={nombreCuidador} className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  {/* Cuidador Header */}
+                  <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-white">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                      <div className="mb-4 md:mb-0">
+                        <h3 className="text-2xl font-bold mb-2">{nombreCuidador}</h3>
+                        <div className="flex items-center space-x-4 text-orange-100">
+                          {dirTexto && (
+                            <div className="flex items-center space-x-1">
+                              <MapPin className="h-4 w-4" />
+                              <span className="text-sm">{dirTexto}</span>
+                            </div>
+                          )}
+                          {primerServicio?.telefonoCuidador && (
+                            <div className="flex items-center space-x-1">
+                              <Phone className="h-4 w-4" />
+                              <span className="text-sm">{primerServicio.telefonoCuidador}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))}
+                      <div className="text-sm text-orange-100">
+                        {serviciosCuidador.length} servicio{serviciosCuidador.length !== 1 ? 's' : ''} disponible{serviciosCuidador.length !== 1 ? 's' : ''}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Services Grid */}
+                  <div className="p-6 bg-orange-50">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {serviciosCuidador.map((servicio: any) => (
+                        <div
+                          key={servicio.id}
+                          className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col h-full border border-orange-100"
+                        >
+                          <div className="p-6 flex-1 flex flex-col">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <h4 className="text-lg font-bold text-gray-900">
+                                  {servicio.nombreServicio}
+                                </h4>
+                                {servicio.tipoServicio && (
+                                  <span className="inline-block bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full mt-1">
+                                    {servicio.tipoServicio}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-semibold ml-2 whitespace-nowrap">
+                                {formatPrice(servicio.precio)}/día
+                              </div>
+                            </div>
+
+                            <p className="text-gray-600 mb-4 flex-1 text-sm">
+                              {servicio.descripcion}
+                            </p>
+
+                            {/* Service Details */}
+                            <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                              {servicio.duracionMinutos && (
+                                <div className="flex items-center space-x-2">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{servicio.duracionMinutos} min</span>
+                                </div>
+                              )}
+                              {servicio.horariosDisponibles && (
+                                <div className="flex items-center space-x-2">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{servicio.horariosDisponibles.length} horarios</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Available Hours */}
+                            {servicio.horariosDisponibles && servicio.horariosDisponibles.length > 0 && (
+                              <div className="mb-6">
+                                <h5 className="text-sm font-semibold text-gray-900 mb-2">
+                                  Horarios Disponibles:
+                                </h5>
+                                <div className="flex flex-wrap gap-1">
+                                  {servicio.horariosDisponibles.map((hora: string, i: number) => (
+                                    <span key={i} className="bg-orange-50 text-orange-700 px-2 py-1 rounded text-xs font-medium">
+                                      {hora}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Mascotas aceptadas */}
+                            {servicio.mascotasAceptadas && servicio.mascotasAceptadas.length > 0 && (
+                              <div className="mb-4">
+                                <div className="flex flex-wrap gap-1">
+                                  {servicio.mascotasAceptadas.map((m: string, i: number) => (
+                                    <span key={i} className="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">
+                                      {m}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => handleBookService(servicio)}
+                              className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-all duration-300 font-semibold transform hover:scale-105 mt-auto"
+                            >
+                              Contratar Cuidador
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                
-                {/* Availability */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-2 flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    Disponibilidad:
-                  </h4>
-                  <div className="flex flex-wrap gap-1">
-                    {caregiver.availability.map((period, index) => (
-                      <span
-                        key={index}
-                        className="bg-orange-100 text-orange-700 px-2 py-1 rounded text-xs"
-                      >
-                        {period}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                
-                <button
-                  onClick={() => handleBookCaregiver(caregiver)}
-                  className="w-full bg-orange-600 text-white py-3 px-6 rounded-lg hover:bg-orange-700 transition-all duration-300 font-semibold transform hover:scale-105 mt-auto"
-                >
-                  Contratar Cuidador
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Why Choose Our Caregivers */}
         <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl p-8 md:p-12 text-white mb-16">
@@ -149,7 +227,7 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               Tranquilidad total para ti y tu mascota
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -158,7 +236,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold mb-2">Certificados</h4>
               <p className="text-orange-100 text-sm">Formación especializada en cuidado animal</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Home className="h-8 w-8" />
@@ -166,7 +243,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold mb-2">Ambiente Familiar</h4>
               <p className="text-orange-100 text-sm">Cuidado en un entorno hogareño</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Clock className="h-8 w-8" />
@@ -174,7 +250,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold mb-2">Atención 24/7</h4>
               <p className="text-orange-100 text-sm">Cuidado continuo y supervisión</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-white bg-opacity-20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="h-8 w-8" />
@@ -195,7 +270,7 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               Proceso simple y transparente
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -204,7 +279,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold text-gray-900 mb-2">Reserva</h4>
               <p className="text-gray-600 text-sm">Selecciona fechas y cuidador</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-orange-600">2</span>
@@ -212,7 +286,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold text-gray-900 mb-2">Conoce al Cuidador</h4>
               <p className="text-gray-600 text-sm">Presentación previa con tu mascota</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-orange-600">3</span>
@@ -220,7 +293,6 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
               <h4 className="text-lg font-semibold text-gray-900 mb-2">Cuidado</h4>
               <p className="text-gray-600 text-sm">Atención completa según tus instrucciones</p>
             </div>
-            
             <div className="text-center">
               <div className="bg-orange-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-xl font-bold text-orange-600">4</span>
@@ -236,7 +308,7 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
       <ModalReserva
         isOpen={isBookingOpen}
         onClose={() => setIsBookingOpen(false)}
-        service={selectedCaregiver}
+        service={selectedService}
         serviceType="cuidador"
         userType={userType}
       />
@@ -251,16 +323,13 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
             >
               <X className="h-6 w-6" />
             </button>
-            
             <div className="text-center">
               <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="h-8 w-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                Acceso Restringido
-              </h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Acceso Restringido</h3>
               <p className="text-gray-600 mb-6">
-                Solo los dueños de mascotas pueden contratar servicios de cuidadores. 
+                Solo los dueños de mascotas pueden contratar servicios de cuidadores.
                 Regístrate como cliente para acceder a esta funcionalidad.
               </p>
               <button
@@ -277,5 +346,4 @@ const ServiciosCuidadores: React.FC<ServiciosCuidadoresProps> = ({ userType }) =
   );
 };
 
-
-export default ServiciosCuidadores
+export default ServiciosCuidadores;

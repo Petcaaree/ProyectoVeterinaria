@@ -99,26 +99,34 @@ const ciudadController = new CiudadController(ciudadService);
 
 const app = express();
 
-// Seguridad: headers HTTP seguros
-app.use(helmet());
-
-// Sanitización: elimina operadores $ de MongoDB en body/query/params para prevenir NoSQL injection
-app.use(mongoSanitize());
-
-// CORS — origins permitidos desde variable de entorno (separados por coma)
+// CORS debe ir ANTES de helmet para que los headers de preflight se envíen correctamente
 const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:5173', 'http://localhost:5174'];
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
         // Permitir requests sin origin (Postman, curl, apps móviles)
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error(`CORS: origin no permitido → ${origin}`));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Responder preflight OPTIONS en todas las rutas
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
+
+// Seguridad: headers HTTP seguros (después de CORS para no interferir)
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+// Sanitización: elimina operadores $ de MongoDB en body/query/params para prevenir NoSQL injection
+app.use(mongoSanitize());
 
 // Rate limiting general: 100 req / 15min por IP
 app.use('/petcare', generalLimiter);

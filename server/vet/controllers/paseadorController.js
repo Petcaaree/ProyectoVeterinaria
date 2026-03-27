@@ -1,4 +1,5 @@
 import { generarToken } from '../utils/jwtUtils.js';
+import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
 
 export class PaseadorController {
    constructor(paseadorService, reservaService) {
@@ -27,8 +28,9 @@ export class PaseadorController {
       const datos = req.body
       const usuario = await this.paseadorService.logIn(datos)
       const token = generarToken(usuario, 'paseador')
+      const refreshToken = await generarRefreshToken(usuario.id, 'paseador')
 
-      res.json({ data: usuario, token })
+      res.json({ data: usuario, token, refreshToken })
     } catch (error) {
       next(error)
     }
@@ -39,8 +41,9 @@ export class PaseadorController {
       const paseador = req.body;
       const nuevo = await this.paseadorService.create(paseador);
       const token = generarToken(nuevo, 'paseador');
+      const refreshToken = await generarRefreshToken(nuevo.id, 'paseador');
 
-      res.status(201).json({ data: nuevo, token });
+      res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {
       next(error);
     }

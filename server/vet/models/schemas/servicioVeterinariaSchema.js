@@ -241,6 +241,11 @@ function normalizarHorarios(horarios) {
   });
 }
 
+// ─── Indices para queries frecuentes ────────────────────
+servicioVeterinariaSchema.index({ usuarioProveedor: 1, estado: 1 }); // servicios por vet + estado
+servicioVeterinariaSchema.index({ estado: 1 });                       // filtrar activos/inactivos
+servicioVeterinariaSchema.index({ tipoServicio: 1, estado: 1 });     // filtrar por tipo
+
 servicioVeterinariaSchema.loadClass(ServicioVeterinaria);
 
 export const ServicioVeterinariaModel = mongoose.model("ServicioVeterinaria", servicioVeterinariaSchema);

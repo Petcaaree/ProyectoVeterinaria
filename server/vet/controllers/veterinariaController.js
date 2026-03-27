@@ -1,4 +1,5 @@
 import { generarToken } from '../utils/jwtUtils.js';
+import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
 
 export class VeterinariaController {
   constructor(veterinariaService, reservaService) {
@@ -27,8 +28,9 @@ export class VeterinariaController {
       const datos = req.body
       const usuario = await this.veterinariaService.logIn(datos)
       const token = generarToken(usuario, 'veterinaria')
+      const refreshToken = await generarRefreshToken(usuario.id, 'veterinaria')
 
-      res.json({ data: usuario, token })
+      res.json({ data: usuario, token, refreshToken })
     } catch (error) {
       next(error)
     }
@@ -39,8 +41,9 @@ export class VeterinariaController {
       const veterinaria = req.body;
       const nuevo = await this.veterinariaService.create(veterinaria);
       const token = generarToken(nuevo, 'veterinaria');
+      const refreshToken = await generarRefreshToken(nuevo.id, 'veterinaria');
 
-      res.status(201).json({ data: nuevo, token });
+      res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {
       next(error);
     }

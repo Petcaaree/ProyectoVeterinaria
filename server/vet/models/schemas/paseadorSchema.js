@@ -84,6 +84,9 @@ const paseadorSchema = new mongoose.Schema({
     },
 });
 
+// Indice para busqueda por nombreUsuario (findByNombreUsuario)
+paseadorSchema.index({ nombreUsuario: 1 });
+
 paseadorSchema.loadClass(Paseador);
 
 export const PaseadorModel = mongoose.model("Paseador", paseadorSchema);

@@ -91,6 +91,9 @@ const veterinariaSchema = new mongoose.Schema({
     },
 });
 
+// Indice para busqueda por nombreUsuario (findByNombreUsuario)
+veterinariaSchema.index({ nombreUsuario: 1 });
+
 veterinariaSchema.loadClass(Veterinaria);
 
 export const VeterinariaModel = mongoose.model("Veterinaria", veterinariaSchema);

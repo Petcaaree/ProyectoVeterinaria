@@ -1,4 +1,5 @@
 import { generarToken } from '../utils/jwtUtils.js';
+import { generarRefreshToken } from '../utils/refreshTokenUtils.js';
 import logger from '../utils/logger.js';
 
 export class ClienteController {
@@ -28,8 +29,9 @@ export class ClienteController {
       const datos = req.body
       const usuario = await this.clienteService.logIn(datos)
       const token = generarToken(usuario, 'cliente')
+      const refreshToken = await generarRefreshToken(usuario.id, 'cliente')
 
-      res.json({ data: usuario, token })
+      res.json({ data: usuario, token, refreshToken })
     } catch (error) {
       next(error)
     }
@@ -41,8 +43,9 @@ export class ClienteController {
       const cliente = req.body;
       const nuevo = await this.clienteService.create(cliente);
       const token = generarToken(nuevo, 'cliente');
+      const refreshToken = await generarRefreshToken(nuevo.id, 'cliente');
 
-      res.status(201).json({ data: nuevo, token });
+      res.status(201).json({ data: nuevo, token, refreshToken });
     } catch (error) {
       logger.error('Error en clienteController.create', error);
       next(error);

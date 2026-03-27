@@ -84,6 +84,9 @@ const cuidadorSchema = new mongoose.Schema({
     },
 });
 
+// Indice para busqueda por nombreUsuario (findByNombreUsuario)
+cuidadorSchema.index({ nombreUsuario: 1 });
+
 cuidadorSchema.loadClass(Cuidador);
 
 export const CuidadorModel = mongoose.model("Cuidador", cuidadorSchema);

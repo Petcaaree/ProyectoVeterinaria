@@ -11,6 +11,9 @@ const ciudadSchema = new mongoose.Schema({
     }
 })
 
+// Indice para busqueda por nombre (findByName)
+ciudadSchema.index({ nombre: 1 });
+
 ciudadSchema.loadClass(Ciudad)
 
 export const CiudadModel = mongoose.model("Ciudad", ciudadSchema)

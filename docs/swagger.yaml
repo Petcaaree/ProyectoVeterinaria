@@ -1,0 +1,1261 @@
+openapi: 3.0.3
+info:
+  title: PetCare API
+  description: |
+    API REST del marketplace de servicios veterinarios **PetCare**.
+    Conecta clientes con veterinarias, paseadores y cuidadores de mascotas.
+
+    ## Autenticacion
+    La API usa **JWT Bearer tokens**. Obtene tu token via `/login` o `/signin`.
+    Los endpoints protegidos requieren el header `Authorization: Bearer <token>`.
+
+    ## Roles
+    | Rol | Descripcion |
+    |---|---|
+    | `cliente` | Dueño de mascotas, reserva servicios |
+    | `veterinaria` | Clinica veterinaria, ofrece servicios medicos |
+    | `paseador` | Paseador de perros |
+    | `cuidador` | Cuidador/guarderia de mascotas |
+  version: 1.0.0
+  contact:
+    name: Equipo PetCare
+
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+
+tags:
+  - name: Auth - Cliente
+    description: Autenticacion de clientes
+  - name: Auth - Veterinaria
+    description: Autenticacion de veterinarias
+  - name: Auth - Paseador
+    description: Autenticacion de paseadores
+  - name: Auth - Cuidador
+    description: Autenticacion de cuidadores
+  - name: Auth - Tokens
+    description: Refresh y logout de tokens
+  - name: Clientes
+    description: Gestion de clientes y mascotas
+  - name: Veterinarias
+    description: Gestion de veterinarias
+  - name: Paseadores
+    description: Gestion de paseadores
+  - name: Cuidadores
+    description: Gestion de cuidadores
+  - name: Servicios Veterinaria
+    description: Servicios ofrecidos por veterinarias
+  - name: Servicios Paseador
+    description: Servicios ofrecidos por paseadores
+  - name: Servicios Cuidador
+    description: Servicios ofrecidos por cuidadores
+  - name: Reservas
+    description: Gestion de reservas de servicios
+  - name: Notificaciones
+    description: Sistema de notificaciones
+  - name: Monitoring
+    description: Health check y monitoreo
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ─── Comunes ─────────────────────────────────────────
+    Direccion:
+      type: object
+      required: [calle, altura, localidad]
+      properties:
+        calle:
+          type: string
+          example: Av. Siempre Viva
+        altura:
+          oneOf:
+            - type: string
+            - type: number
+          example: "742"
+        localidad:
+          type: object
+          required: [nombre, ciudad]
+          properties:
+            nombre:
+              type: string
+              example: Springfield
+            ciudad:
+              type: object
+              required: [nombre]
+              properties:
+                nombre:
+                  type: string
+                  example: Buenos Aires
+
+    PaginatedResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 50
+        total_pages:
+          type: integer
+          example: 5
+        data:
+          type: array
+          items: {}
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [fail, error]
+        message:
+          type: string
+
+    # ─── Auth ────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [email, contrasenia]
+      properties:
+        email:
+          type: string
+          format: email
+          example: juan@example.com
+        contrasenia:
+          type: string
+          format: password
+          example: MiPass1!
+
+    LoginResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          description: Datos del usuario (DTO)
+        token:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: Refresh token (solo con cookie o body)
+
+    # ─── Cliente ─────────────────────────────────────────
+    RegistroCliente:
+      type: object
+      required: [nombreUsuario, email, contrasenia, telefono, direccion]
+      properties:
+        nombreUsuario:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: juanperez
+        email:
+          type: string
+          format: email
+          example: juan@example.com
+        contrasenia:
+          type: string
+          format: password
+          minLength: 8
+          description: "Min 8 chars, 1 mayuscula, 1 minuscula, 1 digito, 1 especial"
+          example: MiPass1!
+        telefono:
+          type: string
+          minLength: 7
+          maxLength: 15
+          example: "1155001122"
+        direccion:
+          $ref: '#/components/schemas/Direccion'
+
+    ClienteDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        nombreUsuario:
+          type: string
+        email:
+          type: string
+        telefono:
+          type: string
+        direccion:
+          type: object
+          properties:
+            calle:
+              type: string
+            altura:
+              type: string
+            localidad:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                ciudad:
+                  type: string
+        mascotas:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mascota'
+        notificaciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notificacion'
+
+    # ─── Mascota ─────────────────────────────────────────
+    Mascota:
+      type: object
+      required: [nombre, tipo]
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: Rocky
+        tipo:
+          type: string
+          enum: [PERRO, GATO, AVE, OTRO]
+          example: PERRO
+        raza:
+          type: string
+          example: Labrador
+        edad:
+          type: integer
+          minimum: 0
+          example: 3
+        peso:
+          type: number
+          minimum: 0
+          example: 25.5
+        fotos:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    # ─── Notificacion ────────────────────────────────────
+    Notificacion:
+      type: object
+      properties:
+        id:
+          type: string
+        mensaje:
+          type: string
+        fechaAlta:
+          type: string
+          format: date-time
+        fechaLeida:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ─── Veterinaria ─────────────────────────────────────
+    RegistroVeterinaria:
+      allOf:
+        - $ref: '#/components/schemas/RegistroCliente'
+        - type: object
+          properties:
+            nombreClinica:
+              type: string
+              maxLength: 200
+              example: Clinica PetSalud
+
+    VeterinariaDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        nombreUsuario:
+          type: string
+        nombreClinica:
+          type: string
+        email:
+          type: string
+        telefono:
+          type: string
+        direccion:
+          type: object
+        notificaciones:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notificacion'
+
+    # ─── Servicios ───────────────────────────────────────
+    ServicioVeterinaria:
+      type: object
+      required: [idVeterinaria, nombreServicio, tipoServicio, duracionMinutos, precio]
+      properties:
+        idVeterinaria:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        nombreServicio:
+          type: string
+          example: Control general
+        tipoServicio:
+          type: string
+          enum: [Control, Vacunacion, Baño, Desparacitacion, Cirugia, Radiografia, Ecografia]
+        duracionMinutos:
+          type: integer
+          minimum: 1
+          example: 30
+        precio:
+          type: number
+          minimum: 0
+          example: 5000
+        descripcion:
+          type: string
+        diasDisponibles:
+          type: array
+          items:
+            type: string
+        horariosDisponibles:
+          type: array
+          items:
+            type: string
+        mascotasAceptadas:
+          type: array
+          items:
+            type: string
+        direccion:
+          $ref: '#/components/schemas/Direccion'
+
+    ServicioPaseador:
+      type: object
+      required: [idPaseador, nombreServicio, duracionMinutos, precio]
+      properties:
+        idPaseador:
+          type: string
+        nombreServicio:
+          type: string
+          example: Paseo grupal
+        duracionMinutos:
+          type: integer
+          minimum: 1
+          example: 60
+        precio:
+          type: number
+          minimum: 0
+          example: 3000
+        descripcion:
+          type: string
+        maxPerros:
+          type: integer
+          minimum: 1
+        diasDisponibles:
+          type: array
+          items:
+            type: string
+        horariosDisponibles:
+          type: array
+          items:
+            type: string
+        direccion:
+          $ref: '#/components/schemas/Direccion'
+
+    ServicioCuidador:
+      type: object
+      required: [idCuidador, nombreServicio, precio]
+      properties:
+        idCuidador:
+          type: string
+        nombreServicio:
+          type: string
+          example: Guarderia diurna
+        precio:
+          type: number
+          minimum: 0
+          example: 8000
+        descripcion:
+          type: string
+        mascotasAceptadas:
+          type: array
+          items:
+            type: string
+        diasDisponibles:
+          type: array
+          items:
+            type: string
+        direccion:
+          $ref: '#/components/schemas/Direccion'
+
+    # ─── Reserva ─────────────────────────────────────────
+    ReservaRequest:
+      type: object
+      required: [clienteId, serviciOfrecido, servicioReservadoId, IdMascota, rangoFechas]
+      properties:
+        clienteId:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        serviciOfrecido:
+          type: string
+          example: ServicioVeterinaria
+        servicioReservadoId:
+          type: string
+        IdMascota:
+          type: string
+        rangoFechas:
+          type: object
+          required: [fechaInicio, fechaFin]
+          properties:
+            fechaInicio:
+              type: string
+              format: date-time
+            fechaFin:
+              type: string
+              format: date-time
+        horario:
+          type: object
+        notaAdicional:
+          type: string
+          maxLength: 500
+        nombreDeContacto:
+          type: string
+        telefonoContacto:
+          type: string
+        emailContacto:
+          type: string
+          format: email
+
+    ReservaDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        cliente:
+          type: string
+        servicioReservado:
+          type: object
+        mascota:
+          type: string
+        rangoFechas:
+          type: object
+          properties:
+            fechaInicio:
+              type: string
+              format: date-time
+            fechaFin:
+              type: string
+              format: date-time
+        estado:
+          type: string
+          enum: [PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA]
+        horario:
+          type: string
+        notaAdicional:
+          type: string
+
+    # ─── Health ──────────────────────────────────────────
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          description: Uptime en segundos
+        version:
+          type: string
+        mongodb:
+          type: string
+          enum: [connected, disconnected]
+        memory:
+          type: object
+          properties:
+            rss:
+              type: string
+            heapUsed:
+              type: string
+            heapTotal:
+              type: string
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9a-fA-F]{24}$'
+      description: MongoDB ObjectId
+
+# ═══════════════════════════════════════════════════════════
+# PATHS
+# ═══════════════════════════════════════════════════════════
+
+paths:
+
+  # ─── Health ────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Monitoring]
+      summary: Health check
+      description: Estado del servidor, MongoDB y metricas basicas
+      responses:
+        '200':
+          description: Servidor saludable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # ─── Auth Cliente ──────────────────────────────────────
+  /petcare/login/cliente:
+    post:
+      tags: [Auth - Cliente]
+      summary: Login de cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Datos invalidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Email no encontrado
+
+  /petcare/signin/cliente:
+    post:
+      tags: [Auth - Cliente]
+      summary: Registro de cliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroCliente'
+      responses:
+        '201':
+          description: Registro exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Datos invalidos
+        '409':
+          description: Email o nombre de usuario ya registrado
+
+  # ─── Auth Veterinaria ─────────────────────────────────
+  /petcare/login/veterinaria:
+    post:
+      tags: [Auth - Veterinaria]
+      summary: Login de veterinaria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /petcare/signin/veterinaria:
+    post:
+      tags: [Auth - Veterinaria]
+      summary: Registro de veterinaria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroVeterinaria'
+      responses:
+        '201':
+          description: Registro exitoso
+        '409':
+          description: Email o nombre ya existente
+
+  # ─── Auth Paseador ────────────────────────────────────
+  /petcare/login/paseador:
+    post:
+      tags: [Auth - Paseador]
+      summary: Login de paseador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login exitoso
+
+  /petcare/signin/paseador:
+    post:
+      tags: [Auth - Paseador]
+      summary: Registro de paseador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroCliente'
+      responses:
+        '201':
+          description: Registro exitoso
+
+  # ─── Auth Cuidador ────────────────────────────────────
+  /petcare/login/cuidador:
+    post:
+      tags: [Auth - Cuidador]
+      summary: Login de cuidador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login exitoso
+
+  /petcare/signin/cuidador:
+    post:
+      tags: [Auth - Cuidador]
+      summary: Registro de cuidador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistroCliente'
+      responses:
+        '201':
+          description: Registro exitoso
+
+  # ─── Auth Tokens ──────────────────────────────────────
+  /petcare/auth/refresh:
+    post:
+      tags: [Auth - Tokens]
+      summary: Renovar access token usando refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Nuevo access token generado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Refresh token invalido o expirado
+
+  /petcare/auth/logout:
+    post:
+      tags: [Auth - Tokens]
+      summary: Cerrar sesion (invalida refresh token)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Sesion cerrada exitosamente
+
+  # ─── Clientes ──────────────────────────────────────────
+  /petcare/clientes:
+    get:
+      tags: [Clientes]
+      summary: Listar todos los clientes (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de clientes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ClienteDTO'
+
+  /petcare/cliente/{id}:
+    delete:
+      tags: [Clientes]
+      summary: Eliminar cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Cliente eliminado
+        '401':
+          description: No autenticado
+        '403':
+          description: Acceso denegado
+        '404':
+          description: Cliente no encontrado
+    put:
+      tags: [Clientes]
+      summary: Actualizar perfil de cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombreUsuario:
+                  type: string
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Cliente actualizado
+        '409':
+          description: Email ya existe
+
+  /petcare/cliente/{id}/mismascotas:
+    get:
+      tags: [Clientes]
+      summary: Obtener mascotas del cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Mascota'
+
+  /petcare/cliente/{id}/mascota:
+    post:
+      tags: [Clientes]
+      summary: Agregar mascota
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Mascota'
+      responses:
+        '201':
+          description: Mascota agregada
+
+  /petcare/cliente/{id}/mascota/{idMascota}:
+    delete:
+      tags: [Clientes]
+      summary: Eliminar mascota
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: idMascota
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Mascota eliminada
+        '409':
+          description: Mascota tiene reservas activas
+
+  # ─── Veterinarias ──────────────────────────────────────
+  /petcare/veterinarias:
+    get:
+      tags: [Veterinarias]
+      summary: Listar todas las veterinarias (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de veterinarias
+
+  /petcare/veterinaria/{id}:
+    delete:
+      tags: [Veterinarias]
+      summary: Eliminar veterinaria
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Veterinaria eliminada
+    put:
+      tags: [Veterinarias]
+      summary: Actualizar veterinaria
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombreUsuario:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Veterinaria actualizada
+
+  # ─── Paseadores ────────────────────────────────────────
+  /petcare/paseadores:
+    get:
+      tags: [Paseadores]
+      summary: Listar todos los paseadores (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de paseadores
+
+  /petcare/paseador/{id}:
+    delete:
+      tags: [Paseadores]
+      summary: Eliminar paseador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Paseador eliminado
+    put:
+      tags: [Paseadores]
+      summary: Actualizar paseador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Paseador actualizado
+
+  # ─── Cuidadores ────────────────────────────────────────
+  /petcare/cuidadores:
+    get:
+      tags: [Cuidadores]
+      summary: Listar todos los cuidadores (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de cuidadores
+
+  /petcare/cuidador/{id}:
+    delete:
+      tags: [Cuidadores]
+      summary: Eliminar cuidador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Cuidador eliminado
+    put:
+      tags: [Cuidadores]
+      summary: Actualizar cuidador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Cuidador actualizado
+
+  # ─── Servicios Veterinaria ─────────────────────────────
+  /petcare/serviciosVet:
+    get:
+      tags: [Servicios Veterinaria]
+      summary: Listar servicios veterinarios (paginado, con filtros)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: tipoServicio
+          in: query
+          schema:
+            type: string
+            enum: [Control, Vacunacion, Baño, Desparacitacion, Cirugia, Radiografia, Ecografia]
+        - name: localidad
+          in: query
+          schema:
+            type: string
+        - name: mascotasAceptadas
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de servicios veterinarios
+
+  /petcare/servicioVet:
+    post:
+      tags: [Servicios Veterinaria]
+      summary: Crear servicio veterinario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioVeterinaria'
+      responses:
+        '201':
+          description: Servicio creado
+
+  /petcare/serviciosVet/{id}:
+    get:
+      tags: [Servicios Veterinaria]
+      summary: Obtener servicio por ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Servicio encontrado
+        '404':
+          description: No encontrado
+
+  /petcare/serviciosVet/veterinaria/{id}:
+    get:
+      tags: [Servicios Veterinaria]
+      summary: Obtener servicios de una veterinaria
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Servicios de la veterinaria
+
+  # ─── Servicios Paseador ────────────────────────────────
+  /petcare/serviciosPaseadores:
+    get:
+      tags: [Servicios Paseador]
+      summary: Listar servicios de paseadores (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista de servicios de paseadores
+
+  /petcare/servicioPaseadores:
+    post:
+      tags: [Servicios Paseador]
+      summary: Crear servicio de paseador
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioPaseador'
+      responses:
+        '201':
+          description: Servicio creado
+
+  /petcare/serviciosPaseadores/{id}:
+    get:
+      tags: [Servicios Paseador]
+      summary: Obtener servicio de paseador por ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Servicio encontrado
+
+  # ─── Servicios Cuidador ────────────────────────────────
+  /petcare/serviciosCuidadores:
+    get:
+      tags: [Servicios Cuidador]
+      summary: Listar servicios de cuidadores (paginado)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista de servicios de cuidadores
+
+  /petcare/servicioCuidador:
+    post:
+      tags: [Servicios Cuidador]
+      summary: Crear servicio de cuidador
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioCuidador'
+      responses:
+        '201':
+          description: Servicio creado
+
+  /petcare/servicioCuidador/{id}:
+    get:
+      tags: [Servicios Cuidador]
+      summary: Obtener servicio de cuidador por ID
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Servicio encontrado
+
+  # ─── Reservas ──────────────────────────────────────────
+  /petcare/reservar:
+    post:
+      tags: [Reservas]
+      summary: Crear reserva (solo clientes)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservaRequest'
+      responses:
+        '201':
+          description: Reserva creada
+        '400':
+          description: Datos invalidos
+        '401':
+          description: No autenticado
+
+  /petcare/reservas:
+    get:
+      tags: [Reservas]
+      summary: Listar todas las reservas (paginado)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de reservas
+
+  /petcare/reservas/cliente/{id}/{estado}:
+    get:
+      tags: [Reservas]
+      summary: Obtener reservas de un cliente por estado
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: estado
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA, TODAS]
+      responses:
+        '200':
+          description: Reservas del cliente
+
+  /petcare/reservas/proveedor/{id}/{estado}:
+    get:
+      tags: [Reservas]
+      summary: Obtener reservas de un proveedor por estado
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: estado
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [PENDIENTE, CONFIRMADA, CANCELADA, COMPLETADA, TODAS]
+      responses:
+        '200':
+          description: Reservas del proveedor
+
+  /petcare/usuario/{idUsuario}/reserva/{idReserva}/{estado}:
+    put:
+      tags: [Reservas]
+      summary: Cambiar estado de una reserva
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: idUsuario
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: idReserva
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: estado
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [CONFIRMADA, CANCELADA, COMPLETADA]
+      responses:
+        '200':
+          description: Estado actualizado
+
+  # ─── Notificaciones (comun a todos los roles) ─────────
+  /petcare/cliente/{id}/notificaciones:
+    get:
+      tags: [Notificaciones]
+      summary: Obtener todas las notificaciones del cliente
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Lista paginada de notificaciones
+
+  /petcare/cliente/{id}/notificaciones/contador:
+    get:
+      tags: [Notificaciones]
+      summary: Obtener cantidad de notificaciones no leidas
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Contador
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contador:
+                    type: integer
+
+  /petcare/cliente/{id}/notificaciones/{idNotificacion}:
+    put:
+      tags: [Notificaciones]
+      summary: Marcar notificacion como leida
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+        - name: idNotificacion
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notificacion marcada como leida
+
+  /petcare/cliente/{id}/marcarNotificacionLeidas:
+    put:
+      tags: [Notificaciones]
+      summary: Marcar todas las notificaciones como leidas
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Todas las notificaciones marcadas
+
+  # ─── Localidades ───────────────────────────────────────
+  /petcare/localidades:
+    get:
+      tags: [Clientes]
+      summary: Obtener todas las localidades
+      responses:
+        '200':
+          description: Lista de localidades

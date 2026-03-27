@@ -9,8 +9,10 @@ import logger from './vet/utils/logger.js';
 import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
 
-// import swaggerUi from "swagger-ui-express";
-// import YAML from "yamljs";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import mongoose from "mongoose";
+import authRoutes from "./vet/routes/authRoutes.js";
 
 import routes from "./vet/routes/routes.js";
 import recordatorioRoutes from "./vet/routes/recordatorioRoutes.js";
@@ -186,8 +188,37 @@ app.use('/api/recordatorios', recordatorioRoutes);
 
 server.configureRoutes();
 
-// const swaggerDocument = YAML.load("../docs/swagger.yaml")
-// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+// Rutas de autenticación (refresh token, logout)
+app.use(authRoutes);
+
+// Swagger API docs
+const swaggerDocument = YAML.load("../docs/swagger.yaml");
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    customSiteTitle: 'PetCare API Docs',
+    customCss: '.swagger-ui .topbar { display: none }'
+}));
+
+// Health check endpoint (D5)
+const startTime = Date.now();
+app.get('/health', (req, res) => {
+    const mongoState = mongoose.connection.readyState;
+    const mongoStatus = mongoState === 1 ? 'connected' : 'disconnected';
+    const mem = process.memoryUsage();
+
+    res.status(mongoState === 1 ? 200 : 503).json({
+        status: mongoState === 1 ? 'ok' : 'degraded',
+        timestamp: new Date().toISOString(),
+        uptime: Math.floor((Date.now() - startTime) / 1000),
+        version: '1.0.0',
+        environment: process.env.NODE_ENV || 'development',
+        mongodb: mongoStatus,
+        memory: {
+            rss: `${Math.round(mem.rss / 1024 / 1024)}MB`,
+            heapUsed: `${Math.round(mem.heapUsed / 1024 / 1024)}MB`,
+            heapTotal: `${Math.round(mem.heapTotal / 1024 / 1024)}MB`
+        }
+    });
+});
 
 app.use(errorHandler)
 

@@ -81,7 +81,6 @@ export class ServicioPaseador{
         }
         // Limpiar fechas que hayan quedado sin horarios (por si acaso)
         this.fechasNoDisponibles = this.fechasNoDisponibles.filter(fecha => Array.isArray(fecha.horariosNoDisponibles) && fecha.horariosNoDisponibles.length > 0);
-        console.log('[agregarFechasReserva] Estado final fechasNoDisponibles:', JSON.stringify(this.fechasNoDisponibles, null, 2));
     }
     
 

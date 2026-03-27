@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ServicioVeterinaria } from "../entidades/ServicioVeterinaria.js";
+import logger from '../../utils/logger.js';
 
 const servicioVeterinariaSchema = new mongoose.Schema({
   usuarioProveedor: {
@@ -191,7 +192,7 @@ servicioVeterinariaSchema.pre('save', function(next) {
   if (this.fechasNoDisponibles) {
     this.fechasNoDisponibles = this.fechasNoDisponibles.map(fecha => {
       if (!fecha.fecha || !fecha.horariosNoDisponibles) {
-        console.warn('Estructura incorrecta en fechasNoDisponibles, se asignará estructura vacía');
+        logger.warn('Estructura incorrecta en fechasNoDisponibles, se asignará estructura vacía');
         return {
           fecha: new Date(),
           horariosNoDisponibles: []

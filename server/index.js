@@ -58,7 +58,6 @@ import { ReservaController } from "./vet/controllers/reservaController.js";
 import { MongoDBClient } from "./vet/config/database.js";
 import { errorHandler } from "./vet/middlewares/errorHandler.js";
 
-
  const clienteRepo = new ClienteRepository();
 const ciudadRepo = new CiudadRepository();
 const localidadRepo = new LocalidadRepository();
@@ -95,19 +94,6 @@ const servicioCuidadorController = new ServicioCuidadorController(servicioCuidad
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
 const reservaController = new ReservaController(reservaService);
 const ciudadController = new CiudadController(ciudadService);
-
-
-
-/*
-
-const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
-
-
-const clienteController = new ClienteController(clienteService, reservaService);
-const ciudadController = new CiudadController(ciudadService);
-
- */
-
 
 
 
@@ -172,11 +158,6 @@ server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ReservaController, reservaController);
 server.setController(CiudadController, ciudadController);
-
-/* server.setController(CiudadController, ciudadController);
-
-
-server.setController(ReservaController, reservaController); */
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

@@ -4,6 +4,7 @@ import customParseFormat from 'dayjs/plugin/customParseFormat.js';
 import 'dayjs/locale/es.js';
 import { FactoryNotificacion } from '../models/entidades/FactorYNotificacion.js';
 import { EstadoReserva } from '../models/entidades/enums/EstadoReserva.js';
+import logger from '../utils/logger.js';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('es');
@@ -21,28 +22,28 @@ export class RecordatorioService {
     // Iniciar el servicio de recordatorios
     iniciar() {
         if (this.iniciado) {
-            console.log('🔔 Servicio de recordatorios ya está iniciado');
+            logger.info('Servicio de recordatorios ya está iniciado');
             return;
         }
 
-        console.log('🔔 Iniciando servicio de recordatorios...');
-        
+        logger.info('Iniciando servicio de recordatorios...');
+
         // Ejecutar cada minuto para verificar recordatorios (para pruebas)
         cron.schedule('* * * * *', async () => {
             await this.verificarRecordatorios();
         });
 
         this.iniciado = true;
-        console.log('✅ Servicio de recordatorios iniciado correctamente');
+        logger.info('Servicio de recordatorios iniciado correctamente');
     }
 
     // Verificar si hay reservas que necesitan recordatorio
     async verificarRecordatorios() {
         try {
-            console.log('🔍 Verificando recordatorios pendientes...');
+            logger.debug('Verificando recordatorios pendientes...');
             // Obtener todas las reservas
             const reservas = await this.reservaRepository.findAll();
-            console.log(`📋 Total de reservas encontradas: ${reservas.length}`);
+            logger.debug(`Total de reservas encontradas: ${reservas.length}`);
 
             // Cancelación automática de reservas PENDIENTES
             const ahora = dayjs();
@@ -60,10 +61,10 @@ export class RecordatorioService {
                 }
 
                 const horasHasta = fechaHoraReserva.diff(ahora, 'hour');
-                
+
                 // Cancelar automáticamente si ya pasó la fecha/hora de la reserva
                 if (horasHasta < 0) {
-                    console.log(`⏰ Reserva ${reserva.id} ya pasó su fecha programada (${fechaHoraReserva.format('DD/MM/YYYY HH:mm')}), cancelando automáticamente.`);
+                    logger.info(`Reserva ${reserva.id} ya pasó su fecha programada (${fechaHoraReserva.format('DD/MM/YYYY HH:mm')}), cancelando automáticamente.`);
                     await this.cancelarReservaAutomatica(reserva, 'La reserva expiró por falta de confirmación');
                     continue;
                 }
@@ -72,14 +73,14 @@ export class RecordatorioService {
                 if (reserva.serviciOfrecido === 'ServicioCuidador') {
                     // Si faltan 12h o menos y sigue pendiente
                     if (horasHasta <= 12) {
-                        console.log(`⏳ Reserva de cuidador ${reserva.id} sigue pendiente a menos de 12h, cancelando automáticamente.`);
+                        logger.info(`Reserva de cuidador ${reserva.id} sigue pendiente a menos de 12h, cancelando automáticamente.`);
                         await this.cancelarReservaAutomatica(reserva, 'No fue confirmada a tiempo por el cuidador');
                         continue;
                     }
                 } else if (reserva.serviciOfrecido === 'ServicioPaseador' || reserva.serviciOfrecido === 'ServicioVeterinaria') {
                     // Si faltan 2h o menos y sigue pendiente
                     if (horasHasta <= 2) {
-                        console.log(`⏳ Reserva de paseador/veterinaria ${reserva.id} sigue pendiente a menos de 2h, cancelando automáticamente.`);
+                        logger.info(`Reserva de paseador/veterinaria ${reserva.id} sigue pendiente a menos de 2h, cancelando automáticamente.`);
                         await this.cancelarReservaAutomatica(reserva, 'No fue confirmada a tiempo por el proveedor');
                         continue;
                     }
@@ -88,22 +89,18 @@ export class RecordatorioService {
 
             // Procesar recordatorios para reservas confirmadas
             const reservasConfirmadas = reservas.filter(reserva => reserva.estado === 'CONFIRMADA');
-            console.log(`✅ Reservas confirmadas: ${reservasConfirmadas.length}`);
+            logger.debug(`Reservas confirmadas: ${reservasConfirmadas.length}`);
 
-            console.log(`⏰ Hora actual: ${ahora.format('DD/MM/YYYY HH:mm:ss')}`);
-            
+            logger.debug(`Hora actual: ${ahora.format('DD/MM/YYYY HH:mm:ss')}`);
+
             const recordatoriosEnviados = [];
 
             for (const reserva of reservasConfirmadas) {
 
     // Cancelar reserva automáticamente y notificar
-    
-                console.log(`🔍 Procesando reserva ${reserva.id}:`);
-                console.log(`   - Estado: ${reserva.estado}`);
-                console.log(`   - Cliente: ${reserva.cliente?.nombreUsuario || 'N/A'}`);
-                console.log(`   - Horario: ${reserva.horario || 'N/A'}`);
-                console.log(`   - Recordatorio enviado: ${reserva.recordatorioEnviado || false}`);
-                
+
+                logger.debug(`Procesando reserva ${reserva.id}: estado=${reserva.estado}, cliente=${reserva.cliente?.nombreUsuario || 'N/A'}, horario=${reserva.horario || 'N/A'}, recordatorioEnviado=${reserva.recordatorioEnviado || false}`);
+
                 try {
                     // Construir fecha y hora completa de la reserva
                     const fechaReserva = dayjs(reserva.rangoFechas.fechaInicio);
@@ -122,11 +119,11 @@ export class RecordatorioService {
                         esCuidador = true;
                     }
 
-                    console.log(`   📅 Fecha/hora reserva: ${fechaHoraReserva.format('DD/MM/YYYY HH:mm:ss')}`);
+                    logger.debug(`Reserva ${reserva.id} - Fecha/hora reserva: ${fechaHoraReserva.format('DD/MM/YYYY HH:mm:ss')}`);
 
                     // Verificar si la reserva ya pasó y marcarla como COMPLETADA
                     if (ahora.isAfter(fechaHoraReserva)) {
-                        console.log(`   ✅ Reserva pasada, marcando como COMPLETADA`);
+                        logger.info(`Reserva ${reserva.id} pasada, marcando como COMPLETADA`);
                         await this.marcarReservaCompletada(reserva.id);
                         continue; // Saltar al siguiente, ya no necesita recordatorios
                     }
@@ -137,7 +134,7 @@ export class RecordatorioService {
                         const minutosHastaRecordatorio = recordatorioHora.diff(ahora, 'minute');
                         const esHoy = ahora.isSame(fechaReserva, 'day');
                         if (esHoy && minutosHastaRecordatorio <= 0 && !reserva.recordatorioEnviado) {
-                            console.log(`   📧 Enviando recordatorio de cuidador (apenas pasan las 00:00 del día de inicio)`);
+                            logger.info(`Enviando recordatorio de cuidador para reserva ${reserva.id} (día de inicio)`);
                             await this.enviarRecordatorio(reserva, 'cuidador-dia-inicio');
                             recordatoriosEnviados.push({
                                 reservaId: reserva.id,
@@ -148,7 +145,7 @@ export class RecordatorioService {
                             });
                             await this.marcarRecordatorioEnviado(reserva.id);
                         } else {
-                            console.log(`   ⏭️ No requiere recordatorio de cuidador: esHoy=${esHoy}, minutosHastaRecordatorio=${minutosHastaRecordatorio}, enviado=${reserva.recordatorioEnviado}`);
+                            logger.debug(`Reserva ${reserva.id} no requiere recordatorio de cuidador: esHoy=${esHoy}, minutosHastaRecordatorio=${minutosHastaRecordatorio}, enviado=${reserva.recordatorioEnviado}`);
                         }
                         continue;
                     }
@@ -156,11 +153,11 @@ export class RecordatorioService {
                     // Solo procesar recordatorios para reservas que tienen horario (paseadores y veterinarias)
                     // Calcular diferencia hasta la reserva
                     const minutosHastaReserva = fechaHoraReserva.diff(ahora, 'minute');
-                    console.log(`   ⏰ Minutos hasta reserva: ${minutosHastaReserva}`);
-                    
+                    logger.debug(`Reserva ${reserva.id} - Minutos hasta reserva: ${minutosHastaReserva}`);
+
                     // Si faltan menos de 60 minutos y no se ha enviado recordatorio
                     if (minutosHastaReserva > 0 && minutosHastaReserva <= 60 && !reserva.recordatorioEnviado) {
-                        console.log(`   📧 Enviando recordatorio inmediato (faltan ${minutosHastaReserva} minutos)`);
+                        logger.info(`Enviando recordatorio inmediato para reserva ${reserva.id} (faltan ${minutosHastaReserva} minutos)`);
                         await this.enviarRecordatorio(reserva, 'inmediato');
                         recordatoriosEnviados.push({
                             reservaId: reserva.id,
@@ -177,10 +174,10 @@ export class RecordatorioService {
                     else if (minutosHastaReserva > 60) {
                         const unaHoraAntes = fechaHoraReserva.subtract(1, 'hour');
                         const diferencia = Math.abs(ahora.diff(unaHoraAntes, 'minute'));
-                        console.log(`   ⏰ Verificando recordatorio programado: diferencia con 1h antes = ${diferencia} minutos`);
-                        
+                        logger.debug(`Reserva ${reserva.id} - Verificando recordatorio programado: diferencia con 1h antes = ${diferencia} minutos`);
+
                         if (diferencia <= 2.5 && !reserva.recordatorioEnviado) {
-                            console.log(`   📧 Enviando recordatorio programado (1 hora antes)`);
+                            logger.info(`Enviando recordatorio programado para reserva ${reserva.id} (1 hora antes)`);
                             await this.enviarRecordatorio(reserva, 'programado');
                             recordatoriosEnviados.push({
                                 reservaId: reserva.id,
@@ -194,19 +191,19 @@ export class RecordatorioService {
                             await this.marcarRecordatorioEnviado(reserva.id);
                         }
                     } else {
-                        console.log(`   ⏭️ No requiere recordatorio: minutos=${minutosHastaReserva}, enviado=${reserva.recordatorioEnviado}`);
+                        logger.debug(`Reserva ${reserva.id} no requiere recordatorio: minutos=${minutosHastaReserva}, enviado=${reserva.recordatorioEnviado}`);
                     }
                 } catch (error) {
-                    console.error(`❌ Error procesando recordatorio para reserva ${reserva.id}:`, error);
+                    logger.error(`Error procesando recordatorio para reserva ${reserva.id}:`, error);
                 }
             }
 
             if (recordatoriosEnviados.length > 0) {
-                console.log(`📧 ${recordatoriosEnviados.length} recordatorios enviados:`, recordatoriosEnviados);
+                logger.info(`${recordatoriosEnviados.length} recordatorios enviados`, { recordatoriosEnviados });
             }
 
         } catch (error) {
-            console.error('❌ Error en verificarRecordatorios:', error);
+            logger.error('Error en verificarRecordatorios:', error);
         }
     }
 
@@ -248,9 +245,9 @@ export class RecordatorioService {
                     }
                 }
             }
-            console.log(`❌ Reserva ${reserva.id} cancelada automáticamente por falta de confirmación.`);
+            logger.info(`Reserva ${reserva.id} cancelada automáticamente por falta de confirmación.`);
         } catch (error) {
-            console.error(`❌ Error al cancelar automáticamente la reserva ${reserva.id}:`, error);
+            logger.error(`Error al cancelar automáticamente la reserva ${reserva.id}:`, error);
         }
     }
 
@@ -258,20 +255,20 @@ export class RecordatorioService {
     async enviarRecordatorio(reserva, tipoRecordatorio = 'programado') {
         try {
             const notificacionRecordatorio = FactoryNotificacion.crearRecordatorio(reserva, tipoRecordatorio);
-            
+
             // Agregar la notificación directamente al cliente usando el repositorio
             const cliente = await this.clienteRepository.findById(reserva.cliente._id);
             if (cliente) {
                 cliente.notificaciones.push(notificacionRecordatorio);
                 await this.clienteRepository.save(cliente);
-                
-                console.log(`📧 Recordatorio ${tipoRecordatorio} enviado a ${reserva.cliente.nombreUsuario} para reserva ${reserva.id}`);
+
+                logger.info(`Recordatorio ${tipoRecordatorio} enviado a ${reserva.cliente.nombreUsuario} para reserva ${reserva.id}`);
             } else {
-                console.error(`❌ Cliente no encontrado para reserva ${reserva.id}`);
+                logger.error(`Cliente no encontrado para reserva ${reserva.id}`);
             }
-            
+
         } catch (error) {
-            console.error(`❌ Error enviando recordatorio para reserva ${reserva.id}:`, error);
+            logger.error(`Error enviando recordatorio para reserva ${reserva.id}:`, error);
             throw error;
         }
     }    // Marcar que el recordatorio fue enviado
@@ -279,9 +276,9 @@ export class RecordatorioService {
         try {
             // Actualizar la reserva en la base de datos
             await this.reservaRepository.update(reservaId, { recordatorioEnviado: true });
-            console.log(`✅ Recordatorio marcado como enviado para reserva ${reservaId}`);
+            logger.debug(`Recordatorio marcado como enviado para reserva ${reservaId}`);
         } catch (error) {
-            console.error(`❌ Error marcando recordatorio como enviado:`, error);
+            logger.error(`Error marcando recordatorio como enviado:`, error);
         }
     }
 
@@ -290,24 +287,24 @@ export class RecordatorioService {
         try {
             // Actualizar la reserva en la base de datos
             await this.reservaRepository.update(reservaId, { estado: 'COMPLETADA' });
-            console.log(`✅ Reserva ${reservaId} marcada como COMPLETADA`);
+            logger.info(`Reserva ${reservaId} marcada como COMPLETADA`);
         } catch (error) {
-            console.error(`❌ Error marcando reserva como completada:`, error);
+            logger.error(`Error marcando reserva como completada:`, error);
         }
     }
 
     // Método para verificar recordatorios manualmente (para testing)
     async verificarRecordatoriosManual() {
-        console.log('🔧 VERIFICACIÓN MANUAL DE RECORDATORIOS');
+        logger.info('VERIFICACION MANUAL DE RECORDATORIOS');
         await this.verificarRecordatorios();
         return 'Verificación completada';
     }
 
     // Detener el servicio
     detener() {
-        console.log('🔔 Deteniendo servicio de recordatorios...');
+        logger.info('Deteniendo servicio de recordatorios...');
         cron.destroy();
         this.iniciado = false;
-        console.log('✅ Servicio de recordatorios detenido');
+        logger.info('Servicio de recordatorios detenido');
     }
 }

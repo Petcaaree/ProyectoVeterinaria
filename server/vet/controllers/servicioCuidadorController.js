@@ -23,7 +23,6 @@ export class ServicioCuidadorController {
                 const filtro = new FiltroCuidador(nombre, localidad, precioMin, precioMax, fechaInicio, fechaFin, mascotasAceptadas)
                 servicioCuidadores = await this.servicioCuidadorService.findByFilters(filtro, {page, limit});
             } else {
-                console.log("No hay filtros, obteniendo todos los servicios");
                 servicioCuidadores = await this.servicioCuidadorService.findAll({ page, limit })
             }
 

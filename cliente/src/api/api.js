@@ -331,7 +331,7 @@ export const crearAlojamiento = async (data) => {
     }
 }
 
-export const crearServiciooVeterinaria = async (data) => {
+export const crearServicioVeterinaria = async (data) => {
     try {
         const response = await axios.post(`${API_URL}/servicioVet`, {
             "idVeterinaria": data.idVeterinaria,
@@ -531,7 +531,7 @@ export const cambiarEstadoServicio = async (serviceId ,estado , tipoUsuario) => 
     }
 };
 
-export const obetenerServiciosCuidadores = async (pageNumber, filtros) => {
+export const obtenerServiciosCuidadores = async (pageNumber, filtros) => {
     try {
 
         const filtrosLimpiados = Object.fromEntries(
@@ -554,7 +554,7 @@ export const obetenerServiciosCuidadores = async (pageNumber, filtros) => {
     }
 };
 
-export const obetenerServiciosPaseadores = async (pageNumber, filtros ) => {
+export const obtenerServiciosPaseadores = async (pageNumber, filtros ) => {
   try {
     const filtrosLimpiados = Object.fromEntries(
             Object.entries(filtros).filter(([_, v]) => {
@@ -578,7 +578,7 @@ export const obetenerServiciosPaseadores = async (pageNumber, filtros ) => {
   }
 };
 
-export const obetenerServiciosVeterinarias = async (pageNumber, filtros) => {
+export const obtenerServiciosVeterinarias = async (pageNumber, filtros) => {
   try {
     const filtrosLimpiados = Object.fromEntries(
             Object.entries(filtros).filter(([_, v]) => {

@@ -9,30 +9,22 @@ export class ServicioVeterinariaController {
 
     async findAll(req, res, next){
         try {
-            console.log("🚀 INICIO ServicioVeterinariaController.findAll");
             const { page = 1, limit = 3} = req.query
             const paginacion = { page, limit}
 
             const {nombre=null, localidad=null, precioMin=null, precioMax=null, tipoServicio=null, fecha=null, mascotasAceptadas=[]} = req.query
             const filtros = { nombre, localidad, precioMin, precioMax, tipoServicio, fecha, mascotasAceptadas }
-            
-            console.log("📋 Filtros recibidos:", filtros);
 
             const hasFilters = Object.values(filtros).some(value => value !== null && value !== undefined && value !== '' && (Array.isArray(value) ? value.length > 0 : true));
-            
-            console.log("🔍 Tiene filtros:", hasFilters);
-            
+
             let servicioVeterinarias
             if(hasFilters) {
-                console.log("📞 Llamando a findByFilters...");
                 const filtro = new FiltroVeterinaria(nombre, localidad, precioMin, precioMax, tipoServicio, fecha, mascotasAceptadas)
                 servicioVeterinarias = await this.servicioVeterinariaService.findByFilters(filtro, {page, limit});
             } else {
-                console.log("No hay filtros, obteniendo todos los servicios");
                 servicioVeterinarias = await this.servicioVeterinariaService.findAll({ page, limit })
             }
 
-            console.log("✅ Respuesta obtenida, enviando...");
             res.json(servicioVeterinarias);
         } catch (error) {
             next(error)

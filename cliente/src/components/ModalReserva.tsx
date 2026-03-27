@@ -76,7 +76,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Estado local para duración (solo para UI, no se envía al backend)
   const [duracionSeleccionada, setDuracionSeleccionada] = useState('');
 
@@ -344,9 +346,6 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       </div>
     );
   }
-
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();

@@ -1,0 +1,251 @@
+name: "Code Review Pipeline"
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches-ignore: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 1. LINTING
+  # ─────────────────────────────────────────────
+  lint:
+    name: "🔍 Linting & Style"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npx eslint . --format json --output-file eslint-report.json
+      - name: Upload lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eslint-report
+          path: eslint-report.json
+
+  # ─────────────────────────────────────────────
+  # 2. TESTS
+  # ─────────────────────────────────────────────
+  tests:
+    name: "🧪 Tests"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm test -- --coverage
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  # ─────────────────────────────────────────────
+  # 3. SEGURIDAD
+  # ─────────────────────────────────────────────
+  security:
+    name: "🔒 Security Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Gitleaks secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # 4. BUILD
+  # ─────────────────────────────────────────────
+  build:
+    name: "🏗️ Build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build
+
+  # ─────────────────────────────────────────────
+  # 5. AI CODE REVIEW (BLOQUEANTE)
+  # ─────────────────────────────────────────────
+  ai-review:
+    name: "🤖 AI Code Review"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          echo "diff_size=$(wc -l < pr_diff.txt)" >> $GITHUB_OUTPUT
+
+      - name: AI Review with Claude
+        if: steps.diff.outputs.diff_size > 0
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DIFF=$(cat pr_diff.txt | head -3000)
+
+          DIFF_ESCAPED=$(echo "$DIFF" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "content-type: application/json" \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -d "{
+              \"model\": \"claude-sonnet-4-20250514\",
+              \"max_tokens\": 2000,
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Sos un code reviewer senior estricto. Analizá este diff y respondé con EXACTAMENTE este formato:\\n\\n## Resumen de Cambios\\n(describí qué se cambió)\\n\\n## Problemas Encontrados\\n(listá bugs, vulnerabilidades, problemas de performance, malas prácticas. Si no hay problemas, decí 'No se encontraron problemas críticos.')\\n\\n## Sugerencias de Mejora\\n(mejoras opcionales)\\n\\n## Veredicto\\nAPROBADO o CAMBIOS_NECESARIOS\\n(explicá por qué)\\n\\nIMPORTANTE: La ÚLTIMA LÍNEA de tu respuesta DEBE ser exactamente VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS\\n\\nDiff:\\n${DIFF_ESCAPED}\"
+              }]
+            }")
+
+          REVIEW=$(echo "$RESPONSE" | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for block in data.get('content', []):
+              if block.get('type') == 'text':
+                  print(block['text'])
+          ")
+
+          echo "$REVIEW" > ai_review.txt
+
+          VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
+          echo "verdict=$VERDICT" >> $GITHUB_ENV
+          echo "Veredicto: $VERDICT"
+
+      - name: Post review comment on PR
+        if: steps.diff.outputs.diff_size > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('ai_review.txt', 'utf8');
+            const verdict = process.env.verdict || 'DESCONOCIDO';
+            const icon = verdict === 'APROBADO' ? '✅' : '❌';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🤖 AI Code Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
+            });
+
+      - name: Block if not approved
+        if: steps.diff.outputs.diff_size > 0
+        run: |
+          if [ "${{ env.verdict }}" = "CAMBIOS_NECESARIOS" ]; then
+            echo "❌ AI Review rechazó el código. Revisá los comentarios en el PR."
+            exit 1
+          elif [ "${{ env.verdict }}" = "APROBADO" ]; then
+            echo "✅ AI Review aprobó el código."
+          else
+            echo "⚠️ No se pudo determinar el veredicto. Fallando por seguridad."
+            exit 1
+          fi
+
+  # ─────────────────────────────────────────────
+  # 6. 🚀 READY TO DEPLOY
+  # ─────────────────────────────────────────────
+  ready-to-deploy:
+    name: "🚀 Ready to Deploy"
+    runs-on: ubuntu-latest
+    needs: [lint, tests, security, build, ai-review]
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Evaluate all checks
+        id: evaluate
+        run: |
+          LINT="${{ needs.lint.result }}"
+          TESTS="${{ needs.tests.result }}"
+          SECURITY="${{ needs.security.result }}"
+          BUILD="${{ needs.build.result }}"
+          AI="${{ needs.ai-review.result }}"
+
+          READY=true
+          FAILURES=""
+
+          [ "$LINT" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Linting falló\n"
+          [ "$TESTS" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Tests fallaron\n"
+          [ "$SECURITY" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Security encontró vulnerabilidades\n"
+          [ "$BUILD" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Build falló\n"
+          [ "$AI" != "success" ] && [ "$AI" != "skipped" ] && READY=false && FAILURES="$FAILURES- ❌ AI Review no aprobó\n"
+
+          echo "ready=$READY" >> $GITHUB_OUTPUT
+          {
+            echo "failures<<EOF"
+            echo -e "$FAILURES"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Post deploy readiness report
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ready = '${{ steps.evaluate.outputs.ready }}' === 'true';
+            const failures = `${{ steps.evaluate.outputs.failures }}`;
+            const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
+
+            const body = `## 🚀 Deploy Readiness Report
+
+            | Check | Status | Requerido |
+            |-------|--------|-----------|
+            | 🔍 Linting | ${icon('${{ needs.lint.result }}')} ${{ needs.lint.result }} | Sí |
+            | 🧪 Tests | ${icon('${{ needs.tests.result }}')} ${{ needs.tests.result }} | Sí |
+            | 🔒 Security | ${icon('${{ needs.security.result }}')} ${{ needs.security.result }} | Sí |
+            | 🏗️ Build | ${icon('${{ needs.build.result }}')} ${{ needs.build.result }} | Sí |
+            | 🤖 AI Review | ${icon('${{ needs.ai-review.result }}')} ${{ needs.ai-review.result }} | Sí |
+
+            ---
+
+            ${ready
+              ? '### ✅ READY TO DEPLOY\nTodos los checks pasaron correctamente. Este PR puede ser mergeado y deployado con confianza.'
+              : `### ❌ NOT READY TO DEPLOY\n\n**Problemas detectados:**\n${failures}\nCorregí estos problemas y pusheá de nuevo para re-ejecutar el pipeline.`
+            }
+
+            ---
+            *⏱️ Ejecutado: ${new Date().toISOString()}*`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Deploy gate
+        run: |
+          if [ "${{ steps.evaluate.outputs.ready }}" = "true" ]; then
+            echo "✅ All checks passed - Ready to deploy!"
+          else
+            echo "❌ Pipeline failed - Cannot deploy"
+            exit 1
+          fi

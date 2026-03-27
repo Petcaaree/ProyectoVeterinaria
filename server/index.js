@@ -4,7 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from 'cors';
 import helmet from 'helmet';
-import mongoSanitize from 'express-mongo-sanitize';
+// express-mongo-sanitize es incompatible con Express 5 (req.query es read-only)
+// Usamos sanitización manual del body
 import logger from './vet/utils/logger.js';
 import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
@@ -125,8 +126,23 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
 
-// Sanitización: elimina operadores $ de MongoDB en body/query/params para prevenir NoSQL injection
-app.use(mongoSanitize());
+// Sanitización: elimina operadores $ y . de MongoDB en req.body para prevenir NoSQL injection
+// (express-mongo-sanitize no es compatible con Express 5 porque req.query es read-only)
+function sanitize(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    for (const key of Object.keys(obj)) {
+        if (key.startsWith('$') || key.includes('.')) {
+            delete obj[key];
+        } else if (typeof obj[key] === 'object') {
+            sanitize(obj[key]);
+        }
+    }
+    return obj;
+}
+app.use((req, _res, next) => {
+    if (req.body) sanitize(req.body);
+    next();
+});
 
 // Rate limiting general: 100 req / 15min por IP
 app.use('/petcare', generalLimiter);

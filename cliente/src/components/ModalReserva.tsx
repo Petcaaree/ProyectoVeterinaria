@@ -351,16 +351,6 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     // Encontrar la mascota seleccionada para mostrar información completa
     const mascotaSeleccionada = mascotasFiltradas.find(m => m._id === formData.mascota);
     
-    // Mostrar el formData completo
-    console.log('=== DATOS DEL FORMULARIO ===');
-    console.log('FormData completo:', formData);
-    console.log('Mascota seleccionada:', mascotaSeleccionada);
-    if (serviceType === 'paseador' || serviceType === 'veterinaria') {
-      console.log('Duración seleccionada (solo UI):', duracionSeleccionada);
-    }
-    console.log('Service:', service);
-    console.log('============================');
-    
     // Handle booking submission
     await crearReserva(formData); 
     setShowSuccess(true);

@@ -25,13 +25,61 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
   const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
-    cargarTotasNotificacions();
-    cargarNotificacionesNoLeidas();
+    let cancelled = false;
+
+    const loadNotificaciones = async () => {
+      if (!usuario?.id) return;
+      setIsLoading(true);
+      try {
+        let data;
+        if (filter === 'Noleidas') {
+          data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, page);
+        } else {
+          data = await getNotificationes(usuario.id, userType as string, page);
+        }
+        if (!cancelled) {
+          setNotifications(data?.data || []);
+          setTotalPages(data?.total_pages || 0);
+          setTotal(data?.total || 0);
+          if (typeof data?.page === 'number' && data.page > 0 && data.page !== page) {
+            setPage(data.page);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar notificaciones:', error);
+        if (!cancelled) setNotifications([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    const loadNoLeidas = async () => {
+      if (!usuario?.id) return;
+      try {
+        const data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, 1);
+        if (!cancelled) {
+          if (data?.data) {
+            setNotificacionesNoLeidas(data.data);
+            setTotalNoLeidas(data.total || 0);
+          } else {
+            setNotificacionesNoLeidas(data || []);
+            setTotalNoLeidas((data as any[])?.length || 0);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar notificaciones no leídas:', error);
+      }
+    };
+
+    loadNotificaciones();
+    loadNoLeidas();
+
+    return () => { cancelled = true; };
   }, [page, filter]);
 
+  // Funciones reutilizables para recargar desde handlers (marcar leída, etc.)
   const cargarTotasNotificacions = async () => {
     if (!usuario?.id) return;
-    
     setIsLoading(true);
     try {
       let data;
@@ -43,7 +91,6 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
       setNotifications(data?.data || []);
       setTotalPages(data?.total_pages || 0);
       setTotal(data?.total || 0);
-      // Solo actualizar el número de página si la respuesta del backend es válida y diferente
       if (typeof data?.page === 'number' && data.page > 0 && data.page !== page) {
         setPage(data.page);
       }
@@ -57,16 +104,12 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
 
   const cargarNotificacionesNoLeidas = async () => {
     if (!usuario?.id) return;
-    
     try {
       const data = await getNotificacionesNoLeidas(usuario.id, 'false', userType as string, 1);
-      
-      // Si es respuesta paginada
       if (data?.data) {
         setNotificacionesNoLeidas(data.data);
         setTotalNoLeidas(data.total || 0);
       } else {
-        // Si es array directo
         setNotificacionesNoLeidas(data || []);
         setTotalNoLeidas((data as any[])?.length || 0);
       }

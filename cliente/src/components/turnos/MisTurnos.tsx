@@ -62,40 +62,36 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     }
   };
 
-  // Función para fetch de reservas
-  const fetchReservas = async () => {
-    if (!userId || !tipoUsuario) return;
-    setIsLoading(true);
-    try {
-      let data 
-      if (filter ==='TODAS') {
-         data = await getTodasReservas(userId, tipoUsuario, filter, page);
-         
-        setAppointments(data.data || []);
-        setTotalPages(data.total_pages || 0);
-      } else {
-         data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
-         
-        setAppointments(data.data || []);
-        setTotalPages(data.total_pages || 0);
-      }
-    } catch {
-      // Puedes mostrar un mensaje de error si lo deseas
-      setAppointments([]);
-    } finally {
-      setIsLoading(false);
-      console.log('Final totalPages state:', totalPages); // Debug
-    }
-  };
-
   useEffect(() => {
-    
-    
-    fetchReservas();
-    // Solo cargar totales cuando cambia el usuario, no en cada cambio de filtro/página
+    let cancelled = false;
+
+    const loadData = async () => {
+      if (!userId || !tipoUsuario) return;
+      setIsLoading(true);
+      try {
+        let data;
+        if (filter === 'TODAS') {
+          data = await getTodasReservas(userId, tipoUsuario, filter, page);
+        } else {
+          data = await getReservasPorEstado(userId, tipoUsuario, filter, page);
+        }
+        if (!cancelled) {
+          setAppointments(data.data || []);
+          setTotalPages(data.total_pages || 0);
+        }
+      } catch {
+        if (!cancelled) setAppointments([]);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadData();
     if (userId && tipoUsuario) {
       cargarTotales();
     }
+
+    return () => { cancelled = true; };
   }, [userId, tipoUsuario, filter, page]);
 
   // Funciones de paginación
@@ -403,12 +399,6 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
               // Crear una key única usando la función getReservaId
               const uniqueKey = getReservaId(appointment) || index;
               
-              // Debug: ver la estructura completa del appointment
-              console.log('🔍 Estructura del appointment:', appointment);
-              console.log('🔍 appointment._id:', appointment._id);
-              console.log('🔍 appointment.id:', appointment.id);
-              console.log('🔍 Object.keys(appointment):', Object.keys(appointment));
-              
               // Ajuste: usar los campos reales del DTO
               const statusConfig = getStatusConfig(appointment.estado);
               const StatusIcon = statusConfig.icon;
@@ -501,9 +491,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                             <button 
                               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                               onClick={() => {
-                                console.log('Cancelando reserva, appointment completo:', appointment);
                                 const reservaId = getReservaId(appointment);
-                                console.log('ID extraído:', reservaId);
                                 if (reservaId) {
                                   handleCancelarReserva(reservaId);
                                 }
@@ -531,9 +519,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                               <button 
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                                 onClick={() => {
-                                  console.log('Confirmando reserva, appointment completo:', appointment);
                                   const reservaId = getReservaId(appointment);
-                                  console.log('ID extraído para confirmar:', reservaId);
                                   if (reservaId) {
                                     handleConfirmarReserva(reservaId);
                                   }
@@ -544,9 +530,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                               <button 
                                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                                 onClick={() => {
-                                  console.log('Rechazando reserva, appointment completo:', appointment);
                                   const reservaId = getReservaId(appointment);
-                                  console.log('ID extraído para rechazar:', reservaId);
                                   if (reservaId) {
                                     handleRechazarReserva(reservaId);
                                   }

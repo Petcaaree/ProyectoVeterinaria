@@ -61,7 +61,7 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack, onCreateService
             if (data?.page !== page) {
               setPage(data?.page || 1);
             }
-            console.log('Servicios obtenidos:', data);
+
           } catch (error) {
             console.error('Error al obtener servicios:', error);
             setServices([]); // Asegurar que sea un array vacío en caso de error
@@ -115,8 +115,6 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack, onCreateService
         // Determinar el nuevo estado (opuesto al actual)
         const nuevoEstado = estadoActual === 'Activada' ? 'Desactivada' : 'Activada';
         
-        console.log("Cambiando estado del servicio:", idServicio, "de", estadoActual, "a", nuevoEstado);
-        
         // Llamar a la función del contexto con el nuevo estado
         await activarOdesactivarServicio(idServicio, tipoUsuario, nuevoEstado);
         
@@ -131,7 +129,6 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack, onCreateService
         // Recargar los totales para actualizar los contadores
         await cargarTotales();
         
-        console.log("Estado cambiado exitosamente");
         showSuccess(`Servicio ${nuevoEstado.toLowerCase()} exitosamente`);
       } catch (error: any) {
         console.error("Error al cambiar el estado del servicio:", error);

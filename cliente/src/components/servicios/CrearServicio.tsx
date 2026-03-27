@@ -162,7 +162,6 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
   const [localidadSeleccionada, setLocalidadSeleccionada] = useState<{ id: string; nombre: string } | null>(null);
 
   React.useEffect(() => {
-    console.log('direccionUsuario:', usuario?.direccion);
     Promise.all([
       fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=buenos%20aires&campos=id,nombre&max=500').then(r => r.json()),
       fetch('https://apis.datos.gob.ar/georef/api/municipios?provincia=ciudad%20autonoma%20de%20buenos%20aires&campos=id,nombre&max=100').then(r => r.json())
@@ -258,11 +257,6 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
     };
     setFormDataVeterinaria(prev => {
       const nuevoForm = { ...prev, direccion: direccionNueva };
-      console.log('Dirección agregada:', direccionNueva);
-      // Mostrar el formDataVeterinaria actualizado
-      setTimeout(() => {
-        console.log('formDataVeterinaria actualizado:', nuevoForm);
-      }, 0);
       return nuevoForm;
     });
     setShowDireccionModal(false);
@@ -440,8 +434,6 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
       setTimeout(() => setShowError(false), 3000);
       return;
     }
-    console.log('Service created:', data);
-
     try {
       setLoading(true);
       setError('');
@@ -449,10 +441,8 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
         await createServicioVeterinario(data);
       } else if (userType === 'paseador') {
         await createServicioPaseador(data);
-        console.log('Crear servicio de paseador:', data);
       } else if (userType === 'cuidador') {
         await createServicioCuidador(data);
-        console.log('Crear servicio de cuidador:', data);
       }
       setShowSuccess(true);
       setTimeout(() => {
@@ -852,7 +842,6 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
                             }
                             setFormDataVeterinaria(prev => {
                               const nuevoForm = { ...prev, direccion: direccionSeleccionada };
-                              console.log('formDataVeterinaria:', nuevoForm);
                               return nuevoForm;
                             });
                           }

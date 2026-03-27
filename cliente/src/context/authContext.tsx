@@ -207,7 +207,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const response = await obtenerMascotas(usuarioId);
-      console.log('Respuesta completa de obtenerMascotas:', response); // Debug
       return response; // obtenerMascotas ya devuelve response.data
     } catch (error) {
       console.error('Error al obtener mascotas:', error);

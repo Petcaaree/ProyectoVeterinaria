@@ -143,7 +143,6 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
       fechaFin: fechaFin
     };
     
-    console.log('Aplicando filtros manualmente:', nuevosFiltros);
     setFiltros(nuevosFiltros);
     setPage(1);
     // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
@@ -163,13 +162,11 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
   // Efecto para actualizar filtros cuando cambien las fechas (solo actualiza estado, no busca)
   useEffect(() => {
     // Solo actualizamos el estado, no disparamos búsqueda automática
-    console.log('📅 Fechas actualizadas - Inicio:', fechaInicio, 'Fin:', fechaFin);
   }, [fechaInicio, fechaFin]);
 
     const cargarServicios = async (filtrosPersonalizados?: any) => {
     // Simular carga de servicios
     const filtrosAUsar = filtrosPersonalizados || filtros;
-    console.log('Cargando servicios con filtros:', filtrosAUsar);
     const servicios = await getServiciosCuidadores(page, filtrosAUsar);
     setCuidadorServicios(servicios.data);
     setTotalPages(servicios.total_pages); // Suponiendo 10 servicios por página

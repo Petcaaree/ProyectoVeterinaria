@@ -34,32 +34,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const userParsed = JSON.parse(usuarioGuardado);
         setUsuario(userParsed);
-        if (tipoGuardado && isValidUserType(tipoGuardado)) {
-          setTipoUsuario(tipoGuardado);
-          
-          // Cargar contador de notificaciones desde el backend
-          obtenerContadorNotificacionesNoLeidas(userParsed.id, tipoGuardado)
-            .then(contador => {
-              setContadorNotificacionesNoLeidas(contador);
-            })
-            .catch(error => {
-              console.error('Error al cargar contador de notificaciones al inicializar:', error);
-              // Sin fallback, mantenemos el contador en 0 si falla el backend
-              setContadorNotificacionesNoLeidas(0);
-            });
-        } else if (userParsed?.tipo && isValidUserType(userParsed.tipo)) {
-          setTipoUsuario(userParsed.tipo);
-          
-          // Cargar contador de notificaciones desde el backend
-          obtenerContadorNotificacionesNoLeidas(userParsed.id, userParsed.tipo)
-            .then(contador => {
-              setContadorNotificacionesNoLeidas(contador);
-            })
-            .catch(error => {
-              console.error('Error al cargar contador de notificaciones al inicializar:', error);
-              // Sin fallback, mantenemos el contador en 0 si falla el backend
-              setContadorNotificacionesNoLeidas(0);
-            });
+
+        // Determinar tipo de usuario: preferir localStorage, fallback a campo del objeto
+        const tipoFinal = (tipoGuardado && isValidUserType(tipoGuardado))
+          ? tipoGuardado
+          : (userParsed?.tipo && isValidUserType(userParsed.tipo)) ? userParsed.tipo : null;
+
+        if (tipoFinal) {
+          setTipoUsuario(tipoFinal);
+          // M4 FIX: Una sola llamada al contador (antes estaba duplicada)
+          obtenerContadorNotificacionesNoLeidas(userParsed.id, tipoFinal)
+            .then(contador => setContadorNotificacionesNoLeidas(contador))
+            .catch(() => setContadorNotificacionesNoLeidas(0));
         }
       } catch (error) {
         console.error('Error al parsear usuario:', error);
@@ -207,7 +193,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       const response = await obtenerMascotas(usuarioId);
-      console.log('Respuesta completa de obtenerMascotas:', response); // Debug
       return response; // obtenerMascotas ya devuelve response.data
     } catch (error) {
       console.error('Error al obtener mascotas:', error);

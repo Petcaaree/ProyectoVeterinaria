@@ -85,7 +85,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   }, [showSuggestions]);
 
   useEffect(() => {
-    console.log('🔄 Página cambió a:', page);
     // Solo cargar servicios cuando cambie la página
     // Si hay filtros activos, los aplicaremos desde aplicarFiltros
     const filtrosActuales = {
@@ -118,16 +117,8 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
   const cargarServicios = async (filtrosPersonalizados?: any) => {
     try {
       const filtrosAUsar = filtrosPersonalizados || filtros;
-      console.log('Cargando servicios con filtros:', filtrosAUsar);
       // Cargar servicios usando el método del contexto de autenticación
       const servicios = await getServiciosPaseadores(page, filtrosAUsar);
-      console.log('Datos de paseadores recibidos:', servicios);
-      console.log('Estructura de respuesta:', {
-        esArray: Array.isArray(servicios),
-        tieneData: servicios && servicios.data,
-        tieneTotalPages: servicios && servicios.total_pages,
-        claves: servicios ? Object.keys(servicios) : 'sin claves'
-      });
       
       // Verificar si servicios es un array directamente o un objeto con propiedades
       if (Array.isArray(servicios)) {
@@ -161,7 +152,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
       fecha: fechaPaseo
     };
     
-    console.log('Aplicando filtros:', nuevosFiltros);
     setFiltros(nuevosFiltros);
     setPage(1);
     // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
@@ -244,9 +234,12 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         {/* Filtros (mismo bloque visual que cuidadores, adaptado a paseadores) */}
         <Filtros
           busqueda={searchTerm}
+<<<<<<< HEAD
+          alCambiarBusqueda={(v: string) => {
+=======
           alCambiarBusqueda={(v: string) => { 
-            console.log('🔍 Filtro búsqueda cambiado a:', v);
-            setSearchTerm(v); 
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
+            setSearchTerm(v);
           }}
           placeholderBusqueda="Buscar paseador o zona..."
           colorTema="green"
@@ -257,9 +250,12 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio mín/hora"
                 value={minPrice}
+<<<<<<< HEAD
+                onChange={(e) => {
+=======
                 onChange={(e) => { 
-                  console.log('💰 Precio mínimo cambiado a:', e.target.value);
-                  setMinPrice(e.target.value); 
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
+                  setMinPrice(e.target.value);
                 }}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
@@ -269,9 +265,12 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
                 type="number"
                 placeholder="Precio máx/hora"
                 value={maxPrice}
+<<<<<<< HEAD
+                onChange={(e) => {
+=======
                 onChange={(e) => { 
-                  console.log('💰 Precio máximo cambiado a:', e.target.value);
-                  setMaxPrice(e.target.value); 
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
+                  setMaxPrice(e.target.value);
                 }}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 bg-gray-50 focus:bg-white"
               />
@@ -572,7 +571,6 @@ const PaginaPaseadores: React.FC<PaginaPaseadoresProps> = ({ userType }) => {
         <CalendarioModerno
           fechaSeleccionada={fechaPaseo}
           onFechaSeleccionada={(fecha) => {
-            console.log('📅 Fecha seleccionada:', fecha);
             setFechaPaseo(fecha);
             setMostrarCalendario(false);
           }}

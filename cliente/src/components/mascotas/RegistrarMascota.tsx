@@ -61,10 +61,8 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
       setFormData(prev => ({ ...prev, raza: '' }));
       
       try {
-        console.log(`🔍 Cargando razas para tipo: ${formData.tipo}`);
         const breeds = await breedsService.getBreedsByType(formData.tipo);
         setAvailableBreeds(breeds);
-        console.log(`✅ ${breeds.length} razas cargadas para ${formData.tipo}`);
       } catch (error) {
         console.error('❌ Error al cargar razas:', error);
         setAvailableBreeds([]);
@@ -83,8 +81,6 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
     setBreedSearchQuery(breed.label);
     setShowBreedDropdown(false);
     
-    // Mostrar una pequeña animación de confirmación
-    console.log(`✅ Raza seleccionada: ${breed.label}`);
   };
 
   // Función para buscar razas
@@ -203,9 +199,11 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
       };
 
       await registroMascota(usuario.id, mascotaData);
+<<<<<<< HEAD
       
-      console.log('Mascota registrada exitosamente:', mascotaData);
-      
+=======
+
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       // Mostrar popup de éxito
       setShowSuccessPopup(true);
       
@@ -255,9 +253,6 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
       const newPhotos: string[] = [];
       const newFormDataPhotos: string[] = [];
       
-      console.log('🔍 Iniciando subida de archivos:', fileArray.map(f => f.name));
-      console.log('📷 Fotos actuales en formData:', formData.fotos);
-      
       for (const file of fileArray) {
         // Generar hash del archivo para detectar duplicados
         const fileHash = await generateFileHash(file);
@@ -269,13 +264,11 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
           
           // ⚠️ VALIDACIÓN MEJORADA: Verificar tanto en la lista actual como en las nuevas
           if (formData.fotos.includes(existingUrl) || newFormDataPhotos.includes(existingUrl)) {
-            console.log('🚫 Imagen ya agregada anteriormente, se omite:', file.name);
             continue; // Saltar esta imagen
           }
           
           newPhotos.push(existingUrl);
           newFormDataPhotos.push(existingUrl);
-          console.log('♻️ Imagen reutilizada desde cache:', file.name);
         } else {
           // Mostrar preview temporal mientras se sube
           const tempUrl = URL.createObjectURL(file);
@@ -288,7 +281,6 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
             
             // ⚠️ VALIDACIÓN MEJORADA: Verificar tanto en la lista actual como en las nuevas
             if (formData.fotos.includes(cloudinaryUrl) || newFormDataPhotos.includes(cloudinaryUrl)) {
-              console.log('🚫 URL ya existe en la lista, se omite:', file.name);
               URL.revokeObjectURL(tempUrl);
               newPhotos.pop();
               continue;
@@ -302,9 +294,11 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
             URL.revokeObjectURL(tempUrl); // Limpiar memoria
             newPhotos[tempIndex] = cloudinaryUrl;
             newFormDataPhotos.push(cloudinaryUrl);
+<<<<<<< HEAD
             
-            console.log('🆕 Nueva imagen subida:', file.name, '→', cloudinaryUrl);
+=======
 
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
           } catch (uploadError) {
             // Si falla la subida, remover la imagen temporal
             URL.revokeObjectURL(tempUrl);
@@ -321,20 +315,12 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
         fotos: [...prev.fotos, ...newFormDataPhotos]
       }));
       
-      // Mostrar log con los valores actualizados
-      console.log('📷 Fotos totales después de subir:', [...formData.fotos, ...newFormDataPhotos]);
-      
-      if (newFormDataPhotos.length > 0) {
-        console.log('🆕 Nuevas fotos agregadas:', newFormDataPhotos);
-      }
-      
       // Mostrar mensaje si se omitieron imágenes duplicadas
       const totalFilesSelected = fileArray.length;
       const actuallyAdded = newFormDataPhotos.length;
       if (totalFilesSelected > actuallyAdded) {
         const duplicatesCount = totalFilesSelected - actuallyAdded;
-        console.log(`ℹ️ Se omitieron ${duplicatesCount} imagen(es) duplicada(s)`);
-        
+
         // Mostrar mensaje informativo al usuario
         setUploadError(`Se omitieron ${duplicatesCount} imagen(es) porque ya están agregadas.`);
         
@@ -394,12 +380,6 @@ const RegistrarMascota: React.FC<RegistrarMascotaProps> = ({ onBack, onSuccess }
       fotos: newFormDataFotos
     }));
 
-    console.log('🗑️ Imagen removida:', photoUrl);
-    console.log('📷 Fotos restantes después de remover:', newFormDataFotos);
-    console.log('🧠 Cache actual:', Array.from(imageCache.keys()).length, 'imágenes en cache');
-
-    // Nota: No eliminamos del cache para poder reutilizar la imagen si se vuelve a seleccionar
-    console.log('💾 Imagen mantenida en cache para reutilización futura');
   };
 
   const speciesOptions = [

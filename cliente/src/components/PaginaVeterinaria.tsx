@@ -148,13 +148,10 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
     setLoading(true);
     try {
       const filtrosAUsar = filtrosPersonalizados || filtros;
-      console.log('Filtros aplicados:', filtrosAUsar);
       const resultado = await getServiciosVeterinarias(pagina, filtrosAUsar);
-      console.log('Servicios veterinarios cargados:', resultado);
-      
+
       // Agrupar servicios por veterinaria
       const veterinariasAgrupadas = agruparServiciosPorVeterinaria(resultado.data || []);
-      console.log('Veterinarias agrupadas:', veterinariasAgrupadas);
       
       setVeterinarias(veterinariasAgrupadas);
       setTotalPaginas(resultado.total_pages || 1);
@@ -219,7 +216,6 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
       fecha: fechaConsulta
     };
     
-    console.log('Aplicando filtros:', nuevosFiltros);
     setFiltros(nuevosFiltros);
     // Pasar los nuevos filtros directamente para evitar el problema de estado asíncrono
     cargarVeterinarias(1, nuevosFiltros);
@@ -770,7 +766,6 @@ const PaginaVeterinaria: React.FC<PaginaVeterinariaProps> = ({ userType }) => {
         <CalendarioModerno
           fechaSeleccionada={fechaConsulta}
           onFechaSeleccionada={(fecha) => {
-            console.log('📅 Fecha seleccionada:', fecha);
             setFechaConsulta(fecha);
             setMostrarCalendario(false);
           }}

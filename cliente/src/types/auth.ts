@@ -2,12 +2,12 @@ import type { DatosMascota, DatosServicioVeterinario, DatosServicioPaseador, Dat
 
 interface Localidad {
   nombre: string;
-  ciudad: string; // Nombre de la ciudad, no ObjectId
+  ciudad: string | { nombre: string }; // Puede venir como string o como objeto del backend
 }
 
 interface Direccion {
   calle?: string;
-  altura?: number;
+  altura?: string | number;
   localidad?: Localidad; // Objeto localidad con nombre y ciudad
 }
 

@@ -49,7 +49,6 @@ const MisMascotas: React.FC<MisMascotasProps> = ({ userType, onBack, onRegisterP
             fotos: m.fotos
           }));
           setMascotas(mascotasAdaptadas);
-          console.log('Mascotas obtenidas:', mascotasAdaptadas);
         } catch (error) {
           console.error('Error al obtener mascotas:', error);
           setError('Error al cargar las mascotas');

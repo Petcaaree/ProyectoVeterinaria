@@ -55,7 +55,6 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
   };
 
   const handleUserMenuClick = (action: string) => {
-    console.log('🔍 handleUserMenuClick called with action:', action); // Debug log
     setIsUserMenuOpen(false);
     setIsMenuOpen(false);
     
@@ -68,55 +67,10 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
         setModoAuth('registro');
         setEstaModalAbierto(true);
         break;
-      case 'demo-cliente': {
-        const clienteData: Usuario = { 
-          nombreUsuario: 'Ana García', 
-          email: 'ana@email.com',
-          direccion: { calle: 'Av. Principal', numero: '123' },
-          telefono: '123456789',
-          notificaciones: [],
-          mascotas: []
-        };
-        login(clienteData, 'cliente');
-        if (onUserLogin) onUserLogin({ nombre: clienteData.nombreUsuario, tipo: 'cliente' });
-        break;
-      }
-      case 'demo-veterinaria': {
-        const vetData: Usuario = { 
-          nombreUsuario: 'Dr. Carlos López', 
-          email: 'carlos@veterinaria.com',
-          direccion: { calle: 'Calle Salud', numero: '456' },
-          telefono: '987654321',
-          notificaciones: []
-        };
-        login(vetData, 'veterinaria');
-        if (onUserLogin) onUserLogin({ nombre: vetData.nombreUsuario, tipo: 'veterinaria' });
-        break;
-      }
-      case 'demo-paseador': {
-        const paseadorData: Usuario = { 
-          nombreUsuario: 'María Rodríguez', 
-          email: 'maria@paseos.com',
-          direccion: { calle: 'Parque Central', numero: '789' },
-          telefono: '456789123',
-          notificaciones: []
-        };
-        login(paseadorData, 'paseador');
-        if (onUserLogin) onUserLogin({ nombre: paseadorData.nombreUsuario, tipo: 'paseador' });
-        break;
-      }
-      case 'demo-cuidador': {
-        const cuidadorData: Usuario = { 
-          nombreUsuario: 'Pedro Martínez', 
-          email: 'pedro@cuidados.com',
-          direccion: { calle: 'Av. Cuidadores', numero: '321' },
-          telefono: '789123456',
-          notificaciones: []
-        };
-        login(cuidadorData, 'cuidador');
-        if (onUserLogin) onUserLogin({ nombre: cuidadorData.nombreUsuario, tipo: 'cuidador' });
-        break;
-      }
+<<<<<<< HEAD
+      // B3 FIX: Demo users eliminados — usar login/registro real
+=======
+>>>>>>> 44b092f95aa3d55adc80a84ffdcd978f7e3c4251
       case 'my-pets':
         if (onViewChange) onViewChange('my-pets' as any);
         break;
@@ -163,12 +117,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
     if (!usuarioLogueado) {
       return [
         { id: 'login', label: 'Iniciar Sesión', icon: LogIn },
-        { id: 'register', label: 'Registrarse', icon: UserPlus },
-        { id: 'divider', label: '', icon: null },
-        { id: 'demo-cliente', label: 'Demo: Dueño', icon: User },
-        { id: 'demo-veterinaria', label: 'Demo: Veterinario', icon: Stethoscope },
-        { id: 'demo-paseador', label: 'Demo: Paseador', icon: Heart },
-        { id: 'demo-cuidador', label: 'Demo: Cuidador', icon: Shield }
+        { id: 'register', label: 'Registrarse', icon: UserPlus }
       ];
     }
 

@@ -31,7 +31,6 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
     }
   }, [usuario, estaAbierto, alCerrar]);
   const handleRegisterSubmit = (data: { nombre: string; email: string; password: string; userType: string }) => {
-    console.log('Register submitted:', data);
     // Aquí iría la lógica de registro
     // Simular registro exitoso para demo
     alCerrar();

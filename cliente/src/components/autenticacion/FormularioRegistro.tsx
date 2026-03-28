@@ -280,12 +280,16 @@ useEffect(() => {
     try {
       // Pasar nombreClinica solo si es veterinaria
       const nombreClinica = formData.tipoUsuario === 'veterinaria' ? formData.nombreClinica : undefined;
+      // Enviar teléfono con prefijo 11
+      const telefonoCompleto = formData.telefono.startsWith('11')
+        ? formData.telefono
+        : `11${formData.telefono}`;
       await registerWithCredentials(
-        formData.nombreUsuario, 
-        formData.email, 
-        formData.contrasenia, 
-        formData.telefono, 
-        formData.direccion, 
+        formData.nombreUsuario,
+        formData.email,
+        formData.contrasenia,
+        telefonoCompleto,
+        formData.direccion,
         formData.tipoUsuario,
         nombreClinica
       );
@@ -451,21 +455,29 @@ useEffect(() => {
 
               <div>
                 <label htmlFor="telefono" className="block text-sm font-semibold text-gray-700 mb-1">
-                  Teléfono
+                  Teléfono celular
                 </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-gray-600 text-sm font-medium select-none">
+                    <Phone className="h-4 w-4 mr-1.5 text-gray-400" />
+                    (11)
+                  </span>
                   <input
                     type="tel"
                     id="telefono"
                     name="telefono"
                     value={formData.telefono}
-                    onChange={handleInputChange}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
-                    placeholder="+57 300 123 4567"
+                    onChange={(e) => {
+                      const soloNumeros = e.target.value.replace(/\D/g, '');
+                      setFormData(prev => ({ ...prev, telefono: soloNumeros }));
+                    }}
+                    maxLength={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white text-sm"
+                    placeholder="12345678"
                     required
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Ingresá los 8 dígitos sin el 15</p>
               </div>
             </div>
 

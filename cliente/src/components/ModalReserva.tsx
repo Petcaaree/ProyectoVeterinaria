@@ -64,10 +64,10 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     },
     horario: serviceType === 'cuidador' ? "null" : '',
     notaAdicional: '',
-    nombreDeContacto: '',
-    telefonoContacto: usuario?.telefono || '',
+    nombreDeContacto: usuario?.nombreUsuario || '',
+    telefonoContacto: usuario?.telefono?.startsWith('11') ? usuario.telefono.slice(2) : (usuario?.telefono || ''),
     emailContacto: usuario?.email || '',
-  }), [usuario?.id, usuario?.telefono, usuario?.email, serviceType, service?._id, service?.id]);
+  }), [usuario?.id, usuario?.nombreUsuario, usuario?.telefono, usuario?.email, serviceType, service?._id, service?.id]);
 
 
 
@@ -76,7 +76,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   const [mostrarCalendarioFin, setMostrarCalendarioFin] = useState(false);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Estado local para duración (solo para UI, no se envía al backend)
   const [duracionSeleccionada, setDuracionSeleccionada] = useState('');
 
@@ -347,22 +349,35 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Encontrar la mascota seleccionada para mostrar información completa
-    const mascotaSeleccionada = mascotasFiltradas.find(m => m._id === formData.mascota);
-    
-    // Handle booking submission
-    await crearReserva(formData); 
-    setShowSuccess(true);
-    
-    setTimeout(() => {
-      setShowSuccess(false);
-      onClose();
-      // Llamar al callback para recargar los datos de la página principal
-      if (onReservaExitosa) {
-        onReservaExitosa();
-      }
-    }, 2500);
+    setSubmitError(null);
+    setIsSubmitting(true);
+
+    try {
+      // Enviar teléfono con prefijo 11
+      const datosConPrefijo = {
+        ...formData,
+        telefonoContacto: formData.telefonoContacto.startsWith('11')
+          ? formData.telefonoContacto
+          : `11${formData.telefonoContacto}`
+      };
+      await crearReserva(datosConPrefijo);
+      setShowSuccess(true);
+
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+        if (onReservaExitosa) {
+          onReservaExitosa();
+        }
+      }, 2500);
+    } catch (error: any) {
+      const mensaje = error?.response?.data?.message
+        || error?.response?.data?.error
+        || 'Error al crear la reserva. Verificá los datos e intentá de nuevo.';
+      setSubmitError(mensaje);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -506,14 +521,23 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Teléfono *
                 </label>
-                <input
-                  type="tel"
-                  required
-                  value={formData.telefonoContacto}
-                  onChange={(e) => setFormData({ ...formData, telefonoContacto: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+57 300 123 4567"
-                />
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 py-2 border border-r-0 border-gray-300 rounded-l-lg bg-gray-100 text-gray-600 text-sm font-medium select-none">
+                    (11)
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    value={formData.telefonoContacto}
+                    onChange={(e) => {
+                      const soloNumeros = e.target.value.replace(/\D/g, '');
+                      setFormData({ ...formData, telefonoContacto: soloNumeros });
+                    }}
+                    maxLength={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="12345678"
+                  />
+                </div>
               </div>
             </div>
             <div className="mt-4">
@@ -840,6 +864,13 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             );
           })()}
           
+          {/* Error de envío */}
+          {submitError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-700">{submitError}</p>
+            </div>
+          )}
+
           <div className="flex space-x-4">
             <button
               type="button"
@@ -851,16 +882,17 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
             <button
               type="submit"
               disabled={
+                isSubmitting ||
                 !formData.mascota ||
                 !formData.rangoFechas.fechaInicio ||
-                (serviceType === 'veterinaria' && !formData.horario) || 
+                (serviceType === 'veterinaria' && !formData.horario) ||
                 (serviceType === 'paseador' && !formData.horario) ||
                 (serviceType === 'cuidador' && (!formData.rangoFechas.fechaFin || !validarFechas().esValido))
               }
               className={`flex-1 px-6 py-3 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed
                 ${serviceType === 'cuidador' ? 'bg-orange-600 hover:bg-orange-700' : serviceType === 'paseador' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             >
-              Confirmar Reserva
+              {isSubmitting ? 'Reservando...' : 'Confirmar Reserva'}
             </button>
           </div>
         </form>

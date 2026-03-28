@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { ServicioPaseador } from "../entidades/ServicioPaseador.js";
+import logger from '../../utils/logger.js';
 
 const servicioPaseadorSchema = new mongoose.Schema({
   usuarioProveedor: {
@@ -181,7 +182,7 @@ servicioPaseadorSchema.pre('save', function(next) {
   if (this.fechasNoDisponibles) {
     this.fechasNoDisponibles = this.fechasNoDisponibles.map(fecha => {
       if (!fecha.fecha || !fecha.horariosNoDisponibles) {
-        console.warn('Estructura incorrecta en fechasNoDisponibles, se asignará estructura vacía');
+        logger.warn('Estructura incorrecta en fechasNoDisponibles, se asignará estructura vacía');
         return {
           fecha: new Date(),
           horariosNoDisponibles: []
@@ -193,14 +194,14 @@ servicioPaseadorSchema.pre('save', function(next) {
       };
     });
   }
-  
+
   // Asegurar que horariosDisponibles sean strings
   if (this.horariosDisponibles) {
-    this.horariosDisponibles = this.horariosDisponibles.map(h => 
+    this.horariosDisponibles = this.horariosDisponibles.map(h =>
       typeof h === 'string' ? h : String(h)
     );
   }
-  
+
   next();
 });
 
@@ -210,7 +211,7 @@ servicioPaseadorSchema.pre('findOneAndUpdate', function(next) {
   if (update.fechasNoDisponibles) {
     update.fechasNoDisponibles = update.fechasNoDisponibles.map(fecha => {
       if (!fecha.fecha || !fecha.horariosNoDisponibles) {
-        console.warn('Estructura incorrecta en fechasNoDisponibles durante update');
+        logger.warn('Estructura incorrecta en fechasNoDisponibles durante update');
         return {
           fecha: new Date(),
           horariosNoDisponibles: []

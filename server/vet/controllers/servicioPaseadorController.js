@@ -23,7 +23,6 @@ export class ServicioPaseadorController {
                 const filtro = new FiltroPaseador(nombre, localidad, precioMin, precioMax, fecha)
                 servicioPaseadores = await this.servicioPaseadorService.findByFilters(filtro, {page, limit});
             } else {
-                console.log("No hay filtros, obteniendo todos los servicios");
                 servicioPaseadores = await this.servicioPaseadorService.findAll({ page, limit })
             }
 

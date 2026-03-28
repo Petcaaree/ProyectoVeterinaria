@@ -4,7 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from 'cors';
 import helmet from 'helmet';
-import mongoSanitize from 'express-mongo-sanitize';
+// express-mongo-sanitize es incompatible con Express 5 (req.query es read-only)
+// Usamos sanitización manual del body
 import logger from './vet/utils/logger.js';
 import { generalLimiter, authLimiter } from "./vet/middlewares/rateLimitMiddleware.js";
 import { Server } from "./server.js";
@@ -58,7 +59,6 @@ import { ReservaController } from "./vet/controllers/reservaController.js";
 import { MongoDBClient } from "./vet/config/database.js";
 import { errorHandler } from "./vet/middlewares/errorHandler.js";
 
-
  const clienteRepo = new ClienteRepository();
 const ciudadRepo = new CiudadRepository();
 const localidadRepo = new LocalidadRepository();
@@ -98,41 +98,51 @@ const ciudadController = new CiudadController(ciudadService);
 
 
 
-/*
-
-const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
-
-
-const clienteController = new ClienteController(clienteService, reservaService);
-const ciudadController = new CiudadController(ciudadService);
-
- */
-
-
-
-
 const app = express();
 
-// Seguridad: headers HTTP seguros
-app.use(helmet());
-
-// Sanitización: elimina operadores $ de MongoDB en body/query/params para prevenir NoSQL injection
-app.use(mongoSanitize());
-
-// CORS — origins permitidos desde variable de entorno (separados por coma)
+// CORS debe ir ANTES de helmet para que los headers de preflight se envíen correctamente
 const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
     : ['http://localhost:5173', 'http://localhost:5174'];
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
         // Permitir requests sin origin (Postman, curl, apps móviles)
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin)) return callback(null, true);
         callback(new Error(`CORS: origin no permitido → ${origin}`));
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+// Responder preflight OPTIONS en todas las rutas (Express 5 syntax)
+app.options('/{*path}', cors(corsOptions));
+app.use(cors(corsOptions));
+
+// Seguridad: headers HTTP seguros (después de CORS para no interferir)
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
 }));
+
+// Sanitización: elimina operadores $ y . de MongoDB en req.body para prevenir NoSQL injection
+// (express-mongo-sanitize no es compatible con Express 5 porque req.query es read-only)
+function sanitize(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    for (const key of Object.keys(obj)) {
+        if (key.startsWith('$') || key.includes('.')) {
+            delete obj[key];
+        } else if (typeof obj[key] === 'object') {
+            sanitize(obj[key]);
+        }
+    }
+    return obj;
+}
+app.use((req, _res, next) => {
+    if (req.body) sanitize(req.body);
+    next();
+});
 
 // Rate limiting general: 100 req / 15min por IP
 app.use('/petcare', generalLimiter);
@@ -172,11 +182,6 @@ server.setController(ServicioCuidadorController, servicioCuidadorController);
 server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ReservaController, reservaController);
 server.setController(CiudadController, ciudadController);
-
-/* server.setController(CiudadController, ciudadController);
-
-
-server.setController(ReservaController, reservaController); */
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

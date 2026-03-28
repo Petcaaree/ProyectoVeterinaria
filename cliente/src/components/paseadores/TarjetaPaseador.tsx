@@ -49,7 +49,7 @@ const TarjetaPaseador: React.FC<TarjetaPaseadorProps> = ({ paseador, alContratar
           <EstrellaCalificacion calificacion={3} />
         </div>
         <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-sm font-bold inline-block">
-          {formatearPrecio(paseador.precio)}/día
+          {formatearPrecio(paseador.precio)}/hora
         </div>
       </div>
       

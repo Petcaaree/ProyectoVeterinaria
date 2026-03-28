@@ -89,7 +89,6 @@ export class ServicioCuidadorService {
     }
 
     async findByFilters(filtro,{page=1,limit=6}) {
-        console.log("Filtro recibido:", filtro);
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 

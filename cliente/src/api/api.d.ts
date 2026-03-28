@@ -133,7 +133,7 @@ export declare function getDestinos(pageNumber: number): Promise<any>;
 export declare function loginUsuario(datos: DatosLogin, tipo: string): Promise<any>;
 export declare function signinUsuario(datos: DatosRegistro, tipo: string): Promise<any>;
 export declare function registrarMascota(usuarioId: string, datosMascota: DatosMascota): Promise<any>;
-export declare function crearServiciooVeterinaria(data: DatosServicioVeterinario): Promise<any>;
+export declare function crearServicioVeterinaria(data: DatosServicioVeterinario): Promise<any>;
 export declare function crearServicioPaseador(data: DatosServicioPaseador): Promise<any>;
 export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
 export declare function obtenerMascotas(usuarioId: string): Promise<any>;
@@ -148,9 +148,9 @@ export declare function getServiciosCuidadorByUsuario(usuarioId: string, page: n
 export declare function cambiarEstadoServicio(serviceId: string, estado: string, tipoUsuario: string): Promise<void>;
 
 ///-----OBTENER LOS SERVICIOS EN CADA PAGINA-----
-export declare function obetenerServiciosCuidadores(page: number, filtro: any): Promise<any[]>;
-export declare function obetenerServiciosPaseadores(page: number, filtro: any): Promise<any[]>;
-export declare function obetenerServiciosVeterinarias(page: number, filtro: any): Promise<any[]>;
+export declare function obtenerServiciosCuidadores(page: number, filtro: any): Promise<any[]>;
+export declare function obtenerServiciosPaseadores(page: number, filtro: any): Promise<any[]>;
+export declare function obtenerServiciosVeterinarias(page: number, filtro: any): Promise<any[]>;
 
 ///-----RESERVAS-----
 export declare function createReserva(datos: any): Promise<any>;

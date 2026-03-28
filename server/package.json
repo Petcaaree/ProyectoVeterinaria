@@ -5,7 +5,9 @@
     "dev": "node --watch index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "unit-test": "node --experimental-vm-modules node_modules/jest/bin/jest.js ./test/unit",
-    "integration-test": "node --experimental-vm-modules node_modules/jest/bin/jest.js ./test/integration"
+    "integration-test": "node --experimental-vm-modules node_modules/jest/bin/jest.js ./test/integration",
+    "seed": "node scripts/seed.js",
+    "seed:force": "node scripts/seed.js --force"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

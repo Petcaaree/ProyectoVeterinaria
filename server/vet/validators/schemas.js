@@ -138,6 +138,29 @@ export const reservaSchema = Joi.object({
     emailContacto: Joi.string().email().required()
 }).unknown(true);
 
+// ─── Reset de contraseña ────────────────────────────────────
+
+export const forgotPasswordSchema = Joi.object({
+    email: Joi.string().email().trim().required().messages({
+        'string.email': 'El email no es válido',
+        'any.required': 'El email es obligatorio'
+    }),
+    tipoUsuario: Joi.string().valid('cliente', 'veterinaria', 'paseador', 'cuidador').required().messages({
+        'any.only': 'Tipo de usuario inválido',
+        'any.required': 'El tipo de usuario es obligatorio'
+    })
+});
+
+export const resetPasswordSchema = Joi.object({
+    token: Joi.string().required().messages({
+        'any.required': 'El token es obligatorio'
+    }),
+    contrasenia: Joi.string().min(8).max(128).required().messages({
+        'string.min': 'La contraseña debe tener al menos 8 caracteres',
+        'any.required': 'La contraseña es obligatoria'
+    })
+});
+
 // ─── Params comunes ─────────────────────────────────────────
 
 export const idParamSchema = Joi.object({

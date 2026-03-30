@@ -5,9 +5,10 @@ import { useAuth } from '../../context/authContext.tsx';
 
 interface FormularioLoginProps {
   onSwitchToRegister: () => void;
+  onSwitchToForgotPassword: () => void;
 }
 
-const FormularioLogin: React.FC<FormularioLoginProps> = ({ onSwitchToRegister }) => {
+const FormularioLogin: React.FC<FormularioLoginProps> = ({ onSwitchToRegister, onSwitchToForgotPassword }) => {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -157,6 +158,7 @@ const FormularioLogin: React.FC<FormularioLoginProps> = ({ onSwitchToRegister })
           </label>
           <button
             type="button"
+            onClick={onSwitchToForgotPassword}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
             ¿Olvidaste tu contraseña?

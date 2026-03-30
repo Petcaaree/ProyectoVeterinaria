@@ -601,6 +601,22 @@ export const obtenerServiciosVeterinarias = async (pageNumber, filtros) => {
     throw error;
   }
 };
+// Obtener un servicio individual por ID (datos frescos con fechasNoDisponibles actualizadas)
+export const obtenerServicioVeterinariaPorId = async (id) => {
+    const response = await axios.get(`${API_URL}/serviciosVet/${id}`);
+    return response.data;
+};
+
+export const obtenerServicioPaseadorPorId = async (id) => {
+    const response = await axios.get(`${API_URL}/serviciosPaseadores/${id}`);
+    return response.data;
+};
+
+export const obtenerServicioCuidadorPorId = async (id) => {
+    const response = await axios.get(`${API_URL}/servicioCuidador/${id}`);
+    return response.data;
+};
+
 // Obtener todas las reservas (paginadas)
 export const getReservasPorEstado = async (userId, userType, estado, page) => {
     try {
@@ -731,6 +747,40 @@ export const obtenerContadorNotificacionesNoLeidas = async (usuarioId, tipoUsuar
     } catch (error) {
         console.error("Error al obtener contador de notificaciones no leídas:", error);
         throw error;
+    }
+};
+
+// ---------------------- RESET DE CONTRASEÑA -------------------------
+
+export const solicitarResetPassword = async (email, tipoUsuario) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/forgot-password`, {
+            email,
+            tipoUsuario
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al solicitar reset de contraseña:", error);
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw new Error("Error al procesar la solicitud. Intentá nuevamente.");
+    }
+};
+
+export const resetearPassword = async (token, contrasenia) => {
+    try {
+        const response = await axios.post(`${API_URL}/auth/reset-password`, {
+            token,
+            contrasenia
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error al resetear contraseña:", error);
+        if (error.response?.data?.message) {
+            throw new Error(error.response.data.message);
+        }
+        throw new Error("Error al restablecer la contraseña. Intentá nuevamente.");
     }
 };
 

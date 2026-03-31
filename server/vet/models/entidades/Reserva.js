@@ -17,10 +17,11 @@ export class Reserva{
         this.servicioReservado = servicioReservado; 
         this.mascota = mascota;  
         this.rangoFechas = rangoFechas; 
-        this.estado = EstadoReserva.PENDIENTE; 
+        this.estado = EstadoReserva.PENDIENTE_PAGO;
         this.horario = horario || null;
         this.notaAdicional = notaAdicional;
         this.cantidadDias = this.calcularDias(); // Para cuidadores, calculamos días
+        this.precioTotal = (this.servicioReservado.precio || 0) * this.cantidadDias;
         this.nombreDeContacto = nombreDeContacto 
         this.telefonoContacto = telefonoContacto 
         this.emailContacto = emailContacto

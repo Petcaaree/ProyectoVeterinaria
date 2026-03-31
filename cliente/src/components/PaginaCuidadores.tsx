@@ -165,11 +165,17 @@ const PaginaCuidadores: React.FC<PaginaCuidadoresProps> = ({ userType }) => {
   }, [fechaInicio, fechaFin]);
 
     const cargarServicios = async (filtrosPersonalizados?: any) => {
-    // Simular carga de servicios
     const filtrosAUsar = filtrosPersonalizados || filtros;
-    const servicios = await getServiciosCuidadores(page, filtrosAUsar);
-    setCuidadorServicios(servicios.data);
-    setTotalPages(servicios.total_pages); // Suponiendo 10 servicios por página
+    try {
+      const servicios = await getServiciosCuidadores(page, filtrosAUsar);
+      const data = Array.isArray(servicios) ? servicios : (servicios?.data ?? []);
+      const totalPags = servicios?.total_pages ?? 1;
+      setCuidadorServicios(data);
+      setTotalPages(totalPags);
+    } catch (error) {
+      console.error('Error al cargar servicios de cuidadores:', error);
+      setCuidadorServicios([]);
+    }
   };
 
   // Estado para controlar el scroll después de cargar datos

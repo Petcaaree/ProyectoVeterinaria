@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
-import { getTodasReservas, getReservasPorEstado, cambiarEstadoReserva } from '../../api/api';
+import { getTodasReservas, getReservasPorEstado, cambiarEstadoReserva, reintentarPago } from '../../api/api';
 import { useAuth } from '../../context/authContext';
 import ReservaDetalleModal from './ReservaDetalleModal';
 import { Calendar, Clock, User, Phone, Star, CheckCircle, XCircle, AlertCircle, Filter, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -499,12 +499,25 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                       {tipoUsuario === 'cliente' && (
                         <div className="flex space-x-2">
                           {/* Botón pagar si está pendiente de pago */}
-                          {appointment.estado === 'PENDIENTE_PAGO' && appointment.mercadoPagoPreferenceId && (
+                          {appointment.estado === 'PENDIENTE_PAGO' && (
                             <button
                               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
-                              onClick={() => {
-                                const sandboxUrl = `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${appointment.mercadoPagoPreferenceId}`;
-                                window.location.href = sandboxUrl;
+                              onClick={async () => {
+                                try {
+                                  let prefId = appointment.mercadoPagoPreferenceId;
+                                  if (!prefId) {
+                                    const reservaId = getReservaId(appointment);
+                                    const pagoInfo = await reintentarPago(reservaId);
+                                    prefId = pagoInfo.preferenceId;
+                                  }
+                                  const sandboxUrl = `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${prefId}`;
+                                  window.location.href = sandboxUrl;
+                                } catch (err: unknown) {
+                                  const axiosErr = err as { response?: { data?: unknown } };
+                                  console.error('❌ Error completar pago:', err);
+                                  console.error('❌ Response data:', axiosErr?.response?.data);
+                                  showError('No se pudo generar el link de pago. Intenta de nuevo.');
+                                }
                               }}
                             >
                               Completar pago

@@ -1,4 +1,4 @@
-import MercadoPagoConfig, { Preference, Payment } from "mercadopago";
+import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError, NotFoundError } from "../errors/AppError.js";
 
 export class PagoService {
@@ -39,7 +39,6 @@ export class PagoService {
         failure: `${frontendUrl}?payment_status=failure&reserva_id=${reservaId}`,
         pending: `${frontendUrl}?payment_status=pending&reserva_id=${reservaId}`,
       },
-      auto_return: "approved",
       external_reference: reservaId,
       notification_url: `${process.env.BACKEND_URL || "http://localhost:3000"}/petcare/pagos/webhook`,
       statement_descriptor: "PetConnect",

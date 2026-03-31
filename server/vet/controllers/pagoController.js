@@ -1,6 +1,22 @@
 export class PagoController {
-  constructor(pagoService) {
+  constructor(pagoService, reservaService) {
     this.pagoService = pagoService;
+    this.reservaService = reservaService;
+  }
+
+  // POST /petcare/pagos/reintentar/:reservaId — llamado por el cliente cuando no tiene preferenceId
+  async reintentarPago(req, res, next) {
+    try {
+      const { reservaId } = req.params;
+      const reservaDTO = await this.reservaService.findById(reservaId);
+      if (!reservaDTO) {
+        return res.status(404).json({ message: "Reserva no encontrada" });
+      }
+      const pagoInfo = await this.pagoService.crearPreferencia(reservaDTO);
+      res.json(pagoInfo);
+    } catch (error) {
+      next(error);
+    }
   }
 
   // POST /petcare/pagos/webhook — llamado por MercadoPago, sin auth

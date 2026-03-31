@@ -99,7 +99,7 @@ const servicioVeterinariaController = new ServicioVeterinariaController(servicio
 const servicioCuidadorController = new ServicioCuidadorController(servicioCuidadorService);
 const servicioPaseadorController = new ServicioPaseadorController(servicioPaseadorService);
 const reservaController = new ReservaController(reservaService, pagoService);
-const pagoController = new PagoController(pagoService);
+const pagoController = new PagoController(pagoService, reservaService);
 const ciudadController = new CiudadController(ciudadService);
 
 

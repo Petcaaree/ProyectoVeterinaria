@@ -6,6 +6,7 @@ import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 import { sanitizePagination } from "../utils/paginationUtils.js"
+import { enviarEmailBienvenida } from "./emailService.js"
 
 
 export class CuidadorService {
@@ -92,6 +93,8 @@ export class CuidadorService {
         const nuevoCuidador = new Cuidador(nombreUsuario, email,objectDireccion, telefono,  contraseniaHasheada)
 
         const cuidadorGuardado = await this.cuidadorRepository.save(nuevoCuidador)
+
+        enviarEmailBienvenida(email, nombreUsuario, 'cuidador').catch(() => {})
 
         return this.toDTO(cuidadorGuardado)
     }

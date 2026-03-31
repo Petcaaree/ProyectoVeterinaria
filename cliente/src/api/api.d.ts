@@ -1,4 +1,4 @@
-// Declaraciones de tipos para api.js
+// Declaraciones de tipos para la API
 
 export interface FiltrosAlojamiento {
   [key: string]: any;
@@ -125,57 +125,59 @@ export interface DatosServicioCuidador {
     };
   };
 }
-export declare function getLocalidades(): Promise<any>;
 
-export declare function getServiciosPaseadores(pageNumber: number, filtros?: any): Promise<any>;
-export declare function getAlojamientos(pageNumber: number, filtros: FiltrosAlojamiento): Promise<any>;
-export declare function getDestinos(pageNumber: number): Promise<any>;
+// --- Auth ---
 export declare function loginUsuario(datos: DatosLogin, tipo: string): Promise<any>;
 export declare function signinUsuario(datos: DatosRegistro, tipo: string): Promise<any>;
-export declare function registrarMascota(usuarioId: string, datosMascota: DatosMascota): Promise<any>;
-export declare function crearServicioVeterinaria(data: DatosServicioVeterinario): Promise<any>;
-export declare function crearServicioPaseador(data: DatosServicioPaseador): Promise<any>;
-export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
+export declare function solicitarResetPassword(email: string, tipoUsuario: string): Promise<any>;
+export declare function resetearPassword(token: string, contrasenia: string): Promise<any>;
+
+// --- Reservas ---
+export declare function createReserva(datos: any): Promise<any>;
+export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
+export declare function getReservasAnfitrion(anfitrionId: string, page: number): Promise<any>;
+export declare function confirmarReserva(anfitrionId: string, reservaId: string): Promise<void>;
+export declare function cancelarReserva(huespedId: string, reservaId: string): Promise<void>;
+export declare function getTodasReservas(usuarioId: string, userType: string, estado: string, page: number): Promise<any>;
+export declare function getReservasPorEstado(usuarioId: string, userType: string, estado: string, page: number): Promise<any>;
+export declare function cambiarEstadoReserva(usuarioId: string, reservaId: string, estado: string): Promise<void>;
+
+// --- Mascotas ---
+export declare function registrarMascota(clienteId: string, mascotaData: DatosMascota): Promise<any>;
 export declare function obtenerMascotas(usuarioId: string): Promise<any>;
 export declare function eliminarMascota(usuarioId: string, mascotaId: string): Promise<void>;
 
-///-----OBTENER LOS SERVICIOS DE CADA PROVEEDOR-----
+// --- Servicios ---
+export declare function crearServicioVeterinaria(data: DatosServicioVeterinario): Promise<any>;
+export declare function crearServicioPaseador(data: DatosServicioPaseador): Promise<any>;
+export declare function crearServicioCuidador(data: DatosServicioCuidador): Promise<any>;
 export declare function getServiciosVeterinariaByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
 export declare function getServiciosPaseadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
 export declare function getServiciosCuidadorByUsuario(usuarioId: string, page: number, estado: string): Promise<any[]>;
-
-///-----ACTIVAR O DESACTIVAR LOS SERVICIOS -----
 export declare function cambiarEstadoServicio(serviceId: string, estado: string, tipoUsuario: string): Promise<void>;
-
-///-----OBTENER LOS SERVICIOS EN CADA PAGINA-----
 export declare function obtenerServiciosCuidadores(page: number, filtro: any): Promise<any[]>;
 export declare function obtenerServiciosPaseadores(page: number, filtro: any): Promise<any[]>;
 export declare function obtenerServiciosVeterinarias(page: number, filtro: any): Promise<any[]>;
+export declare function obtenerServicioVeterinariaPorId(id: string): Promise<any>;
+export declare function obtenerServicioPaseadorPorId(id: string): Promise<any>;
+export declare function obtenerServicioCuidadorPorId(id: string): Promise<any>;
 
-///-----RESERVAS-----
-export declare function createReserva(datos: any): Promise<any>;
-export declare function getTodasReservas(usuarioId: string,userType: string, estado: string, page: number): Promise<any>;
-export declare function getReservasPorEstado(usuarioId: string,userType: string, estado: string, page: number): Promise<any>;
-export declare function cambiarEstadoReserva(usuarioId: string, reservaId: string, estado: string): Promise<void>;
-/// ---------NOTIFICACIONES----------
+// --- Notificaciones ---
 export declare function obtenerNotificacionesNoLeidas(usuarioId: string, leida: string, tipoUsuario: string, page: number): Promise<any>;
 export declare function obtenerNotificaciones(usuarioId: string, tipoUsuario: string, page: number): Promise<any>;
 export declare function marcarLeidaCliente(usuarioId: string, notificacionId: string): Promise<void>;
 export declare function marcarLeidaProveedor(usuarioId: string, notificacionId: string, tipoProveedor: string): Promise<void>;
 export declare function marcarTodasLeidasProveedor(usuarioId: string, tipoProveedor: string): Promise<void>;
 export declare function marcarTodasLeidasCliente(usuarioId: string): Promise<void>;
+export declare function obtenerContadorNotificacionesNoLeidas(usuarioId: string, tipoUsuario: string): Promise<number>;
 
-
-
-export declare function reservarAlojamiento(datos: DatosReserva): Promise<any>;
-export declare function getReservasHuesped(usuarioId: string, page: number): Promise<any>;
+// --- Legacy ---
+export declare function getAlojamientos(pageNumber: number, filtros: FiltrosAlojamiento): Promise<any>;
+export declare function getDestinos(pageNumber: number): Promise<any>;
 export declare function getAlojamientosAnfitrion(id: string, page?: number): Promise<any>;
-export declare function getReservasAnfitrion(anfitrionId: string, page: number): Promise<any>;
-export declare function confirmarReserva(anfitrionId: string, reservaId: string): Promise<void>;
-export declare function cancelarReserva(huespedId: string, reservaId: string): Promise<void>;
+export declare function crearAlojamiento(data: DatosAlojamiento): Promise<any>;
 export declare function getNotificacionesHuesped(usuarioId: string, leida: string, pageNumber: number): Promise<any>;
 export declare function getNotificacionesAnfitrion(usuarioId: string, leida: string, pageNumber: number): Promise<any>;
-export declare function marcarLeidaHuesped(usuarioId: string, notificacionId: string): Promise<void>;
-export declare function marcarLeidaAnfitrion(usuarioId: string, notificacionId: string): Promise<void>;
-export declare function crearAlojamiento(data: DatosAlojamiento): Promise<any>;
-export declare function registrarMascota(clienteId: string, mascotaData: DatosMascota): Promise<any>;
+
+// --- Localidades ---
+export declare function getLocalidades(): Promise<any>;

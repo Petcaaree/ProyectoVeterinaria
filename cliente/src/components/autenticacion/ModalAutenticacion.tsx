@@ -2,13 +2,14 @@ import React, { useEffect } from 'react';
 import { X, Heart } from 'lucide-react';
 import FormularioLogin from './FormularioLogin';
 import FormularioRegistro from './FormularioRegistro';
+import OlvideContrasena from './OlvideContrasena';
 import { useAuth } from '../../context/authContext.tsx';
 
 interface ModalAutenticacionProps {
   estaAbierto: boolean;
   alCerrar: () => void;
-  modo: 'login' | 'registro';
-  alCambiarModo: (modo: 'login' | 'registro') => void;
+  modo: 'login' | 'registro' | 'forgot-password';
+  alCambiarModo: (modo: 'login' | 'registro' | 'forgot-password') => void;
 }
 
 const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
@@ -58,11 +59,13 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-base sm:text-lg md:text-xl font-bold truncate">
-                {modo === 'login' ? 'Bienvenido de vuelta' : 'Únete a PetCare'}
+                {modo === 'login' ? 'Bienvenido de vuelta' : modo === 'forgot-password' ? 'Recuperar contraseña' : 'Únete a PetCare'}
               </h2>
               <p className="text-blue-100 text-xs sm:text-sm leading-tight">
-                {modo === 'login' 
-                  ? 'Accede a tu cuenta para cuidar mejor a tu mascota' 
+                {modo === 'login'
+                  ? 'Accede a tu cuenta para cuidar mejor a tu mascota'
+                  : modo === 'forgot-password'
+                  ? 'Te ayudamos a recuperar el acceso a tu cuenta'
                   : 'Crea tu cuenta y comienza a cuidar a tu mascota'
                 }
               </p>
@@ -75,6 +78,11 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
           {modo === 'login' ? (
             <FormularioLogin
               onSwitchToRegister={() => alCambiarModo('registro')}
+              onSwitchToForgotPassword={() => alCambiarModo('forgot-password')}
+            />
+          ) : modo === 'forgot-password' ? (
+            <OlvideContrasena
+              onVolver={() => alCambiarModo('login')}
             />
           ) : (
             <FormularioRegistro
@@ -84,7 +92,7 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
           )}
           
           {/* Social login options */}
-          <div className="mt-4 sm:mt-6">
+          {modo !== 'forgot-password' && <div className="mt-4 sm:mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
@@ -112,7 +120,7 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
                 <span className="ml-1.5 sm:ml-2">Facebook</span>
               </button>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

@@ -156,6 +156,7 @@ app.use('/petcare', generalLimiter);
 // Rate limiting estricto en rutas de autenticacion: 10 intentos / 15min por IP
 app.use('/petcare/login', authLimiter);
 app.use('/petcare/signin', authLimiter);
+app.use('/petcare/auth/forgot-password', authLimiter);
 
 // Middleware de logging estructurado para todas las peticiones
 app.use((req, res, next) => {

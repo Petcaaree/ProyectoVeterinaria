@@ -6,6 +6,7 @@ import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 import { sanitizePagination } from "../utils/paginationUtils.js"
+import { enviarEmailBienvenida } from "./emailService.js"
 
 
 export class PaseadorService {
@@ -93,6 +94,8 @@ export class PaseadorService {
         const nuevoPaseador = new Paseador(nombreUsuario, email,objectDireccion, telefono,  contraseniaHasheada)
 
         const paseadorGuardado = await this.paseadorRepository.save(nuevoPaseador)
+
+        enviarEmailBienvenida(email, nombreUsuario, 'paseador').catch(() => {})
 
         return this.toDTO(paseadorGuardado)
     }

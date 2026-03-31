@@ -7,6 +7,7 @@ import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js";
 import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
+import { enviarEmailReservaCreada, enviarEmailReservaConfirmada, enviarEmailReservaCancelada } from "./emailService.js";
 
 
 dayjs.extend(customParseFormat)
@@ -290,6 +291,9 @@ export class ReservaService {
             await this.servicioPaseadorRepository.save(servicio)
         }
         await this.reservaRepository.save(nuevaReserva)
+
+        enviarEmailReservaCreada(nuevaReserva).catch(() => {})
+
         return this.toDTO(nuevaReserva)
     }
 
@@ -346,8 +350,10 @@ export class ReservaService {
             await this.clienteRepository.save(reserva.cliente)
             await this.reservaRepository.save(reserva)
 
+            enviarEmailReservaConfirmada(reserva).catch(() => {})
+
             return this.toDTO(reserva)
-        
+
         } else if(nuevoEstado == "CANCELADA") {
             if(reserva.estado == EstadoReserva.CANCELADA) {
                 throw new ValidationError("Reserva ya cancelada")
@@ -433,9 +439,16 @@ export class ReservaService {
                 if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
                     await this.cuidadorRepository.save(reserva.servicioReservado.usuarioProveedor)
                 } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-                    await this.veterinariaRepository.save(reserva.servicioReservado.usuarioProveedor)    
+                    await this.veterinariaRepository.save(reserva.servicioReservado.usuarioProveedor)
                 } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
                     await this.paseadorRepository.save(reserva.servicioReservado.usuarioProveedor)
+                }
+
+                // Email al proveedor: el cliente canceló
+                const provEmail = reserva.servicioReservado.usuarioProveedor?.email;
+                const provNombre = reserva.servicioReservado.usuarioProveedor?.nombreUsuario;
+                if (provEmail) {
+                    enviarEmailReservaCancelada(reserva, provEmail, provNombre, 'cliente').catch(() => {})
                 }
             } else {
                 // Proveedor cancela - notificar al cliente
@@ -453,8 +466,11 @@ export class ReservaService {
                 }
                 
                 await this.clienteRepository.save(reserva.cliente)
+
+                // Email al cliente: el proveedor canceló
+                enviarEmailReservaCancelada(reserva, reserva.cliente.email, reserva.cliente.nombreUsuario, 'proveedor').catch(() => {})
             }
-            
+
             await this.reservaRepository.save(reserva)
 
             return this.toDTO(reserva)

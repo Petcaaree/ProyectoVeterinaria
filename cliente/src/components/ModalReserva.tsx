@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield, CheckCircle, Heart } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
 import { useAuth } from '../context/authContext.tsx';
+import { obtenerServicioVeterinariaPorId, obtenerServicioPaseadorPorId, obtenerServicioCuidadorPorId } from '../api/api.js';
 
 
 interface ModalReservaProps {
@@ -21,6 +22,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
   // Estado para mascotas del usuario
   const [mascotasUsuario, setMascotasUsuario] = useState<any[]>([]);
   const [cargandoMascotas, setCargandoMascotas] = useState(false);
+  const [servicioActualizado, setServicioActualizado] = useState<any>(null);
   const parsearFecha = (fechaStr: string): Date | null => {
     if (!fechaStr || fechaStr.length === 0) return null;
     
@@ -93,6 +95,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
       setMostrarCalendarioFin(false);
       setMostrarCalendario(false);
       setDuracionSeleccionada('');
+      setServicioActualizado(null);
     } else {
       // Cargar mascotas cuando se abre el modal
       const cargarMascotas = async () => {
@@ -110,6 +113,28 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
         }
       };
       cargarMascotas();
+
+      // Refrescar datos del servicio para tener fechasNoDisponibles actualizadas
+      const refrescarServicio = async () => {
+        const servicioId = service?._id || service?.id;
+        if (!servicioId) return;
+        try {
+          let data;
+          if (serviceType === 'veterinaria') {
+            data = await obtenerServicioVeterinariaPorId(servicioId);
+          } else if (serviceType === 'paseador') {
+            data = await obtenerServicioPaseadorPorId(servicioId);
+          } else if (serviceType === 'cuidador') {
+            data = await obtenerServicioCuidadorPorId(servicioId);
+          }
+          if (data) {
+            setServicioActualizado(data);
+          }
+        } catch (error) {
+          console.error('Error al refrescar servicio:', error);
+        }
+      };
+      refrescarServicio();
     }
   }, [isOpen, estadoInicialFormulario, service, usuario?.id, getMascotas]);
 
@@ -238,8 +263,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
     if (!horariosBase || horariosBase.length === 0) return [];
     const [dia, mes, año] = fecha.split('/');
     const fechaParaComparar = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
-    const fechasNoDisponibles = service?.fechasNoDisponibles || service?.servicioReservado?.fechasNoDisponibles;
-    let horariosNoDisponibles: { horario: string, perrosReservados: number }[] = [];
+    // Usar fechasNoDisponibles del servicio refrescado si están disponibles, sino las del prop
+    const fechasNoDisponibles = servicioActualizado?.fechasNoDisponibles || service?.fechasNoDisponibles || service?.servicioReservado?.fechasNoDisponibles;
+    let horariosNoDisponiblesRaw: any[] = [];
     if (fechasNoDisponibles && Array.isArray(fechasNoDisponibles)) {
       const fechaNoDisponible = fechasNoDisponibles.find((item: { fecha: string; horariosNoDisponibles: any[] }) => {
         if (!item.fecha) return false;
@@ -249,9 +275,16 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
         return fechaComparar.getTime() === fechaLocal.getTime();
       });
       if (fechaNoDisponible?.horariosNoDisponibles) {
-        horariosNoDisponibles = fechaNoDisponible.horariosNoDisponibles;
+        horariosNoDisponiblesRaw = fechaNoDisponible.horariosNoDisponibles;
       }
     }
+    // Normalizar: veterinaria devuelve strings ["14:00"], paseador devuelve objetos [{horario, perrosReservados}]
+    const horariosNoDisponibles: { horario: string, perrosReservados: number }[] = horariosNoDisponiblesRaw.map((h: any) => {
+      if (typeof h === 'string') {
+        return { horario: h, perrosReservados: 1 };
+      }
+      return { horario: h.horario, perrosReservados: h.perrosReservados || 1 };
+    });
     const maxPerros = service?.maxPerros || service?.servicioReservado?.maxPerros || 1;
     // Mostrar todos los horarios, pero bloquear los que ya pasaron o faltan menos de 2h (veterinaria/paseador, hoy)
     const hoy = new Date();
@@ -628,14 +661,11 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                                   ? 'bg-blue-500 text-white shadow-lg'
                                   : horarioItem.disponible
                                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
-                                    : 'bg-red-50 text-red-400 cursor-not-allowed opacity-50 line-through'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
-                              title={horarioItem.disponible ? 'Disponible' : 'Horario ocupado'}
+                              title={horarioItem.disponible ? 'Disponible' : 'Horario reservado'}
                             >
-                              {horarioItem.horario}
-                              {!horarioItem.disponible && (
-                                <span className="ml-1 text-xs">🚫</span>
-                              )}
+                              <span className={!horarioItem.disponible ? 'line-through' : ''}>{horarioItem.horario}</span>
                             </button>
                           ))}
                         </div>
@@ -686,14 +716,11 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
                                   ? 'bg-green-500 text-white shadow-lg'
                                   : horarioItem.disponible
                                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
-                                    : 'bg-red-50 text-red-400 cursor-not-allowed opacity-50 line-through'
+                                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                               }`}
-                              title={horarioItem.disponible ? 'Disponible' : 'Horario ocupado'}
+                              title={horarioItem.disponible ? 'Disponible' : 'Horario reservado'}
                             >
-                              {horarioItem.horario}
-                              {!horarioItem.disponible && (
-                                <span className="ml-1 text-xs">🚫</span>
-                              )}
+                              <span className={!horarioItem.disponible ? 'line-through' : ''}>{horarioItem.horario}</span>
                             </button>
                           ))}
                         </div>

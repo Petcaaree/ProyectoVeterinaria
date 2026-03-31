@@ -360,16 +360,27 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           ? formData.telefonoContacto
           : `11${formData.telefonoContacto}`
       };
-      await crearReserva(datosConPrefijo);
-      setShowSuccess(true);
+      const respuesta = await crearReserva(datosConPrefijo);
 
-      setTimeout(() => {
-        setShowSuccess(false);
+      // respuesta puede ser el objeto { ...reservaDTO, init_point, sandbox_init_point }
+      const initPoint = respuesta?.data?.sandbox_init_point || respuesta?.data?.init_point
+                      || respuesta?.sandbox_init_point || respuesta?.init_point;
+
+      if (initPoint) {
+        // Redirigir al checkout de MercadoPago
         onClose();
-        if (onReservaExitosa) {
-          onReservaExitosa();
-        }
-      }, 2500);
+        window.location.href = initPoint;
+      } else {
+        // Fallback: MP no devolvió link (credenciales no configuradas aún)
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          onClose();
+          if (onReservaExitosa) {
+            onReservaExitosa();
+          }
+        }, 2500);
+      }
     } catch (error: any) {
       const mensaje = error?.response?.data?.message
         || error?.response?.data?.error
@@ -382,9 +393,9 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
 
   const formatPrice = (price: number) => {
     if (!price || isNaN(price)) return 'Precio no disponible';
-    return price.toLocaleString('es-CO', {
+    return price.toLocaleString('es-AR', {
       style: 'currency',
-      currency: 'COP',
+      currency: 'ARS',
       minimumFractionDigits: 0
     });
   };

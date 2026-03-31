@@ -73,7 +73,8 @@ function App() {
     setCurrentService(servicioEspanol);
   };
 
-  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services' | 'payment-success' | 'payment-failure' | 'payment-pending'>('home');
+  const [paymentReservaId, setPaymentReservaId] = useState<string | null>(null);
 
   // Función de easing para scroll suave
   const easeInOutCubic = (t: number): number => {
@@ -108,6 +109,26 @@ function App() {
   useEffect(() => {
     smoothScrollTo(0);
   }, [currentView]);
+
+  // Detectar retorno de MercadoPago via query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const reservaId = params.get('reserva_id');
+
+    if (paymentStatus) {
+      setPaymentReservaId(reservaId);
+      if (paymentStatus === 'approved') {
+        setCurrentView('payment-success');
+      } else if (paymentStatus === 'failure') {
+        setCurrentView('payment-failure');
+      } else if (paymentStatus === 'pending') {
+        setCurrentView('payment-pending');
+      }
+      // Limpiar query params de la URL sin recargar la página
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
   const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -118,16 +139,17 @@ function App() {
   useEffect(() => {
     // Definir qué vistas están permitidas para cada tipo de usuario
     const vistasPorTipo = {
-      'cliente': ['home', 'create-service', 'appointments', 'notifications', 'my-pets', 'register-pet'],
-      'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services'],
-      'paseador': ['home', 'create-service', 'appointments', 'notifications', 'my-walks'],
-      'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services']
+      'cliente': ['home', 'create-service', 'appointments', 'notifications', 'my-pets', 'register-pet', 'payment-success', 'payment-failure', 'payment-pending'],
+      'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services', 'payment-success', 'payment-failure', 'payment-pending'],
+      'paseador': ['home', 'create-service', 'appointments', 'notifications', 'my-walks', 'payment-success', 'payment-failure', 'payment-pending'],
+      'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services', 'payment-success', 'payment-failure', 'payment-pending']
     };
 
     // Vistas que requieren autenticación
     const vistasQueRequierenAutenticacion = [
-      'appointments', 'notifications', 'my-pets', 'register-pet', 
-      'my-walks', 'my-vet-services', 'my-care-services'
+      'appointments', 'notifications', 'my-pets', 'register-pet',
+      'my-walks', 'my-vet-services', 'my-care-services',
+      'payment-success', 'payment-failure', 'payment-pending'
     ];
 
     // Si no hay usuario logueado y está en una vista que requiere autenticación
@@ -243,6 +265,83 @@ function App() {
   };
 
   const renderContent = () => {
+    if (currentView === 'payment-success') {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+            <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Pago exitoso!</h2>
+            <p className="text-gray-600 mb-2">Tu reserva fue confirmada y el pago procesado correctamente.</p>
+            <p className="text-gray-500 text-sm mb-8">El prestador del servicio recibirá una notificación.</p>
+            <button
+              onClick={() => { setCurrentView('appointments'); }}
+              className="w-full px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Ver mis turnos
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'payment-failure') {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+            <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-10 w-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pago no procesado</h2>
+            <p className="text-gray-600 mb-2">El pago fue rechazado o cancelado.</p>
+            <p className="text-gray-500 text-sm mb-8">Tu reserva fue cancelada. Podés intentar hacer una nueva reserva.</p>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setCurrentView('home')}
+                className="w-full px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+              >
+                Volver al inicio
+              </button>
+              <button
+                onClick={() => setCurrentView('appointments')}
+                className="w-full px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+              >
+                Ver mis turnos
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (currentView === 'payment-pending') {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+            <div className="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="h-10 w-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Pago en proceso</h2>
+            <p className="text-gray-600 mb-2">Tu pago está siendo procesado por MercadoPago.</p>
+            <p className="text-gray-500 text-sm mb-8">Tu reserva se confirmará automáticamente una vez acreditado el pago.</p>
+            <button
+              onClick={() => setCurrentView('appointments')}
+              className="w-full px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Ver mis turnos
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (currentView === 'create-service') {
       return <CrearServicio userType={tipoUsuario as 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
     }

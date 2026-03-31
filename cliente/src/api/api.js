@@ -734,6 +734,17 @@ export const obtenerContadorNotificacionesNoLeidas = async (usuarioId, tipoUsuar
     }
 };
 
+// Reintentar la creación de preferencia de pago para una reserva existente
+export const reintentarPago = async (reservaId) => {
+    try {
+        const response = await axios.post(`${API_URL}/pagos/reintentar/${reservaId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error al reintentar el pago:", error);
+        throw error;
+    }
+};
+
 export const getLocalidades = async () => {
     try {
         const response = await axios.get(`${API_URL}/localidades`);

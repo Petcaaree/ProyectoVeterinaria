@@ -276,27 +276,18 @@ export class ReservaService {
         } else {
              nuevaReserva = new Reserva(cliente, servicio, mascota, objectFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto, fechaActual);
         }
-        
-        const proveedorActualizado = nuevaReserva.notificar()
-        
+
         // Incrementar contador de reservas del servicio
         servicio.incrementarReservas()
-        
+
+        // Guardamos el servicio pero NO notificamos al proveedor todavía.
+        // La notificación ocurrirá en confirmarPorPago() cuando el pago sea aprobado.
         if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
             await this.servicioCuidadorRepository.save(servicio)
-            if (proveedorActualizado) {
-                await this.cuidadorRepository.save(proveedorActualizado)
-            }
         } else if (serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
             await this.servicioVeterinariaRepository.save(servicio)
-            if (proveedorActualizado) {
-                await this.veterinariaRepository.save(proveedorActualizado)
-            }
         } else if (serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
             await this.servicioPaseadorRepository.save(servicio)
-            if (proveedorActualizado) {
-                await this.paseadorRepository.save(proveedorActualizado)
-            }
         }
         await this.reservaRepository.save(nuevaReserva)
         return this.toDTO(nuevaReserva)
@@ -561,11 +552,131 @@ export class ReservaService {
             horario: reserva.horario,
             notaAdicional: reserva.notaAdicional,
             cantidadDias: reserva.cantidadDias,
+            precioTotal: reserva.precioTotal,
+            mercadoPagoPreferenceId: reserva.mercadoPagoPreferenceId,
+            mercadoPagoPaymentId: reserva.mercadoPagoPaymentId,
             nombreDeContacto: reserva.nombreDeContacto,
             telefonoContacto: reserva.telefonoContacto,
             emailContacto: reserva.emailContacto,
             fechaAlta: reserva.fechaAlta
         }
+    }
+
+    // Guarda el preferenceId de MercadoPago en la reserva
+    async guardarPreferenceId(idReserva, preferenceId) {
+        const reserva = await this.reservaRepository.findById(idReserva);
+        if (!reserva) return;
+        reserva.mercadoPagoPreferenceId = preferenceId;
+        await this.reservaRepository.save(reserva);
+    }
+
+    // Confirma la reserva cuando MercadoPago aprueba el pago.
+    // Notifica al proveedor (nueva reserva) y al cliente (confirmación).
+    async confirmarPorPago(idReserva, mercadoPagoPaymentId) {
+        const reserva = await this.reservaRepository.findById(idReserva);
+        if (!reserva) {
+            throw new NotFoundError(`Reserva ${idReserva} no encontrada`);
+        }
+
+        if (reserva.estado === EstadoReserva.CONFIRMADA) return this.toDTO(reserva);
+
+        if (reserva._id && !reserva.id) {
+            reserva.id = reserva._id.toString();
+        }
+
+        reserva.estado = EstadoReserva.CONFIRMADA;
+        if (mercadoPagoPaymentId) {
+            reserva.mercadoPagoPaymentId = mercadoPagoPaymentId;
+        }
+
+        // Notificar al proveedor — "nueva reserva recibida y pagada"
+        const notificacionProveedor = FactoryNotificacion.crearSegunReserva(reserva);
+        const proveedor = reserva.servicioReservado.usuarioProveedor;
+        if (!proveedor.notificaciones) proveedor.notificaciones = [];
+        proveedor.notificaciones.push(notificacionProveedor);
+        if (proveedor._id && !proveedor.id) proveedor.id = proveedor._id.toString();
+
+        // Notificar al cliente — "tu reserva fue confirmada"
+        const notificacionCliente = FactoryNotificacion.crearConfirmacion(reserva);
+        if (!reserva.cliente.notificaciones) reserva.cliente.notificaciones = [];
+        reserva.cliente.notificaciones.push(notificacionCliente);
+        if (reserva.cliente._id && !reserva.cliente.id) {
+            reserva.cliente.id = reserva.cliente._id.toString();
+        }
+
+        await this.clienteRepository.save(reserva.cliente);
+        await this.reservaRepository.save(reserva);
+
+        // Guardar proveedor según tipo
+        if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            await this.cuidadorRepository.save(proveedor);
+        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+            await this.veterinariaRepository.save(proveedor);
+        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            await this.paseadorRepository.save(proveedor);
+        }
+
+        return this.toDTO(reserva);
+    }
+
+    // Cancela la reserva cuando MercadoPago rechaza el pago.
+    // Restaura la disponibilidad del servicio y notifica al cliente.
+    async cancelarPorPago(idReserva) {
+        const reserva = await this.reservaRepository.findById(idReserva);
+        if (!reserva) {
+            throw new NotFoundError(`Reserva ${idReserva} no encontrada`);
+        }
+
+        if (reserva.estado === EstadoReserva.CANCELADA) return this.toDTO(reserva);
+
+        if (reserva._id && !reserva.id) {
+            reserva.id = reserva._id.toString();
+        }
+
+        // Restaurar disponibilidad en el servicio
+        const fechasReserva = reserva.rangoFechas;
+        if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            const servicio = reserva.servicioReservado;
+            servicio.eliminarFechasReserva(fechasReserva);
+            servicio.decrementarReservas();
+            await this.servicioCuidadorRepository.save(servicio);
+        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+            const servicio = reserva.servicioReservado;
+            const objectFechaHorarioTurno = new FechaHorarioTurno(
+                fechasReserva.fechaInicio,
+                reserva.horario
+            );
+            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
+            servicio.decrementarReservas();
+            await this.servicioVeterinariaRepository.save(servicio);
+        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            const servicio = reserva.servicioReservado;
+            const objectFechaHorarioTurno = new FechaHorarioTurno(
+                fechasReserva.fechaInicio,
+                reserva.horario
+            );
+            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
+            servicio.decrementarReservas();
+            await this.servicioPaseadorRepository.save(servicio);
+        }
+
+        reserva.estado = EstadoReserva.CANCELADA;
+
+        // Notificar al cliente que el pago fue rechazado y la reserva cancelada
+        const notificacion = FactoryNotificacion.crearCancelacionAutomaticaParaCliente(
+            reserva,
+            "Pago rechazado o cancelado"
+        );
+        if (!reserva.cliente.notificaciones) reserva.cliente.notificaciones = [];
+        reserva.cliente.notificaciones.push(notificacion);
+        if (reserva.cliente._id && !reserva.cliente.id) {
+            reserva.cliente.id = reserva.cliente._id.toString();
+        }
+
+        await this.clienteRepository.save(reserva.cliente);
+        await this.reservaRepository.save(reserva);
+
+        return this.toDTO(reserva);
     }
 
     // Validar restricciones específicas de cancelación según el tipo de servicio

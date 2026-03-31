@@ -18,7 +18,7 @@ interface Appointment {
 }
 
 const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
-  const [filter, setFilter] = useState<'TODAS' | 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA'>('TODAS'); // Iniciamos con TODAS
+  const [filter, setFilter] = useState<'TODAS' | 'PENDIENTE_PAGO' | 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA'>('TODAS'); // Iniciamos con TODAS
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReserva, setSelectedReserva] = useState<Appointment | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -28,6 +28,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   
   // Contadores específicos por estado
   const [totalTodas, setTotalTodas] = useState(0);
+  const [totalPendientesPago, setTotalPendientesPago] = useState(0);
   const [totalPendientes, setTotalPendientes] = useState(0);
   const [totalConfirmadas, setTotalConfirmadas] = useState(0);
   const [totalCompletadas, setTotalCompletadas] = useState(0);
@@ -44,8 +45,9 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     
     try {
       // Cargar totales para cada estado
-      const [todasData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
+      const [todasData, pendientesPagoData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
         getTodasReservas(userId, tipoUsuario, 'TODAS', 1),
+        getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE_PAGO', 1),
         getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE', 1),
         getReservasPorEstado(userId, tipoUsuario, 'CONFIRMADA', 1),
         getReservasPorEstado(userId, tipoUsuario, 'COMPLETADA', 1),
@@ -53,6 +55,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
       ]);
 
       setTotalTodas(todasData.total || 0);
+      setTotalPendientesPago(pendientesPagoData.total || 0);
       setTotalPendientes(pendientesData.total || 0);
       setTotalConfirmadas(confirmadasData.total || 0);
       setTotalCompletadas(completadasData.total || 0);
@@ -227,6 +230,8 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
 
   const getStatusConfig = (status: string) => {
     switch (status) {
+      case 'PENDIENTE_PAGO':
+        return { color: 'orange', icon: AlertCircle, text: 'Pendiente de pago', bg: 'bg-orange-100', textColor: 'text-orange-800' };
       case 'PENDIENTE':
         return { color: 'yellow', icon: AlertCircle, text: 'Pendiente', bg: 'bg-yellow-100', textColor: 'text-yellow-800' };
       case 'CONFIRMADA':
@@ -244,9 +249,9 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
     if (typeof price !== 'number' || isNaN(price)) {
       return '$0';
     }
-    return price.toLocaleString('es-CO', {
+    return price.toLocaleString('es-AR', {
       style: 'currency',
-      currency: 'COP',
+      currency: 'ARS',
       minimumFractionDigits: 0
     });
   };
@@ -334,13 +339,15 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {[
-                  { key: 'TODAS', label: 'Todas' },
-                  { key: 'PENDIENTE', label: 'Pendientes' },
-                  { key: 'CONFIRMADA', label: 'Confirmadas' },
-                  { key: 'COMPLETADA', label: 'Completadas' },
-                  { key: 'CANCELADA', label: 'Canceladas' }
-                ].map(({ key, label }) => {
+                  { key: 'TODAS', label: 'Todas', soloCliente: false },
+                  { key: 'PENDIENTE_PAGO', label: 'Sin pagar', soloCliente: true },
+                  { key: 'PENDIENTE', label: 'Pendientes', soloCliente: false },
+                  { key: 'CONFIRMADA', label: 'Confirmadas', soloCliente: false },
+                  { key: 'COMPLETADA', label: 'Completadas', soloCliente: false },
+                  { key: 'CANCELADA', label: 'Canceladas', soloCliente: false }
+                ].filter(f => !f.soloCliente || tipoUsuario === 'cliente').map(({ key, label }) => {
                   const count = key === 'TODAS' ? totalTodas :
+                                key === 'PENDIENTE_PAGO' ? totalPendientesPago :
                                 key === 'PENDIENTE' ? totalPendientes :
                                 key === 'CONFIRMADA' ? totalConfirmadas :
                                 key === 'COMPLETADA' ? totalCompletadas :
@@ -350,7 +357,7 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                   // Para PENDIENTES: mostrar contador siempre excepto cuando sea 0
                   // Para otros: mostrar contador solo cuando está seleccionado y count > 0
                   const shouldShowCounter = key === 'TODAS' ? false :
-                                          key === 'PENDIENTE' ? count > 0 :
+                                          (key === 'PENDIENTE' || key === 'PENDIENTE_PAGO') ? count > 0 :
                                           (filter === key && count > 0);
                   
                   return (
@@ -491,9 +498,21 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                       {/* Acciones para cliente */}
                       {tipoUsuario === 'cliente' && (
                         <div className="flex space-x-2">
+                          {/* Botón pagar si está pendiente de pago */}
+                          {appointment.estado === 'PENDIENTE_PAGO' && appointment.mercadoPagoPreferenceId && (
+                            <button
+                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
+                              onClick={() => {
+                                const sandboxUrl = `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${appointment.mercadoPagoPreferenceId}`;
+                                window.location.href = sandboxUrl;
+                              }}
+                            >
+                              Completar pago
+                            </button>
+                          )}
                           {/* Botón de cancelar solo si está pendiente */}
-                          {(appointment.estado === 'PENDIENTE' || appointment.status === 'pending') && (
-                            <button 
+                          {(appointment.estado === 'PENDIENTE' || appointment.estado === 'PENDIENTE_PAGO' || appointment.status === 'pending') && (
+                            <button
                               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                               onClick={() => {
                                 const reservaId = getReservaId(appointment);

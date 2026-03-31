@@ -5,6 +5,7 @@ import 'dayjs/locale/es.js';
 import { FactoryNotificacion } from '../models/entidades/FactorYNotificacion.js';
 import { EstadoReserva } from '../models/entidades/enums/EstadoReserva.js';
 import logger from '../utils/logger.js';
+import { enviarEmailRecordatorio, enviarEmailCancelacionAutomatica } from './emailService.js';
 
 dayjs.extend(customParseFormat);
 dayjs.locale('es');
@@ -218,6 +219,8 @@ export class RecordatorioService {
                 const notificacion = FactoryNotificacion.crearCancelacionAutomaticaParaCliente(reserva, motivo);
                 cliente.notificaciones.push(notificacion);
                 await this.clienteRepository.save(cliente);
+
+                enviarEmailCancelacionAutomatica(reserva, cliente.email, cliente.nombreUsuario, motivo).catch(() => {})
             }
             // Notificar proveedor
             const proveedor = reserva.servicioReservado?.usuarioProveedor;
@@ -244,6 +247,11 @@ export class RecordatorioService {
                         await this.veterinariaRepository.save(veterinaria);
                     }
                 }
+
+                // Email al proveedor por cancelación automática
+                if (proveedor.email) {
+                    enviarEmailCancelacionAutomatica(reserva, proveedor.email, proveedor.nombreUsuario, motivo).catch(() => {})
+                }
             }
             logger.info(`Reserva ${reserva.id} cancelada automáticamente por falta de confirmación.`);
         } catch (error) {
@@ -263,6 +271,8 @@ export class RecordatorioService {
                 await this.clienteRepository.save(cliente);
 
                 logger.info(`Recordatorio ${tipoRecordatorio} enviado a ${reserva.cliente.nombreUsuario} para reserva ${reserva.id}`);
+
+                enviarEmailRecordatorio(reserva, tipoRecordatorio).catch(() => {})
             } else {
                 logger.error(`Cliente no encontrado para reserva ${reserva.id}`);
             }

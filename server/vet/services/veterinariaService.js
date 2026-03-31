@@ -6,6 +6,7 @@ import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { hashPassword, comparePassword } from "../utils/passwordUtils.js"
 import { sanitizePagination } from "../utils/paginationUtils.js"
+import { enviarEmailBienvenida } from "./emailService.js"
 
 
 export class VeterinariaService {
@@ -92,6 +93,8 @@ export class VeterinariaService {
         const nuevoVeterinaria = new Veterinaria(nombreUsuario, nombreClinica, email, objectDireccion, telefono, contraseniaHasheada)
 
         const veterinariaGuardada = await this.veterinariaRepository.save(nuevoVeterinaria)
+
+        enviarEmailBienvenida(email, nombreUsuario, 'veterinaria').catch(() => {})
 
         return this.toDTO(veterinariaGuardada)
     }

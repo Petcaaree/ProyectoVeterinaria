@@ -11,7 +11,7 @@ import {
     validarPasswordResetToken,
     revocarPasswordResetToken
 } from '../utils/passwordResetUtils.js';
-import { enviarEmailResetPassword } from '../utils/emailUtils.js';
+import { enviarEmailResetPassword } from '../services/emailService.js';
 import { hashPassword } from '../utils/passwordUtils.js';
 import { ClienteModel } from '../models/schemas/clienteSchema.js';
 import { VeterinariaModel } from '../models/schemas/veterinariaSchema.js';

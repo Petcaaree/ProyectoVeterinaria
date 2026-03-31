@@ -16,6 +16,7 @@ import Notificaciones from './components/notificaciones/Notificaciones';
 import MisMascotas from './components/mascotas/MisMascotas';
 import RegistrarMascota from './components/mascotas/RegistrarMascota';
 import ModalAutenticacion from './components/autenticacion/ModalAutenticacion';
+import ResetContrasena from './components/autenticacion/ResetContrasena';
 import MisPaseos from './components/paseadores/MisPaseos';
 import MisServiciosVeterinarios from './components/veterinarios/MisServiciosVeterinarios';
 import MisServiciosCuidadores from './components/cuidadores/MisServiciosCuidadores';
@@ -109,8 +110,20 @@ function App() {
     smoothScrollTo(0);
   }, [currentView]);
   const [estaModalAbierto, setEstaModalAbierto] = useState(false);
-  const [modoAuth, setModoAuth] = useState<'login' | 'registro'>('registro');
+  const [modoAuth, setModoAuth] = useState<'login' | 'registro' | 'forgot-password'>('registro');
+  const [resetToken, setResetToken] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // Detectar ?reset-token=xxx en la URL al montar
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset-token');
+    if (token) {
+      setResetToken(token);
+      // Limpiar el query param de la URL sin recargar
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
   const [errorMessage, setErrorMessage] = useState('');
   const [showRedirectMessage, setShowRedirectMessage] = useState(false);
 
@@ -327,6 +340,30 @@ function App() {
         modo={modoAuth}
         alCambiarModo={setModoAuth}
       />
+
+      {/* Modal de Reset de Contraseña */}
+      {resetToken && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2 sm:p-4 md:p-6 lg:p-8">
+          <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md relative overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-3 sm:p-4 md:p-5 text-white">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-base sm:text-lg md:text-xl font-bold">Restablecer contraseña</h2>
+                  <p className="text-purple-100 text-xs sm:text-sm">Ingresá tu nueva contraseña</p>
+                </div>
+              </div>
+            </div>
+            <ResetContrasena
+              token={resetToken}
+              onVolverAlLogin={() => {
+                setResetToken(null);
+                setModoAuth('login');
+                setEstaModalAbierto(true);
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modal de Error */}
       {showErrorModal && (

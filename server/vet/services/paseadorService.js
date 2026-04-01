@@ -233,6 +233,21 @@ export class PaseadorService {
         return this.notificacionToDTO(notificacion)
     }
 
+    async eliminarNotificacion(idUsuario, idNotificacion) {
+        const paseador = await this.paseadorRepository.findById(idUsuario)
+        if(!paseador) {
+            throw new NotFoundError(`Paseador con id ${idUsuario} no encontrado`)
+        }
+
+        const index = paseador.notificaciones.findIndex(n => n.id == idNotificacion)
+        if(index == -1) {
+            throw new NotFoundError(`Notificacion con ${idNotificacion} no encontrada`)
+        }
+
+        paseador.notificaciones.splice(index, 1)
+        await this.paseadorRepository.save(paseador)
+    }
+
     async marcarTodasLeidas(id) {
         const paseador = await this.paseadorRepository.findById(id)
         if(!paseador) {

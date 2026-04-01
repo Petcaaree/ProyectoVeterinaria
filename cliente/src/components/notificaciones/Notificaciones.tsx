@@ -9,11 +9,11 @@ interface NotificacionesProps {
 
 
 const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => {
-  const [filter, setFilter] = useState<'todas' | 'Noleidas' | 'appointment' | 'reminder' | 'review' | 'payment' | 'system'>('todas');
-  const { usuario, getNotificationes, getNotificacionesNoLeidas, marcarLeidaDelCliente, marcarLeidaDelProveedor, marcarTodasLeidasDelCliente, marcarTodasLeidasDelProveedor, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
-  const [notifications, setNotifications] = useState<any>([]);
+  const [filter, setFilter] = useState<'todas' | 'Noleidas' | 'appointment' | 'reminder' | 'review' | 'payment' | 'system'>('Noleidas');
+  const { usuario, getNotificationes, getNotificacionesNoLeidas, marcarLeidaDelCliente, marcarLeidaDelProveedor, marcarTodasLeidasDelCliente, marcarTodasLeidasDelProveedor, eliminarNotificacionDelUsuario, contadorNotificacionesNoLeidas, cargarContadorNotificaciones } = useAuth();
+    const [notifications, setNotifications] = useState<any>([]);
   const [notificacionesNoLeidas, setNotificacionesNoLeidas] = useState<any>([]);
-  
+
   // Referencia para hacer scroll al navegador de filtros
   const filtersRef = useRef<HTMLDivElement>(null);
   
@@ -252,8 +252,16 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
     }
   };
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  const deleteNotification = async (id: string) => {
+    if (!usuario?.id) return;
+    try {
+      await eliminarNotificacionDelUsuario(usuario.id, id, userType);
+      await cargarTotasNotificacions();
+      await cargarNotificacionesNoLeidas();
+      await cargarContadorNotificaciones();
+    } catch (error) {
+      console.error('Error al eliminar notificación:', error);
+    }
   };
 
   const getTitle = () => {
@@ -326,8 +334,8 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
         <div ref={filtersRef} className="bg-white rounded-2xl shadow-lg p-6 mb-8">
           <div className="flex flex-wrap gap-2">
             {[
-              { key: 'todas', label: 'Todas' },
               { key: 'Noleidas', label: 'No leídas' },
+              { key: 'todas', label: 'Todas' },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -380,58 +388,49 @@ const Notificaciones: React.FC<NotificacionesProps> = ({ userType, onBack }) => 
                   }`}
                 >
                   <div className="p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className={`${iconConfig.bg} p-3 rounded-full flex-shrink-0`}>
-                        <Icon className={`h-6 w-6 ${iconConfig.color}`} />
-                      </div>
-                      
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h3 className={`text-lg font-semibold ${!notification.fechaLeida ? 'text-gray-900' : 'text-gray-700'} mb-1`}>
-                              {notification.title || 'Notificación'}
-                              {!notification.fechaLeida && (
-                                <span className="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
-                              )}
-                            </h3>
-                            <p className="text-gray-600 mb-3 leading-relaxed">
-                              {notification.mensaje}
-                            </p>
-                            <div className="flex items-center space-x-4 text-sm text-gray-500">
-                              <span>{formatDate(notification.fechaAlta)}</span>
-                              
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 ml-4">
-                            {!notification.fechaLeida && (
-                              <button
-                                onClick={() => markAsRead(notification.id)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Marcar como leída"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => deleteNotification(notification.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Eliminar notificación"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                        <h3 className={`text-lg font-semibold ${!notification.fechaLeida ? 'text-gray-900' : 'text-gray-700'} mb-1`}>
+                          {notification.title || 'Notificación'}
+                          {!notification.fechaLeida && (
+                            <span className="ml-2 inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                          )}
+                        </h3>
+                        <p className="text-gray-600 mb-3 leading-relaxed">
+                          {notification.mensaje}
+                        </p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <span>{formatDate(notification.fechaAlta)}</span>
                         </div>
-                        
-                        {notification.actionUrl && (
-                          <div className="mt-4">
-                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
-                              Ver Detalles
-                            </button>
-                          </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 flex-shrink-0">
+                        {!notification.fechaLeida && (
+                          <button
+                            onClick={() => markAsRead(notification.id)}
+                            className="p-2.5 text-purple-600 hover:bg-purple-50 rounded-xl transition-colors border border-purple-200 hover:border-purple-400"
+                            title="Marcar como leída"
+                          >
+                            <CheckCircle className="h-5 w-5" />
+                          </button>
                         )}
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="p-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-red-200 hover:border-red-400"
+                          title="Eliminar notificación"
+                        >
+                          <Trash2 className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
+
+                    {notification.actionUrl && (
+                      <div className="mt-4">
+                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                          Ver Detalles
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

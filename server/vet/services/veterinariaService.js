@@ -236,6 +236,21 @@ export class VeterinariaService {
         return this.notificacionToDTO(notificacion)
     }
 
+    async eliminarNotificacion(idUsuario, idNotificacion) {
+        const veterinaria = await this.veterinariaRepository.findById(idUsuario)
+        if(!veterinaria) {
+            throw new NotFoundError(`Veterinaria con id ${idUsuario} no encontrado`)
+        }
+
+        const index = veterinaria.notificaciones.findIndex(n => n.id == idNotificacion)
+        if(index == -1) {
+            throw new NotFoundError(`Notificacion con ${idNotificacion} no encontrada`)
+        }
+
+        veterinaria.notificaciones.splice(index, 1)
+        await this.veterinariaRepository.save(veterinaria)
+    }
+
     async marcarTodasLeidas(id) {
         const veterinaria = await this.veterinariaRepository.findById(id)
         if(!veterinaria) {

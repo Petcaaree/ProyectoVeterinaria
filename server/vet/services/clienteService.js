@@ -243,6 +243,21 @@ export class ClienteService {
         return this.notificacionToDTO(notificacion)
     }
 
+    async eliminarNotificacion(idUsuario, idNotificacion) {
+        const cliente = await this.clienteRepository.findById(idUsuario)
+        if(!cliente) {
+            throw new NotFoundError(`Cliente con id ${idUsuario} no encontrado`)
+        }
+
+        const index = cliente.notificaciones.findIndex(n => n.id == idNotificacion)
+        if(index == -1) {
+            throw new NotFoundError(`Notificacion con ${idNotificacion} no encontrada`)
+        }
+
+        cliente.notificaciones.splice(index, 1)
+        await this.clienteRepository.save(cliente)
+    }
+
     async marcarTodasLeidas(id) {
         const cliente = await this.clienteRepository.findById(id)
         if(!cliente) {

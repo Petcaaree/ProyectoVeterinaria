@@ -84,6 +84,7 @@ export interface AuthContextType {
    marcarLeidaDelProveedor: (usuarioId: string, notificacionId: string, tipoProveedor: string) => Promise<void>;
    marcarTodasLeidasDelProveedor: (usuarioId: string, tipoProveedor: string) => Promise<void>;
    marcarTodasLeidasDelCliente: (usuarioId: string) => Promise<void>;
+   eliminarNotificacionDelUsuario: (usuarioId: string, notificacionId: string, tipoUsuario: string) => Promise<void>;
    // Contador de notificaciones no leídas
    contadorNotificacionesNoLeidas: number;
    cargarContadorNotificaciones: () => Promise<void>;

@@ -144,6 +144,16 @@ export class ClienteController {
     }
   }
 
+  async eliminarNotificacion(req, res, next) {
+    try {
+      const { id, idNotificacion } = req.params;
+      await this.clienteService.eliminarNotificacion(id, idNotificacion);
+      res.json({ message: 'Notificación eliminada' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async marcarTodasLasNotificacionesLeidas(req, res, next) {
     try {
       const { id } = req.params

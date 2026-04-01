@@ -49,6 +49,10 @@ export default function cuidadorRoutes(getController) {
             getController(CuidadorController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.delete("/petcare/cuidador/:id/notificaciones/:idNotificacion", authMiddleware, authorizationMiddleware('cuidador'), (req, res, next) =>
+            getController(CuidadorController).eliminarNotificacion(req, res, next)
+    )
+
     router.put("/petcare/cuidador/:id/marcarNotificacionLeidas", authMiddleware, authorizationMiddleware('cuidador'), (req, res, next) =>
                 getController(CuidadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )

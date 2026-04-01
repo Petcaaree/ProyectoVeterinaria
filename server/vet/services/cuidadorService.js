@@ -233,6 +233,21 @@ export class CuidadorService {
         return this.notificacionToDTO(notificacion)
     }
 
+    async eliminarNotificacion(idUsuario, idNotificacion) {
+        const cuidador = await this.cuidadorRepository.findById(idUsuario)
+        if(!cuidador) {
+            throw new NotFoundError(`Cuidador con id ${idUsuario} no encontrado`)
+        }
+
+        const index = cuidador.notificaciones.findIndex(n => n.id == idNotificacion)
+        if(index == -1) {
+            throw new NotFoundError(`Notificacion con ${idNotificacion} no encontrada`)
+        }
+
+        cuidador.notificaciones.splice(index, 1)
+        await this.cuidadorRepository.save(cuidador)
+    }
+
     async marcarTodasLeidas(id) {
         const cuidador = await this.cuidadorRepository.findById(id)
         if(!cuidador) {

@@ -629,7 +629,8 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
     'Desparacitacion',    
     'Cirugia',
     'Radiografia',
-    'Ecografia'
+    'Ecografia',
+    'Otro'
     ];
 
   // Generar horarios dinámicamente para veterinarios y paseadores

@@ -49,6 +49,10 @@ export default function paseadorRoutes(getController) {
             getController(PaseadorController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.delete("/petcare/paseador/:id/notificaciones/:idNotificacion", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) =>
+            getController(PaseadorController).eliminarNotificacion(req, res, next)
+    )
+
     router.put("/petcare/paseador/:id/marcarNotificacionLeidas", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) =>
                 getController(PaseadorController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )

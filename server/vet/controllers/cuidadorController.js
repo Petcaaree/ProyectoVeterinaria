@@ -91,6 +91,16 @@ async marcarLeidaNotificacion(req, res, next) {
     }
   }
 
+  async eliminarNotificacion(req, res, next) {
+    try {
+      const { id, idNotificacion } = req.params;
+      await this.cuidadorService.eliminarNotificacion(id, idNotificacion);
+      res.json({ message: 'Notificación eliminada' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async marcarTodasLasNotificacionesLeidas(req, res, next) {
     try {
       const { id } = req.params

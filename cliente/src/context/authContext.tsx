@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
-import {marcarTodasLeidasProveedor, marcarTodasLeidasCliente,marcarLeidaProveedor, marcarLeidaCliente,getTodasReservas, obtenerNotificacionesNoLeidas,obtenerNotificaciones, obtenerContadorNotificacionesNoLeidas, createReserva, obtenerServiciosCuidadores,obtenerServiciosPaseadores,obtenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServicioVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import {marcarTodasLeidasProveedor, marcarTodasLeidasCliente,marcarLeidaProveedor, marcarLeidaCliente,getTodasReservas, obtenerNotificacionesNoLeidas,obtenerNotificaciones, obtenerContadorNotificacionesNoLeidas, eliminarNotificacion as eliminarNotificacionApi, createReserva, obtenerServiciosCuidadores,obtenerServiciosPaseadores,obtenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServicioVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
 import type { AuthContextType, Usuario } from '../types/auth';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -424,6 +424,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const eliminarNotificacionDelUsuario = async (userId: string, notificacionId: string, tipoUsuario: string) => {
+    try {
+      await eliminarNotificacionApi(userId, notificacionId, tipoUsuario);
+    } catch (error) {
+      console.error('Error al eliminar notificación:', error);
+      throw error;
+    }
+  };
+
   const marcarTodasLeidasDelProveedor = async (userId: string, tipoProveedor: string) => {
     try {
       await marcarTodasLeidasProveedor(userId, tipoProveedor);
@@ -483,6 +492,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     marcarLeidaDelProveedor,
     marcarTodasLeidasDelProveedor,
     marcarTodasLeidasDelCliente,
+    eliminarNotificacionDelUsuario,
     obtenerTodasLasReservas,
     crearReserva,
     logout,

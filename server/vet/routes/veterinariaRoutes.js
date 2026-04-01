@@ -49,6 +49,10 @@ export default function veterinariaRoutes(getController) {
             getController(VeterinariaController).marcarLeidaNotificacion(req, res, next)
     )
 
+    router.delete("/petcare/veterinaria/:id/notificaciones/:idNotificacion", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) =>
+            getController(VeterinariaController).eliminarNotificacion(req, res, next)
+    )
+
     router.put("/petcare/veterinaria/:id/marcarNotificacionLeidas", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) =>
             getController(VeterinariaController).marcarTodasLasNotificacionesLeidas(req, res, next)
     )

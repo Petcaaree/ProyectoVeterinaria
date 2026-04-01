@@ -65,6 +65,15 @@ export const marcarTodasLeidasCliente = async (usuarioId) => {
     }
 };
 
+export const eliminarNotificacion = async (usuarioId, notificacionId, tipoUsuario) => {
+    try {
+        await axios.delete(`${API_URL}/${tipoUsuario}/${usuarioId}/notificaciones/${notificacionId}`);
+    } catch (error) {
+        console.error("Error al eliminar la notificación:", error);
+        throw error;
+    }
+};
+
 export const obtenerContadorNotificacionesNoLeidas = async (usuarioId, tipoUsuario) => {
     try {
         let endpoint;

@@ -59,6 +59,12 @@ import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorCo
 import { ReservaController } from "./vet/controllers/reservaController.js";
 import { PagoController } from "./vet/controllers/pagoController.js";
 
+import { AdminRepository } from "./vet/models/repositories/adminRepository.js";
+import { ConfiguracionRepository } from "./vet/models/repositories/configuracionRepository.js";
+import { AdminService } from "./vet/services/adminService.js";
+import { AdminDashboardService } from "./vet/services/adminDashboardService.js";
+import { AdminController } from "./vet/controllers/adminController.js";
+
 import { MongoDBClient } from "./vet/config/database.js";
 import { errorHandler } from "./vet/middlewares/errorHandler.js";
 
@@ -91,6 +97,16 @@ const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cu
 // Hacer el servicio disponible en el contexto de la aplicación
 //app.set('recordatorioService', recordatorioService);
 
+const adminRepo = new AdminRepository();
+const configuracionRepo = new ConfiguracionRepository();
+const adminService = new AdminService(adminRepo);
+const adminDashboardService = new AdminDashboardService(
+    clienteRepo, veterinariaRepo, paseadorRepo, cuidadorRepo,
+    reservaRepo, pagoRepo,
+    servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo,
+    configuracionRepo
+);
+
 const clienteController = new ClienteController(clienteService, reservaService);
 const cuidadorController = new CuidadorController(cuidadorService, reservaService);
 const paseadorController = new PaseadorController(paseadorService, reservaService);
@@ -101,8 +117,7 @@ const servicioPaseadorController = new ServicioPaseadorController(servicioPasead
 const reservaController = new ReservaController(reservaService, pagoService);
 const pagoController = new PagoController(pagoService, reservaService);
 const ciudadController = new CiudadController(ciudadService);
-
-
+const adminController = new AdminController(adminService, adminDashboardService);
 
 const app = express();
 
@@ -190,6 +205,7 @@ server.setController(ServicioPaseadorController, servicioPaseadorController);
 server.setController(ReservaController, reservaController);
 server.setController(PagoController, pagoController);
 server.setController(CiudadController, ciudadController);
+server.setController(AdminController, adminController);
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

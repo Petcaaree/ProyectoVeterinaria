@@ -17,6 +17,7 @@ import { ClienteModel } from '../models/schemas/clienteSchema.js';
 import { VeterinariaModel } from '../models/schemas/veterinariaSchema.js';
 import { PaseadorModel } from '../models/schemas/paseadorSchema.js';
 import { CuidadorModel } from '../models/schemas/cuidadorSchema.js';
+import { AdminModel } from '../models/schemas/adminSchema.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import logger from '../utils/logger.js';
 
@@ -24,7 +25,8 @@ const modelsPorTipo = {
     cliente: ClienteModel,
     veterinaria: VeterinariaModel,
     paseador: PaseadorModel,
-    cuidador: CuidadorModel
+    cuidador: CuidadorModel,
+    admin: AdminModel
 };
 
 const router = express.Router();

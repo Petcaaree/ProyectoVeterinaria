@@ -82,6 +82,14 @@ const paseadorSchema = new mongoose.Schema({
             required: true
         }
     },
+    suspendido: {
+        type: Boolean,
+        default: false,
+    },
+    motivoSuspension: {
+        type: String,
+        default: null,
+    },
 });
 
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)

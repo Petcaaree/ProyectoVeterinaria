@@ -15,6 +15,15 @@ export class PagoRepository {
     return PagoModel.findById(id);
   }
 
+  async getResumenPagos() {
+    const result = await PagoModel.aggregate([
+      { $group: { _id: '$estado', total: { $sum: '$monto' }, count: { $sum: 1 } } }
+    ]);
+    const resumen = {};
+    result.forEach(r => { resumen[r._id] = { total: r.total, count: r.count }; });
+    return resumen;
+  }
+
   async findByReservaId(reservaId) {
     return PagoModel.findOne({ reservaId });
   }

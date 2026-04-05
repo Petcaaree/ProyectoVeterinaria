@@ -32,6 +32,7 @@ import { CuidadorModel } from '../vet/models/schemas/cuidadorSchema.js';
 import { ServicioVeterinariaModel } from '../vet/models/schemas/servicioVeterinariaSchema.js';
 import { ServicioPaseadorModel } from '../vet/models/schemas/servicioPaseadorSchema.js';
 import { ServicioCuidadorModel } from '../vet/models/schemas/servicioCuidadorSchema.js';
+import { AdminModel } from '../vet/models/schemas/adminSchema.js';
 
 // ─── Configuración ────────────────────────────────────────────
 const SEED_PASSWORD = 'Test1234!'; // Cumple regex: mayúscula, minúscula, número, especial, 8+ chars
@@ -73,6 +74,7 @@ async function clearDatabase() {
         ServicioVeterinariaModel.deleteMany({}),
         ServicioPaseadorModel.deleteMany({}),
         ServicioCuidadorModel.deleteMany({}),
+        AdminModel.deleteMany({}),
         CiudadModel.deleteMany({}),
         LocalidadModel.deleteMany({}),
     ]);
@@ -366,6 +368,21 @@ async function seedServiciosCuidador(cuidadores, localidades) {
     return servicios;
 }
 
+async function seedAdmin() {
+    const hash = await bcrypt.hash(SEED_PASSWORD, SALT_ROUNDS);
+
+    const admin = await AdminModel.create({
+        nombreUsuario: 'Administrador',
+        email: 'admin@petconnect.com',
+        contrasenia: hash,
+        telefono: '1100000000',
+        rol: 'superadmin',
+    });
+
+    logOk(`Admin: ${admin.nombreUsuario} (${admin.email})`);
+    return admin;
+}
+
 // ─── Main ─────────────────────────────────────────────────────
 
 async function main() {
@@ -399,6 +416,9 @@ async function main() {
         await seedServiciosPaseador(paseadores, localidades);
         await seedServiciosCuidador(cuidadores, localidades);
 
+        // 4. Admin
+        await seedAdmin();
+
         console.log('\n' + '═'.repeat(60));
         logOk('¡Seed completado exitosamente!');
         console.log('═'.repeat(60));
@@ -417,6 +437,9 @@ async function main() {
   🐕 Paseadores:
      • lucas.paseos@example.com  (Lucas Fernández — Belgrano)
      • sofia.paseos@example.com  (Sofía Martínez — Alberdi, Córdoba)
+
+  🔑 Admin:
+     • admin@petconnect.com  (Administrador)
 
   🏠 Cuidadores:
      • valentina.cuida@example.com  (Valentina Romero — Palermo)

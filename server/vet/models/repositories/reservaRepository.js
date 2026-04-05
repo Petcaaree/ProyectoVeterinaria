@@ -378,6 +378,15 @@ export class ReservaRepository {
     }
 
     
+    async countByEstados() {
+        const result = await this.model.aggregate([
+            { $group: { _id: '$estado', count: { $sum: 1 } } }
+        ]);
+        const conteos = {};
+        result.forEach(r => { conteos[r._id] = r.count; });
+        return conteos;
+    }
+
     async countAll() {
         return await this.model.countDocuments()
     }

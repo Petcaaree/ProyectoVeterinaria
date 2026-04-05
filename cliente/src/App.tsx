@@ -20,11 +20,18 @@ import ResetContrasena from './components/autenticacion/ResetContrasena';
 import MisPaseos from './components/paseadores/MisPaseos';
 import MisServiciosVeterinarios from './components/veterinarios/MisServiciosVeterinarios';
 import MisServiciosCuidadores from './components/cuidadores/MisServiciosCuidadores';
+import AdminDashboard from './components/admin/AdminDashboard';
+import AdminLogin from './components/admin/AdminLogin';
 import { useAuth } from './context/authContext.tsx';
 
+type TipoUsuarioRegular = 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+
 function App() {
-  const { usuario, tipoUsuario } = useAuth();
-  
+  const { tipoUsuario } = useAuth();
+
+  // Tipo sin admin para pasar a componentes que no lo soportan
+  const tipoUsuarioRegular: TipoUsuarioRegular = tipoUsuario === 'admin' ? null : tipoUsuario;
+
   // Función temporal para mapear tipos de español a inglés
   const mapearTipoUsuario = (tipo: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null): 'owner' | 'veterinary' | 'walker' | 'caregiver' | null => {
     if (!tipo) return null;
@@ -61,7 +68,7 @@ function App() {
     return mapeo[servicio];
   };
 
-  const tipoUsuarioIngles = mapearTipoUsuario(tipoUsuario);
+  const tipoUsuarioIngles = mapearTipoUsuario(tipoUsuarioRegular);
   const [currentService, setCurrentService] = useState<'overview' | 'veterinaria' | 'paseador' | 'cuidador'>('overview');
   const handleServiceChange = (service: 'overview' | 'veterinary' | 'walker' | 'caregiver') => {
     // Mapear de inglés a español
@@ -74,8 +81,9 @@ function App() {
     setCurrentService(servicioEspanol);
   };
 
-  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services' | 'payment-success' | 'payment-failure' | 'payment-pending'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services' | 'payment-success' | 'payment-failure' | 'payment-pending' | 'admin-dashboard'>('home');
   const [paymentReservaId, setPaymentReservaId] = useState<string | null>(null);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   // Función de easing para scroll suave
   const easeInOutCubic = (t: number): number => {
@@ -110,6 +118,23 @@ function App() {
   useEffect(() => {
     smoothScrollTo(0);
   }, [currentView]);
+
+  // Detectar ?admin=true para mostrar login de admin
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('admin') === 'true') {
+      setShowAdminLogin(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Si el usuario logueado es admin, ir directo al dashboard
+  useEffect(() => {
+    if (tipoUsuario === 'admin') {
+      setCurrentView('admin-dashboard');
+      setShowAdminLogin(false);
+    }
+  }, [tipoUsuario]);
 
   // Detectar retorno de MercadoPago via query params
   useEffect(() => {
@@ -155,14 +180,16 @@ function App() {
       'cliente': ['home', 'create-service', 'appointments', 'notifications', 'my-pets', 'register-pet', 'payment-success', 'payment-failure', 'payment-pending'],
       'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services', 'payment-success', 'payment-failure', 'payment-pending'],
       'paseador': ['home', 'create-service', 'appointments', 'notifications', 'my-walks', 'payment-success', 'payment-failure', 'payment-pending'],
-      'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services', 'payment-success', 'payment-failure', 'payment-pending']
+      'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services', 'payment-success', 'payment-failure', 'payment-pending'],
+      'admin': ['admin-dashboard']
     };
 
     // Vistas que requieren autenticación
     const vistasQueRequierenAutenticacion = [
       'appointments', 'notifications', 'my-pets', 'register-pet',
       'my-walks', 'my-vet-services', 'my-care-services',
-      'payment-success', 'payment-failure', 'payment-pending'
+      'payment-success', 'payment-failure', 'payment-pending',
+      'admin-dashboard'
     ];
 
     // Si no hay usuario logueado y está en una vista que requiere autenticación
@@ -210,7 +237,7 @@ function App() {
   const handleRegistrarMascota = () => {
     if (tipoUsuario === 'cliente') {
       setCurrentView('register-pet');
-    } else if (tipoUsuario && tipoUsuario !== 'cliente') {
+    } else if (tipoUsuario) {
       setErrorMessage('Solo los dueños de mascotas pueden registrar mascotas. Tu cuenta actual es de tipo: ' + getUserTypeLabel(tipoUsuario));
       setShowErrorModal(true);
     } else {
@@ -278,6 +305,11 @@ function App() {
   };
 
   const renderContent = () => {
+    // Admin dashboard - layout completo propio
+    if (currentView === 'admin-dashboard') {
+      return <AdminDashboard onLogout={() => { handleUserLogout(); setShowAdminLogin(false); }} />;
+    }
+
     if (currentView === 'payment-success') {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -356,19 +388,19 @@ function App() {
     }
 
     if (currentView === 'create-service') {
-      return <CrearServicio userType={tipoUsuario as 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
+      return <CrearServicio userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
     }
     
     if (currentView === 'appointments') {
-      return <MisTurnos userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <MisTurnos userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} />;
     }
     
     if (currentView === 'notifications') {
-      return <Notificaciones userType={tipoUsuario} onBack={() => setCurrentView('home')} />;
+      return <Notificaciones userType={tipoUsuarioRegular!} onBack={() => setCurrentView('home')} />;
     }
     
     if (currentView === 'my-pets') {
-      return <MisMascotas userType={tipoUsuario} onBack={() => setCurrentView('home')} onRegisterPet={() => setCurrentView('register-pet')} />;
+      return <MisMascotas userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onRegisterPet={() => setCurrentView('register-pet')} />;
     }
     
     if (currentView === 'register-pet') {
@@ -376,24 +408,24 @@ function App() {
     }
     
     if (currentView === 'my-walks') {
-      return <MisPaseos userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
+      return <MisPaseos userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-vet-services') {
-      return <MisServiciosVeterinarios userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
+      return <MisServiciosVeterinarios userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
     
     if (currentView === 'my-care-services') {
-      return <MisServiciosCuidadores userType={tipoUsuario} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
+      return <MisServiciosCuidadores userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
     }
 
     switch (currentService) {
       case 'veterinaria':
-        return <PaginaVeterinaria userType={tipoUsuario} />;
+        return <PaginaVeterinaria userType={tipoUsuarioRegular} />;
       case 'paseador':
-        return <PaginaPaseadores userType={tipoUsuario} />;
+        return <PaginaPaseadores userType={tipoUsuarioRegular} />;
       case 'cuidador':
-        return <PaginaCuidadores userType={tipoUsuario} />;
+        return <PaginaCuidadores userType={tipoUsuarioRegular} />;
       default:
         return (
           <>
@@ -407,24 +439,42 @@ function App() {
               onExploreServicesClick={handleExploreServices}
             />
             <Servicios />
-            <ServiciosVeterinarios userType={tipoUsuario} />
-            <ServiciosPaseadores userType={tipoUsuario} />
-            <ServiciosCuidadores userType={tipoUsuario} />
+            <ServiciosVeterinarios userType={tipoUsuarioRegular} />
+            <ServiciosPaseadores userType={tipoUsuarioRegular} />
+            <ServiciosCuidadores userType={tipoUsuarioRegular} />
           </>
         );
     }
   };
 
+  // Si se muestra admin login (via ?admin=true) y no hay usuario admin logueado
+  if (showAdminLogin && tipoUsuario !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <AdminLogin onSuccess={() => { /* el useEffect de tipoUsuario se encarga */ }} onBack={() => setShowAdminLogin(false)} />
+      </div>
+    );
+  }
+
+  // Admin tiene su propio layout completo - siempre muestra el dashboard
+  if (tipoUsuario === 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <AdminDashboard onLogout={() => { handleUserLogout(); setShowAdminLogin(false); }} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      <Encabezado 
-        onServiceChange={setCurrentService} 
+      <Encabezado
+        onServiceChange={setCurrentService}
         onViewChange={handleViewChange}
         onUserLogin={handleUserLogin}
         onUserLogout={handleUserLogout}
       />
       {currentView === 'home' && (
-        <NavegacionServicios 
+        <NavegacionServicios
           currentService={mapearServicio(currentService)}
           onServiceChange={handleServiceChange}
         />

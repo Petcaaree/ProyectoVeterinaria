@@ -42,7 +42,7 @@ export interface Usuario {
 
 export interface AuthContextType {
   usuario: Usuario | null;
-  tipoUsuario: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  tipoUsuario: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | 'admin' | null;
   login: (usuarioData: Usuario, tipo: string) => void;
   loginWithCredentials: (email: string, contrasenia: string, tipoUsuario: string) => Promise<Usuario>;
   registerWithCredentials: (

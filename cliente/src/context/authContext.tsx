@@ -19,11 +19,11 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [tipoUsuario, setTipoUsuario] = useState<'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null>(null);
+  const [tipoUsuario, setTipoUsuario] = useState<'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | 'admin' | null>(null);
   const [contadorNotificacionesNoLeidas, setContadorNotificacionesNoLeidas] = useState<number>(0);
 
-  const isValidUserType = (tipo: string): tipo is 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' => {
-    return ['cliente', 'veterinaria', 'paseador', 'cuidador'].includes(tipo);
+  const isValidUserType = (tipo: string): tipo is 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | 'admin' => {
+    return ['cliente', 'veterinaria', 'paseador', 'cuidador', 'admin'].includes(tipo);
   };
 
   useEffect(() => {
@@ -42,10 +42,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (tipoFinal) {
           setTipoUsuario(tipoFinal);
-          // M4 FIX: Una sola llamada al contador (antes estaba duplicada)
-          obtenerContadorNotificacionesNoLeidas(userParsed.id, tipoFinal)
-            .then(contador => setContadorNotificacionesNoLeidas(contador))
-            .catch(() => setContadorNotificacionesNoLeidas(0));
+          // Admin no tiene notificaciones
+          if (tipoFinal !== 'admin') {
+            obtenerContadorNotificacionesNoLeidas(userParsed.id, tipoFinal)
+              .then(contador => setContadorNotificacionesNoLeidas(contador))
+              .catch(() => setContadorNotificacionesNoLeidas(0));
+          }
         }
       } catch (error) {
         console.error('Error al parsear usuario:', error);
@@ -73,12 +75,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('usuario', JSON.stringify(usuarioData));
     localStorage.setItem('tipoUsuario', tipo);
     
-    // Cargar contador de notificaciones después del login
-    try {
-      const contador = await obtenerContadorNotificacionesNoLeidas(usuarioData.id, tipo);
-      setContadorNotificacionesNoLeidas(contador);
-    } catch (error) {
-      console.error('Error al cargar contador de notificaciones tras login:', error);
+    // Cargar contador de notificaciones después del login (admin no tiene)
+    if (tipo !== 'admin') {
+      try {
+        const contador = await obtenerContadorNotificacionesNoLeidas(usuarioData.id, tipo);
+        setContadorNotificacionesNoLeidas(contador);
+      } catch (error) {
+        console.error('Error al cargar contador de notificaciones tras login:', error);
+      }
     }
   };
 
@@ -100,12 +104,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('refreshToken', refreshToken);
       }
 
-      // Cargar contador de notificaciones después del login
-      try {
-        const contador = await obtenerContadorNotificacionesNoLeidas(usuarioCompleto.id, tipoUsuario);
-        setContadorNotificacionesNoLeidas(contador);
-      } catch (counterError) {
-        console.error('Error al cargar contador de notificaciones tras login:', counterError);
+      // Cargar contador de notificaciones después del login (admin no tiene)
+      if (tipoUsuario !== 'admin') {
+        try {
+          const contador = await obtenerContadorNotificacionesNoLeidas(usuarioCompleto.id, tipoUsuario);
+          setContadorNotificacionesNoLeidas(contador);
+        } catch (counterError) {
+          console.error('Error al cargar contador de notificaciones tras login:', counterError);
+        }
       }
 
       return usuarioCompleto;
@@ -446,7 +452,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Funciones para manejar el contador de notificaciones no leídas
   const cargarContadorNotificaciones = async () => {
-    if (!usuario || !tipoUsuario) return;
+    if (!usuario || !tipoUsuario || tipoUsuario === 'admin') return;
     
     try {
       const contador = await obtenerContadorNotificacionesNoLeidas(usuario.id, tipoUsuario);

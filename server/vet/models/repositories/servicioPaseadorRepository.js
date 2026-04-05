@@ -10,6 +10,22 @@ export class ServicioPaseadorRepository {
         return await this.model.countDocuments()
     }
 
+    async countByEstado(estado) {
+        return await this.model.countDocuments({ estado });
+    }
+
+    async findByPageAdmin(pageNum, limitNum, estado) {
+        const query = estado ? { estado } : {};
+        const skip = (pageNum - 1) * limitNum;
+        const servicios = await this.model.find(query)
+            .skip(skip)
+            .limit(limitNum)
+            .populate('usuarioProveedor')
+            .populate({ path: 'direccion.localidad', populate: { path: 'ciudad' } });
+        const total = await this.model.countDocuments(query);
+        return { servicios, total };
+    }
+
     async save(servicioPaseador) {
         if(servicioPaseador.id) {
             

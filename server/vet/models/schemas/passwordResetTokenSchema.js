@@ -15,7 +15,7 @@ const passwordResetTokenSchema = new mongoose.Schema({
     tipoUsuario: {
         type: String,
         required: true,
-        enum: ['cliente', 'veterinaria', 'paseador', 'cuidador']
+        enum: ['cliente', 'veterinaria', 'paseador', 'cuidador', 'admin']
     },
     expiresAt: {
         type: Date,

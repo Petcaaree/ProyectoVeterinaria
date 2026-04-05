@@ -119,7 +119,15 @@ const clienteSchema = new mongoose.Schema({
         minlength: 2,   
         maxlength: 1000
         }],
-    }]
+    }],
+    suspendido: {
+        type: Boolean,
+        default: false,
+    },
+    motivoSuspension: {
+        type: String,
+        default: null,
+    },
 });
 
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)

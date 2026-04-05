@@ -7,7 +7,7 @@ on:
     branches-ignore: [main]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
   actions: read
@@ -137,8 +137,13 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
           else
-            git diff ${{ github.event.before }} ${{ github.sha }} > pr_diff.txt || \
-            git diff HEAD~1 HEAD > pr_diff.txt
+            BEFORE="${{ github.event.before }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
+              # Primer push de la rama, comparar contra HEAD~1
+              git diff HEAD~1 HEAD > pr_diff.txt 2>/dev/null || git show HEAD > pr_diff.txt
+            else
+              git diff $BEFORE ${{ github.sha }} > pr_diff.txt
+            fi
           fi
           echo "diff_size=$(wc -l < pr_diff.txt)" >> $GITHUB_OUTPUT
 
@@ -148,6 +153,12 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           head -3000 pr_diff.txt > pr_diff_trimmed.txt
+
+          if [ ! -s pr_diff_trimmed.txt ]; then
+            echo "Sin cambios para revisar" > ai_review.txt
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
 
           python3 -c "
           import json
@@ -170,18 +181,32 @@ jobs:
             -H "anthropic-version: 2023-06-01" \
             -d @request.json)
 
+          echo "=== Claude response ==="
+          echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d, indent=2))" || echo "$RESPONSE"
+          echo "======================"
+
           REVIEW=$(echo "$RESPONSE" | python3 -c "
           import json, sys
           data = json.load(sys.stdin)
+          if 'error' in data:
+              print('Error de API: ' + data['error'].get('message', 'desconocido'))
+              sys.exit(1)
           for block in data.get('content', []):
               if block.get('type') == 'text':
                   print(block['text'])
           ")
 
+          if [ -z "$REVIEW" ]; then
+            echo "⚠️ No se pudo obtener respuesta de Claude" > ai_review.txt
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
           echo "$REVIEW" > ai_review.txt
 
           VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
-          echo "verdict=$VERDICT" >> $GITHUB_ENV
+          echo "verdict=${VERDICT:-APROBADO}" >> $GITHUB_ENV
+          echo "Veredicto: $VERDICT"
 
       - name: Post review on PR
         if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'

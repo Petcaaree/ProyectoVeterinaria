@@ -7,9 +7,10 @@ on:
     branches-ignore: [main]
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
   issues: write
+  actions: read
 
 jobs:
   # ─────────────────────────────────────────────
@@ -24,22 +25,18 @@ jobs:
         with:
           node-version: '20'
 
-      # Instalar dependencias del cliente
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
 
-      # Instalar dependencias del server
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci || npm install
 
-      # Lint cliente (si tiene eslint configurado)
       - name: Lint cliente
         working-directory: ./cliente
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en cliente, skipping..."
 
-      # Lint server
       - name: Lint server
         working-directory: ./server
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en server, skipping..."
@@ -124,21 +121,29 @@ jobs:
           echo "✅ Server dependencies OK"
 
   # ─────────────────────────────────────────────
-  # 5. AI CODE REVIEW (BLOQUEANTE)
+  # 5. AI CODE REVIEW
   # ─────────────────────────────────────────────
   ai-review:
     name: "🤖 AI Code Review"
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get PR diff
+      - name: Get diff
         id: diff
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
+              git diff HEAD~1 HEAD > pr_diff.txt 2>/dev/null || git show HEAD > pr_diff.txt
+            else
+              git diff $BEFORE ${{ github.sha }} > pr_diff.txt
+            fi
+          fi
           echo "diff_size=$(wc -l < pr_diff.txt)" >> $GITHUB_OUTPUT
 
       - name: AI Review with Claude
@@ -146,45 +151,75 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          DIFF=$(cat pr_diff.txt | head -3000)
+          head -3000 pr_diff.txt > pr_diff_trimmed.txt
 
-          DIFF_ESCAPED=$(echo "$DIFF" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          if [ ! -s pr_diff_trimmed.txt ]; then
+            echo "Sin cambios para revisar" > ai_review.txt
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
+          python3 -c "
+          import json
+          diff = open('pr_diff_trimmed.txt').read()
+          payload = {
+            'model': 'claude-sonnet-4-20250514',
+            'max_tokens': 2000,
+            'messages': [{
+              'role': 'user',
+              'content': 'Sos un code reviewer senior estricto. Analizá este diff y respondé con EXACTAMENTE este formato:\n\n## Resumen de Cambios\n(describí qué se cambió)\n\n## Problemas Encontrados\n(listá bugs, vulnerabilidades, problemas de performance, malas prácticas. Si no hay problemas, decí \"No se encontraron problemas críticos.\")\n\n## Sugerencias de Mejora\n(mejoras opcionales)\n\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n(explicá por qué)\n\nIMPORTANTE: La ÚLTIMA LÍNEA de tu respuesta DEBE ser exactamente VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS\n\nDiff:\n' + diff
+            }]
+          }
+          with open('request.json', 'w') as f:
+            json.dump(payload, f)
+          "
 
           RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
             -H "content-type: application/json" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
-            -d "{
-              \"model\": \"claude-sonnet-4-20250514\",
-              \"max_tokens\": 2000,
-              \"messages\": [{
-                \"role\": \"user\",
-                \"content\": \"Sos un code reviewer senior estricto. Analizá este diff y respondé con EXACTAMENTE este formato:\\n\\n## Resumen de Cambios\\n(describí qué se cambió)\\n\\n## Problemas Encontrados\\n(listá bugs, vulnerabilidades, problemas de performance, malas prácticas. Si no hay problemas, decí 'No se encontraron problemas críticos.')\\n\\n## Sugerencias de Mejora\\n(mejoras opcionales)\\n\\n## Veredicto\\nAPROBADO o CAMBIOS_NECESARIOS\\n(explicá por qué)\\n\\nIMPORTANTE: La ÚLTIMA LÍNEA de tu respuesta DEBE ser exactamente VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS\\n\\nDiff:\\n${DIFF_ESCAPED}\"
-              }]
-            }")
+            -d @request.json)
+
+          echo "=== Claude response ==="
+          echo "$RESPONSE" | python3 -c "import json,sys; d=json.load(sys.stdin); print(json.dumps(d, indent=2))" || echo "$RESPONSE"
+          echo "======================"
 
           REVIEW=$(echo "$RESPONSE" | python3 -c "
           import json, sys
           data = json.load(sys.stdin)
+          if 'error' in data:
+              print('⚠️ AI Review no disponible: ' + data['error'].get('message', 'desconocido'))
+              sys.exit(0)
           for block in data.get('content', []):
               if block.get('type') == 'text':
                   print(block['text'])
           ")
 
+          if [ -z "$REVIEW" ]; then
+            echo "⚠️ No se pudo obtener respuesta de Claude" > ai_review.txt
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
           echo "$REVIEW" > ai_review.txt
 
+          if echo "$REVIEW" | grep -q "^⚠️"; then
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
           VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
-          echo "verdict=$VERDICT" >> $GITHUB_ENV
+          echo "verdict=${VERDICT:-APROBADO}" >> $GITHUB_ENV
           echo "Veredicto: $VERDICT"
 
-      - name: Post review comment on PR
-        if: steps.diff.outputs.diff_size > 0
+      - name: Post review on PR
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const review = fs.readFileSync('ai_review.txt', 'utf8');
-            const verdict = process.env.verdict || 'DESCONOCIDO';
+            const verdict = process.env.verdict || 'APROBADO';
             const icon = verdict === 'APROBADO' ? '✅' : '❌';
 
             await github.rest.issues.createComment({
@@ -194,17 +229,31 @@ jobs:
               body: `## 🤖 AI Code Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
             });
 
+      - name: Post review on commit
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('ai_review.txt', 'utf8');
+            const verdict = process.env.verdict || 'APROBADO';
+            const icon = verdict === 'APROBADO' ? '✅' : '❌';
+
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## 🤖 AI Code Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
+            });
+
       - name: Block if not approved
-        if: steps.diff.outputs.diff_size > 0
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'
         run: |
           if [ "${{ env.verdict }}" = "CAMBIOS_NECESARIOS" ]; then
-            echo "❌ AI Review rechazó el código. Revisá los comentarios en el PR."
+            echo "❌ AI Review rechazó el código."
             exit 1
-          elif [ "${{ env.verdict }}" = "APROBADO" ]; then
-            echo "✅ AI Review aprobó el código."
           else
-            echo "✅ Veredicto no determinado, aprobando por defecto"
-            exit 0
+            echo "✅ AI Review aprobó el código (o no estaba disponible)."
           fi
 
   # ─────────────────────────────────────────────
@@ -228,26 +277,102 @@ jobs:
           READY=true
           FAILURES=""
 
-          [ "$LINT" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Linting falló\n"
-          [ "$TESTS" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Tests fallaron\n"
-          [ "$SECURITY" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Security encontró vulnerabilidades\n"
-          [ "$BUILD" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Build falló\n"
-          [ "$AI" != "success" ] && [ "$AI" != "skipped" ] && READY=false && FAILURES="$FAILURES- ❌ AI Review no aprobó\n"
+          [ "$LINT" != "success" ] && READY=false && FAILURES="$FAILURES lint"
+          [ "$TESTS" != "success" ] && READY=false && FAILURES="$FAILURES tests"
+          [ "$SECURITY" != "success" ] && READY=false && FAILURES="$FAILURES security"
+          [ "$BUILD" != "success" ] && READY=false && FAILURES="$FAILURES build"
+          [ "$AI" != "success" ] && [ "$AI" != "skipped" ] && READY=false && FAILURES="$FAILURES ai-review"
 
           echo "ready=$READY" >> $GITHUB_OUTPUT
-          {
-            echo "failures<<EOF"
-            echo -e "$FAILURES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+
+      - name: Explain failures with Claude
+        if: steps.evaluate.outputs.ready == 'false'
+        uses: actions/github-script@v7
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          script: |
+            const failedJobs = '${{ steps.evaluate.outputs.failures }}'.trim().split(' ').filter(Boolean);
+
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const jobNameMap = {
+              'lint': '🔍 Linting & Style',
+              'tests': '🧪 Tests',
+              'security': '🔒 Security Scan',
+              'build': '🏗️ Build',
+              'ai-review': '🤖 AI Code Review'
+            };
+
+            let explanations = [];
+
+            for (const failedKey of failedJobs) {
+              const jobName = jobNameMap[failedKey];
+              const job = jobs.data.jobs.find(j => j.name === jobName);
+              if (!job) continue;
+
+              let logText = '';
+              try {
+                const logsResponse = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  job_id: job.id
+                });
+                logText = logsResponse.data.toString().slice(-6000);
+              } catch (e) {
+                logText = `No se pudieron obtener los logs: ${e.message}`;
+              }
+
+              const payload = {
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 800,
+                messages: [{
+                  role: 'user',
+                  content: `Estos son los logs del job "${jobName}" de un pipeline de GitHub Actions que falló. Explicá en español y de forma concisa:\n1. Qué salió mal exactamente\n2. La causa más probable\n3. Cómo solucionarlo\n\nSé directo, sin preamble. Logs:\n\n${logText}`
+                }]
+              };
+
+              const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'content-type': 'application/json',
+                  'x-api-key': process.env.ANTHROPIC_API_KEY,
+                  'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify(payload)
+              });
+
+              const data = await response.json();
+              const explanation = data.content?.find(b => b.type === 'text')?.text || 'No se pudo obtener explicación.';
+              explanations.push({ job: jobName, explanation });
+            }
+
+            const fs = require('fs');
+            fs.writeFileSync('explanations.json', JSON.stringify(explanations));
 
       - name: Post deploy readiness report
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const ready = '${{ steps.evaluate.outputs.ready }}' === 'true';
-            const failures = `${{ steps.evaluate.outputs.failures }}`;
             const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
+
+            let errorSection = '';
+            try {
+              const explanations = JSON.parse(fs.readFileSync('explanations.json', 'utf8'));
+              if (explanations.length > 0) {
+                errorSection = '\n\n---\n\n## 🔍 Análisis de Errores\n\n';
+                for (const { job, explanation } of explanations) {
+                  errorSection += `### ${job}\n${explanation}\n\n`;
+                }
+              }
+            } catch (e) {}
 
             const body = `## 🚀 Deploy Readiness Report
 
@@ -263,8 +388,8 @@ jobs:
 
             ${ready
               ? '### ✅ READY TO DEPLOY\nTodos los checks pasaron correctamente. Este PR puede ser mergeado y deployado con confianza.'
-              : `### ❌ NOT READY TO DEPLOY\n\n**Problemas detectados:**\n${failures}\nCorregí estos problemas y pusheá de nuevo para re-ejecutar el pipeline.`
-            }
+              : '### ❌ NOT READY TO DEPLOY\nCorregí los problemas indicados abajo y pusheá de nuevo para re-ejecutar el pipeline.'
+            }${errorSection}
 
             ---
             *⏱️ Ejecutado: ${new Date().toISOString()}*`;
@@ -284,4 +409,3 @@ jobs:
             echo "❌ Pipeline failed - Cannot deploy"
             exit 1
           fi
-

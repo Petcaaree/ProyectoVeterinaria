@@ -323,7 +323,7 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000] p-4"
       onClick={manejarClickFondo}
     >
       <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-in fade-in zoom-in duration-200">

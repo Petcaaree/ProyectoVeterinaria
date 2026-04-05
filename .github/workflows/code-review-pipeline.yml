@@ -146,22 +146,30 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          DIFF=$(cat pr_diff.txt | head -3000)
+          head -3000 pr_diff.txt > pr_diff_trimmed.txt
 
-          DIFF_ESCAPED=$(echo "$DIFF" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+          DIFF_ESCAPED=$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' < pr_diff_trimmed.txt)
+
+          python3 -c "
+          import json
+          diff = open('pr_diff_trimmed.txt').read()
+          payload = {
+            'model': 'claude-sonnet-4-20250514',
+            'max_tokens': 2000,
+            'messages': [{
+              'role': 'user',
+              'content': 'Sos un code reviewer senior estricto. Analizá este diff y respondé con EXACTAMENTE este formato:\n\n## Resumen de Cambios\n(describí qué se cambió)\n\n## Problemas Encontrados\n(listá bugs, vulnerabilidades, problemas de performance, malas prácticas. Si no hay problemas, decí \"No se encontraron problemas críticos.\")\n\n## Sugerencias de Mejora\n(mejoras opcionales)\n\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n(explicá por qué)\n\nIMPORTANTE: La ÚLTIMA LÍNEA de tu respuesta DEBE ser exactamente VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS\n\nDiff:\n' + diff
+            }]
+          }
+          with open('request.json', 'w') as f:
+            json.dump(payload, f)
+          "
 
           RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
             -H "content-type: application/json" \
             -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
-            -d "{
-              \"model\": \"claude-sonnet-4-20250514\",
-              \"max_tokens\": 2000,
-              \"messages\": [{
-                \"role\": \"user\",
-                \"content\": \"Sos un code reviewer senior estricto. Analizá este diff y respondé con EXACTAMENTE este formato:\\n\\n## Resumen de Cambios\\n(describí qué se cambió)\\n\\n## Problemas Encontrados\\n(listá bugs, vulnerabilidades, problemas de performance, malas prácticas. Si no hay problemas, decí 'No se encontraron problemas críticos.')\\n\\n## Sugerencias de Mejora\\n(mejoras opcionales)\\n\\n## Veredicto\\nAPROBADO o CAMBIOS_NECESARIOS\\n(explicá por qué)\\n\\nIMPORTANTE: La ÚLTIMA LÍNEA de tu respuesta DEBE ser exactamente VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS\\n\\nDiff:\\n${DIFF_ESCAPED}\"
-              }]
-            }")
+            -d @request.json)
 
           REVIEW=$(echo "$RESPONSE" | python3 -c "
           import json, sys

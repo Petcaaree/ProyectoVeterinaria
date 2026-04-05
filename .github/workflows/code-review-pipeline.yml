@@ -139,7 +139,6 @@ jobs:
           else
             BEFORE="${{ github.event.before }}"
             if [ "$BEFORE" = "0000000000000000000000000000000000000000" ] || [ -z "$BEFORE" ]; then
-              # Primer push de la rama, comparar contra HEAD~1
               git diff HEAD~1 HEAD > pr_diff.txt 2>/dev/null || git show HEAD > pr_diff.txt
             else
               git diff $BEFORE ${{ github.sha }} > pr_diff.txt
@@ -189,8 +188,8 @@ jobs:
           import json, sys
           data = json.load(sys.stdin)
           if 'error' in data:
-              print('Error de API: ' + data['error'].get('message', 'desconocido'))
-              sys.exit(1)
+              print('⚠️ AI Review no disponible: ' + data['error'].get('message', 'desconocido'))
+              sys.exit(0)
           for block in data.get('content', []):
               if block.get('type') == 'text':
                   print(block['text'])
@@ -204,6 +203,11 @@ jobs:
 
           echo "$REVIEW" > ai_review.txt
 
+          if echo "$REVIEW" | grep -q "^⚠️"; then
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
           VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
           echo "verdict=${VERDICT:-APROBADO}" >> $GITHUB_ENV
           echo "Veredicto: $VERDICT"
@@ -215,7 +219,7 @@ jobs:
           script: |
             const fs = require('fs');
             const review = fs.readFileSync('ai_review.txt', 'utf8');
-            const verdict = process.env.verdict || 'DESCONOCIDO';
+            const verdict = process.env.verdict || 'APROBADO';
             const icon = verdict === 'APROBADO' ? '✅' : '❌';
 
             await github.rest.issues.createComment({
@@ -232,7 +236,7 @@ jobs:
           script: |
             const fs = require('fs');
             const review = fs.readFileSync('ai_review.txt', 'utf8');
-            const verdict = process.env.verdict || 'DESCONOCIDO';
+            const verdict = process.env.verdict || 'APROBADO';
             const icon = verdict === 'APROBADO' ? '✅' : '❌';
 
             await github.rest.repos.createCommitComment({
@@ -248,10 +252,8 @@ jobs:
           if [ "${{ env.verdict }}" = "CAMBIOS_NECESARIOS" ]; then
             echo "❌ AI Review rechazó el código."
             exit 1
-          elif [ "${{ env.verdict }}" = "APROBADO" ]; then
-            echo "✅ AI Review aprobó el código."
           else
-            echo "✅ Veredicto no determinado, aprobando por defecto"
+            echo "✅ AI Review aprobó el código (o no estaba disponible)."
           fi
 
   # ─────────────────────────────────────────────

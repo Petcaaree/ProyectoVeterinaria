@@ -10,6 +10,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  actions: read  # ← NUEVO: necesario para leer logs de jobs
 
 jobs:
   # ─────────────────────────────────────────────
@@ -23,23 +24,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
-      # Instalar dependencias del cliente
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
-
-      # Instalar dependencias del server
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci || npm install
-
-      # Lint cliente (si tiene eslint configurado)
       - name: Lint cliente
         working-directory: ./cliente
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en cliente, skipping..."
-
-      # Lint server
       - name: Lint server
         working-directory: ./server
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en server, skipping..."
@@ -55,19 +48,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
-
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci || npm install
-
       - name: Test cliente
         working-directory: ./cliente
         run: npm test -- --watchAll=false --passWithNoTests 2>/dev/null || echo "⚠️ No hay tests en cliente, skipping..."
-
       - name: Test server
         working-directory: ./server
         run: npm test --passWithNoTests 2>/dev/null || echo "⚠️ No hay tests en server, skipping..."
@@ -80,7 +69,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -88,7 +76,6 @@ jobs:
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
-
       - name: Gitleaks secret scanning
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -107,15 +94,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
-
       - name: Build cliente
         working-directory: ./cliente
         run: npm run build || echo "⚠️ No build script en cliente, skipping..."
-
       - name: Verify server starts
         working-directory: ./server
         run: |
@@ -147,8 +131,6 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           head -3000 pr_diff.txt > pr_diff_trimmed.txt
-
-          DIFF_ESCAPED=$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' < pr_diff_trimmed.txt)
 
           python3 -c "
           import json
@@ -236,26 +218,112 @@ jobs:
           READY=true
           FAILURES=""
 
-          [ "$LINT" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Linting falló\n"
-          [ "$TESTS" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Tests fallaron\n"
-          [ "$SECURITY" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Security encontró vulnerabilidades\n"
-          [ "$BUILD" != "success" ] && READY=false && FAILURES="$FAILURES- ❌ Build falló\n"
-          [ "$AI" != "success" ] && [ "$AI" != "skipped" ] && READY=false && FAILURES="$FAILURES- ❌ AI Review no aprobó\n"
+          [ "$LINT" != "success" ] && READY=false && FAILURES="$FAILURES lint"
+          [ "$TESTS" != "success" ] && READY=false && FAILURES="$FAILURES tests"
+          [ "$SECURITY" != "success" ] && READY=false && FAILURES="$FAILURES security"
+          [ "$BUILD" != "success" ] && READY=false && FAILURES="$FAILURES build"
+          [ "$AI" != "success" ] && [ "$AI" != "skipped" ] && READY=false && FAILURES="$FAILURES ai-review"
 
           echo "ready=$READY" >> $GITHUB_OUTPUT
-          {
-            echo "failures<<EOF"
-            echo -e "$FAILURES"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
+          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
+
+      # ── NUEVO: Buscar logs de los jobs que fallaron y pedirle a Claude que explique ──
+      - name: Explain failures with Claude
+        if: steps.evaluate.outputs.ready == 'false'
+        uses: actions/github-script@v7
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        with:
+          script: |
+            const failedJobs = '${{ steps.evaluate.outputs.failures }}'.trim().split(' ').filter(Boolean);
+
+            // Obtener todos los jobs de este workflow run
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId
+            });
+
+            const jobNameMap = {
+              'lint': '🔍 Linting & Style',
+              'tests': '🧪 Tests',
+              'security': '🔒 Security Scan',
+              'build': '🏗️ Build',
+              'ai-review': '🤖 AI Code Review'
+            };
+
+            let explanations = [];
+
+            for (const failedKey of failedJobs) {
+              const jobName = jobNameMap[failedKey];
+              const job = jobs.data.jobs.find(j => j.name === jobName);
+              if (!job) continue;
+
+              // Descargar logs del job fallido
+              let logText = '';
+              try {
+                const logsResponse = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  job_id: job.id
+                });
+                // Tomar los últimos 6000 chars (donde suele estar el error)
+                logText = logsResponse.data.toString().slice(-6000);
+              } catch (e) {
+                logText = `No se pudieron obtener los logs: ${e.message}`;
+              }
+
+              // Pedirle a Claude que explique el error
+              const payload = {
+                model: 'claude-sonnet-4-20250514',
+                max_tokens: 800,
+                messages: [{
+                  role: 'user',
+                  content: `Estos son los logs del job "${jobName}" de un pipeline de GitHub Actions que falló. Explicá en español y de forma concisa:\n1. Qué salió mal exactamente\n2. La causa más probable\n3. Cómo solucionarlo\n\nSé directo, sin preamble. Logs:\n\n${logText}`
+                }]
+              };
+
+              const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'content-type': 'application/json',
+                  'x-api-key': process.env.ANTHROPIC_API_KEY,
+                  'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify(payload)
+              });
+
+              const data = await response.json();
+              const explanation = data.content?.find(b => b.type === 'text')?.text || 'No se pudo obtener explicación.';
+
+              explanations.push({ job: jobName, explanation });
+            }
+
+            // Guardar las explicaciones para el siguiente step
+            const fs = require('fs');
+            fs.writeFileSync('explanations.json', JSON.stringify(explanations));
 
       - name: Post deploy readiness report
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const ready = '${{ steps.evaluate.outputs.ready }}' === 'true';
-            const failures = `${{ steps.evaluate.outputs.failures }}`;
             const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
+
+            // ── NUEVO: cargar explicaciones de errores si las hay ──
+            let errorSection = '';
+            try {
+              const explanations = JSON.parse(fs.readFileSync('explanations.json', 'utf8'));
+              if (explanations.length > 0) {
+                errorSection = '\n\n---\n\n## 🔍 Análisis de Errores\n\n';
+                for (const { job, explanation } of explanations) {
+                  errorSection += `### ${job}\n${explanation}\n\n`;
+                }
+              }
+            } catch (e) {
+              // No hay errores o no se pudo leer el archivo
+            }
 
             const body = `## 🚀 Deploy Readiness Report
 
@@ -271,8 +339,8 @@ jobs:
 
             ${ready
               ? '### ✅ READY TO DEPLOY\nTodos los checks pasaron correctamente. Este PR puede ser mergeado y deployado con confianza.'
-              : `### ❌ NOT READY TO DEPLOY\n\n**Problemas detectados:**\n${failures}\nCorregí estos problemas y pusheá de nuevo para re-ejecutar el pipeline.`
-            }
+              : `### ❌ NOT READY TO DEPLOY\nCorregí los problemas indicados abajo y pusheá de nuevo para re-ejecutar el pipeline.`
+            }${errorSection}
 
             ---
             *⏱️ Ejecutado: ${new Date().toISOString()}*`;
@@ -292,4 +360,3 @@ jobs:
             echo "❌ Pipeline failed - Cannot deploy"
             exit 1
           fi
-

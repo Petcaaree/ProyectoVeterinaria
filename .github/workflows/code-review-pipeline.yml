@@ -10,7 +10,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  actions: read  # ← NUEVO: necesario para leer logs de jobs
+  actions: read
 
 jobs:
   # ─────────────────────────────────────────────
@@ -24,15 +24,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
+
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci || npm install
+
       - name: Lint cliente
         working-directory: ./cliente
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en cliente, skipping..."
+
       - name: Lint server
         working-directory: ./server
         run: npx eslint . --ext .js,.jsx,.ts,.tsx --max-warnings 0 || echo "⚠️ ESLint no configurado en server, skipping..."
@@ -48,15 +52,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
+
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci || npm install
+
       - name: Test cliente
         working-directory: ./cliente
         run: npm test -- --watchAll=false --passWithNoTests 2>/dev/null || echo "⚠️ No hay tests en cliente, skipping..."
+
       - name: Test server
         working-directory: ./server
         run: npm test --passWithNoTests 2>/dev/null || echo "⚠️ No hay tests en server, skipping..."
@@ -69,6 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -76,6 +85,7 @@ jobs:
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+
       - name: Gitleaks secret scanning
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -94,12 +104,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Install cliente dependencies
         working-directory: ./cliente
         run: npm ci || npm install
+
       - name: Build cliente
         working-directory: ./cliente
         run: npm run build || echo "⚠️ No build script en cliente, skipping..."
+
       - name: Verify server starts
         working-directory: ./server
         run: |
@@ -108,21 +121,25 @@ jobs:
           echo "✅ Server dependencies OK"
 
   # ─────────────────────────────────────────────
-  # 5. AI CODE REVIEW (BLOQUEANTE)
+  # 5. AI CODE REVIEW
   # ─────────────────────────────────────────────
   ai-review:
     name: "🤖 AI Code Review"
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get PR diff
+      - name: Get diff
         id: diff
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
+          else
+            git diff ${{ github.event.before }} ${{ github.sha }} > pr_diff.txt || \
+            git diff HEAD~1 HEAD > pr_diff.txt
+          fi
           echo "diff_size=$(wc -l < pr_diff.txt)" >> $GITHUB_OUTPUT
 
       - name: AI Review with Claude
@@ -165,10 +182,9 @@ jobs:
 
           VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
           echo "verdict=$VERDICT" >> $GITHUB_ENV
-          echo "Veredicto: $VERDICT"
 
-      - name: Post review comment on PR
-        if: steps.diff.outputs.diff_size > 0
+      - name: Post review on PR
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -184,17 +200,33 @@ jobs:
               body: `## 🤖 AI Code Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
             });
 
+      - name: Post review on commit
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'push'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const review = fs.readFileSync('ai_review.txt', 'utf8');
+            const verdict = process.env.verdict || 'DESCONOCIDO';
+            const icon = verdict === 'APROBADO' ? '✅' : '❌';
+
+            await github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `## 🤖 AI Code Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
+            });
+
       - name: Block if not approved
-        if: steps.diff.outputs.diff_size > 0
+        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'
         run: |
           if [ "${{ env.verdict }}" = "CAMBIOS_NECESARIOS" ]; then
-            echo "❌ AI Review rechazó el código. Revisá los comentarios en el PR."
+            echo "❌ AI Review rechazó el código."
             exit 1
           elif [ "${{ env.verdict }}" = "APROBADO" ]; then
             echo "✅ AI Review aprobó el código."
           else
             echo "✅ Veredicto no determinado, aprobando por defecto"
-            exit 0
           fi
 
   # ─────────────────────────────────────────────
@@ -227,7 +259,6 @@ jobs:
           echo "ready=$READY" >> $GITHUB_OUTPUT
           echo "failures=$FAILURES" >> $GITHUB_OUTPUT
 
-      # ── NUEVO: Buscar logs de los jobs que fallaron y pedirle a Claude que explique ──
       - name: Explain failures with Claude
         if: steps.evaluate.outputs.ready == 'false'
         uses: actions/github-script@v7
@@ -237,7 +268,6 @@ jobs:
           script: |
             const failedJobs = '${{ steps.evaluate.outputs.failures }}'.trim().split(' ').filter(Boolean);
 
-            // Obtener todos los jobs de este workflow run
             const jobs = await github.rest.actions.listJobsForWorkflowRun({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -259,7 +289,6 @@ jobs:
               const job = jobs.data.jobs.find(j => j.name === jobName);
               if (!job) continue;
 
-              // Descargar logs del job fallido
               let logText = '';
               try {
                 const logsResponse = await github.rest.actions.downloadJobLogsForWorkflowRun({
@@ -267,13 +296,11 @@ jobs:
                   repo: context.repo.repo,
                   job_id: job.id
                 });
-                // Tomar los últimos 6000 chars (donde suele estar el error)
                 logText = logsResponse.data.toString().slice(-6000);
               } catch (e) {
                 logText = `No se pudieron obtener los logs: ${e.message}`;
               }
 
-              // Pedirle a Claude que explique el error
               const payload = {
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 800,
@@ -295,11 +322,9 @@ jobs:
 
               const data = await response.json();
               const explanation = data.content?.find(b => b.type === 'text')?.text || 'No se pudo obtener explicación.';
-
               explanations.push({ job: jobName, explanation });
             }
 
-            // Guardar las explicaciones para el siguiente step
             const fs = require('fs');
             fs.writeFileSync('explanations.json', JSON.stringify(explanations));
 
@@ -311,7 +336,6 @@ jobs:
             const ready = '${{ steps.evaluate.outputs.ready }}' === 'true';
             const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
 
-            // ── NUEVO: cargar explicaciones de errores si las hay ──
             let errorSection = '';
             try {
               const explanations = JSON.parse(fs.readFileSync('explanations.json', 'utf8'));
@@ -321,9 +345,7 @@ jobs:
                   errorSection += `### ${job}\n${explanation}\n\n`;
                 }
               }
-            } catch (e) {
-              // No hay errores o no se pudo leer el archivo
-            }
+            } catch (e) {}
 
             const body = `## 🚀 Deploy Readiness Report
 
@@ -339,7 +361,7 @@ jobs:
 
             ${ready
               ? '### ✅ READY TO DEPLOY\nTodos los checks pasaron correctamente. Este PR puede ser mergeado y deployado con confianza.'
-              : `### ❌ NOT READY TO DEPLOY\nCorregí los problemas indicados abajo y pusheá de nuevo para re-ejecutar el pipeline.`
+              : '### ❌ NOT READY TO DEPLOY\nCorregí los problemas indicados abajo y pusheá de nuevo para re-ejecutar el pipeline.'
             }${errorSection}
 
             ---

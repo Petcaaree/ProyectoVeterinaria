@@ -65,9 +65,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install dependencies
+        run: |
+          cd cliente && (npm ci || npm install)
       - name: Build check
         run: |
-          cd cliente && (npm run build || echo "Skip")
+          cd cliente && npm run build
 
   # ─────────────────────────────────────────────
   # 5. AI CODE REVIEW (MIGRADO A GEMINI)

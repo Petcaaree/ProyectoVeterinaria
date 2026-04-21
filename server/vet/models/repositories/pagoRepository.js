@@ -44,6 +44,10 @@ export class PagoRepository {
     return PagoModel.findOne({ reservaId });
   }
 
+  async findByReservaPendienteId(reservaPendienteId) {
+    return PagoModel.findOne({ reservaPendienteId });
+  }
+
   async findByPreferenceId(preferenceId) {
     return PagoModel.findOne({ mercadoPagoPreferenceId: preferenceId });
   }

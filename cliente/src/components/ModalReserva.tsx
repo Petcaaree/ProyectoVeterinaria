@@ -983,16 +983,17 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           colorTema="orange"
           titulo="Fecha de inicio del cuidado"
           diasDisponibles={service?.diasDisponibles}
+          rangosNoDisponibles={servicioActualizado?.fechasNoDisponibles || service?.fechasNoDisponibles}
         />
       )}
-      
+
       {mostrarCalendarioFin && serviceType === 'cuidador' && (
         <CalendarioModerno
           key={`calendario-fin-${Date.now()}`}
           fechaSeleccionada={formData.rangoFechas.fechaFin}
           onFechaSeleccionada={(fecha) => {
-            setFormData(prev => ({ 
-              ...prev, 
+            setFormData(prev => ({
+              ...prev,
               rangoFechas: { ...prev.rangoFechas, fechaFin: fecha }
             }));
             setMostrarCalendarioFin(false);
@@ -1002,6 +1003,7 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
           colorTema="orange"
           titulo="Fecha de fin del cuidado"
           diasDisponibles={service?.diasDisponibles}
+          rangosNoDisponibles={servicioActualizado?.fechasNoDisponibles || service?.fechasNoDisponibles}
         />
       )}
 

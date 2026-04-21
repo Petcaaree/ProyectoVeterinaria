@@ -2,14 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { getTodasReservas, getReservasPorEstado } from '../api/api';
 import { useAuth } from '../context/authContext';
 
-export type FilterType = 'TODAS' | 'PENDIENTE_PAGO' | 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA';
+export type FilterType = 'TODAS' | 'PENDIENTE' | 'CONFIRMADA' | 'COMPLETADA' | 'CANCELADA';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface Appointment { [key: string]: any; }
 
 interface Totales {
   todas: number;
-  pendientesPago: number;
   pendientes: number;
   confirmadas: number;
   completadas: number;
@@ -23,7 +22,7 @@ export const useReservas = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [totales, setTotales] = useState<Totales>({
-    todas: 0, pendientesPago: 0, pendientes: 0, confirmadas: 0, completadas: 0, canceladas: 0
+    todas: 0, pendientes: 0, confirmadas: 0, completadas: 0, canceladas: 0
   });
 
   const { usuario, tipoUsuario } = useAuth();
@@ -32,9 +31,8 @@ export const useReservas = () => {
   const cargarTotales = useCallback(async () => {
     if (!userId || !tipoUsuario) return;
     try {
-      const [todasData, pendientesPagoData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
+      const [todasData, pendientesData, confirmadasData, completadasData, canceladasData] = await Promise.all([
         getTodasReservas(userId, tipoUsuario, 'TODAS', 1),
-        getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE_PAGO', 1),
         getReservasPorEstado(userId, tipoUsuario, 'PENDIENTE', 1),
         getReservasPorEstado(userId, tipoUsuario, 'CONFIRMADA', 1),
         getReservasPorEstado(userId, tipoUsuario, 'COMPLETADA', 1),
@@ -42,7 +40,6 @@ export const useReservas = () => {
       ]);
       setTotales({
         todas: todasData.total || 0,
-        pendientesPago: pendientesPagoData.total || 0,
         pendientes: pendientesData.total || 0,
         confirmadas: confirmadasData.total || 0,
         completadas: completadasData.total || 0,

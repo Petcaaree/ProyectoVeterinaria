@@ -2,10 +2,19 @@ import mongoose from "mongoose";
 
 const pagoSchema = new mongoose.Schema(
   {
+    // Se completa cuando el pago se aprueba y se materializa la Reserva definitiva.
     reservaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Reserva",
-      required: true,
+      required: false,
+      default: null,
+    },
+    // Apunta a la ReservaPendiente mientras el pago está en curso.
+    reservaPendienteId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ReservaPendiente",
+      required: false,
+      default: null,
     },
     monto: {
       type: Number,
@@ -64,6 +73,7 @@ const pagoSchema = new mongoose.Schema(
 );
 
 pagoSchema.index({ reservaId: 1 });
+pagoSchema.index({ reservaPendienteId: 1 });
 pagoSchema.index({ mercadoPagoPreferenceId: 1 });
 pagoSchema.index({ mercadoPagoPaymentId: 1 });
 

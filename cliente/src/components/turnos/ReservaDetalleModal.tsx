@@ -21,14 +21,6 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
 
   const getStatusConfig = (status: string) => {
     switch (status) {
-      case 'PENDIENTE_PAGO':
-        return {
-          color: 'orange',
-          text: 'Pendiente de pago',
-          bg: 'bg-orange-100',
-          textColor: 'text-orange-800',
-          icon: '💳'
-        };
       case 'PENDIENTE':
         return {
           color: 'yellow',
@@ -518,17 +510,6 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
         <div className="bg-gray-50 px-8 py-6 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex space-x-3">
-              {appointment.estado === 'PENDIENTE_PAGO' && userType === 'cliente' && appointment.mercadoPagoPreferenceId && (
-                <button
-                  onClick={() => {
-                    const sandboxUrl = `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${appointment.mercadoPagoPreferenceId}`;
-                    window.location.href = sandboxUrl;
-                  }}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
-                >
-                  Completar pago
-                </button>
-              )}
               {(appointment.estado === 'CONFIRMADA' || appointment.status === 'confirmed') && (
                 <>
                   <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">

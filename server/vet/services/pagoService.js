@@ -1,5 +1,5 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
-import { ValidationError, NotFoundError } from "../errors/AppError.js";
+import { ValidationError } from "../errors/AppError.js";
 
 export class PagoService {
   constructor(reservaService, pagoRepository, configuracionRepo) {
@@ -11,36 +11,46 @@ export class PagoService {
     });
   }
 
-  async crearPreferencia(reservaDTO) {
-    const reservaId = (reservaDTO._id || reservaDTO.id)?.toString();
-    if (!reservaId) {
-      throw new ValidationError("ID de reserva inválido para crear preferencia de pago");
+  // Crea la preferencia de MP para una ReservaPendiente. La Reserva definitiva
+  // se crea recién cuando llegue el webhook con status=approved (ver procesarWebhook).
+  async crearPreferenciaParaPendiente(pendienteDTO) {
+    const pendienteId = (pendienteDTO._id || pendienteDTO.id)?.toString();
+    if (!pendienteId) {
+      throw new ValidationError("ID de reserva pendiente inválido para crear preferencia de pago");
     }
 
     const nombreServicio =
-      reservaDTO.servicioReservado?.nombreServicio ||
-      reservaDTO.serviciOfrecido ||
+      pendienteDTO.servicioReservado?.nombreServicio ||
+      pendienteDTO.serviciOfrecido ||
       "Servicio PetConnect";
 
-    const precioTotal = reservaDTO.precioTotal || reservaDTO.servicioReservado?.precio || 0;
+    const precioBase = pendienteDTO.precioTotal || pendienteDTO.servicioReservado?.precio || 0;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    // El cliente paga precioBase + comisión; el proveedor recibe precioBase.
+    // Debe coincidir con el desglose mostrado en el modal.
+    const config = await this.configuracionRepo.getConfig();
+    const porcentaje = config.comisionPorcentaje || 0;
+    const fija = config.comisionFija || 0;
+    const comision = Math.round(((precioBase * porcentaje) / 100 + fija) * 100) / 100;
+    const montoTotal = precioBase + comision;
 
     const preferenceBody = {
       items: [
         {
-          id: reservaId,
+          id: pendienteId,
           title: nombreServicio,
           quantity: 1,
-          unit_price: precioTotal,
+          unit_price: montoTotal,
           currency_id: "ARS",
         },
       ],
       back_urls: {
-        success: `${frontendUrl}?payment_status=approved&reserva_id=${reservaId}`,
-        failure: `${frontendUrl}?payment_status=failure&reserva_id=${reservaId}`,
-        pending: `${frontendUrl}?payment_status=pending&reserva_id=${reservaId}`,
+        success: `${frontendUrl}?payment_status=approved&pendiente_id=${pendienteId}`,
+        failure: `${frontendUrl}?payment_status=failure&pendiente_id=${pendienteId}`,
+        pending: `${frontendUrl}?payment_status=pending&pendiente_id=${pendienteId}`,
       },
-      external_reference: reservaId,
+      external_reference: pendienteId,
       notification_url: `${process.env.BACKEND_URL || "http://localhost:3000"}/petcare/pagos/webhook`,
       statement_descriptor: "PetConnect",
     };
@@ -48,17 +58,19 @@ export class PagoService {
     const preference = new Preference(this.client);
     const result = await preference.create({ body: preferenceBody });
 
-    // Guardar registro de pago
     const nuevoPago = {
-      reservaId,
-      monto: precioTotal,
+      reservaPendienteId: pendienteId,
+      monto: montoTotal,
+      montoComision: comision,
+      montoProveedor: precioBase,
+      comisionPorcentajeAplicado: porcentaje,
+      comisionFijaAplicada: fija,
       estado: "PENDIENTE",
       mercadoPagoPreferenceId: result.id,
     };
     await this.pagoRepository.save(nuevoPago);
 
-    // Guardar preferenceId en la reserva
-    await this.reservaService.guardarPreferenceId(reservaId, result.id);
+    await this.reservaService.guardarPreferenceIdPendiente(pendienteId, result.id);
 
     return {
       preferenceId: result.id,
@@ -75,52 +87,59 @@ export class PagoService {
     const paymentClient = new Payment(this.client);
     const paymentData = await paymentClient.get({ id: paymentId });
 
-    const reservaId = paymentData.external_reference;
-    if (!reservaId) {
+    const externalReference = paymentData.external_reference;
+    if (!externalReference) {
       throw new ValidationError("Referencia externa no encontrada en el pago");
     }
 
-    // Actualizar registro de pago
-    const pagoExistente = await this.pagoRepository.findByPreferenceId(
-      paymentData.preference_id
-    );
-    if (pagoExistente) {
-      pagoExistente.mercadoPagoPaymentId = paymentId.toString();
-      pagoExistente.mercadoPagoStatus = paymentData.status;
-      pagoExistente.mercadoPagoStatusDetail = paymentData.status_detail;
-      pagoExistente.estado = this._mapearEstadoMP(paymentData.status);
-      await this.pagoRepository.save(pagoExistente);
+    // external_reference puede ser un reservaPendienteId (flujo nuevo) o un reservaId
+    // (pagos creados antes del refactor). Buscamos primero como pendiente.
+    let pago = await this.pagoRepository.findByReservaPendienteId(externalReference);
+    if (!pago) {
+      pago = await this.pagoRepository.findByReservaId(externalReference);
+    }
+
+    // Dedupe: MP envía payment.created y payment.updated para el mismo pago.
+    const yaProcesado =
+      pago &&
+      pago.mercadoPagoPaymentId === paymentId.toString() &&
+      pago.mercadoPagoStatus === paymentData.status;
+    if (yaProcesado) {
+      return { status: paymentData.status, externalReference, deduplicated: true };
+    }
+
+    if (pago) {
+      pago.mercadoPagoPaymentId = paymentId.toString();
+      pago.mercadoPagoStatus = paymentData.status;
+      pago.mercadoPagoStatusDetail = paymentData.status_detail;
+      pago.estado = this._mapearEstadoMP(paymentData.status);
     }
 
     if (paymentData.status === "approved") {
-      if (pagoExistente) {
-        await this._aplicarComision(pagoExistente);
-      } else {
-        console.error(`Pago no encontrado para preference ${paymentData.preference_id} — comisión no aplicada`);
+      const pendienteId = pago?.reservaPendienteId?.toString() || externalReference;
+      const reservaDTO = await this.reservaService.crearDesdePendiente(
+        pendienteId,
+        paymentId.toString(),
+        pago?.mercadoPagoPreferenceId,
+      );
+
+      // Asociar el pago a la Reserva recién creada (y limpiar el link al pendiente).
+      if (pago && reservaDTO) {
+        pago.reservaId = reservaDTO._id || reservaDTO.id;
+        pago.reservaPendienteId = null;
       }
-      await this.reservaService.confirmarPorPago(reservaId, paymentId.toString());
     } else if (paymentData.status === "rejected" || paymentData.status === "cancelled") {
-      await this.reservaService.cancelarPorPago(reservaId);
+      const pendienteId = pago?.reservaPendienteId?.toString() || externalReference;
+      await this.reservaService.revertirPendiente(pendienteId);
     }
-    // Para "pending" e "in_process" no hacemos nada — la reserva sigue en PENDIENTE_PAGO
+    // Para "pending" / "in_process" no hacemos nada — el pendiente sigue vivo
+    // hasta que expire o se reciba un estado final.
 
-    return { status: paymentData.status, reservaId };
-  }
+    if (pago) {
+      await this.pagoRepository.save(pago);
+    }
 
-  async _aplicarComision(pago) {
-    if (!pago) return;
-    const config = await this.configuracionRepo.getConfig();
-    const porcentaje = config.comisionPorcentaje || 0;
-    const fija = config.comisionFija || 0;
-
-    const comision = Math.round(((pago.monto * porcentaje) / 100 + fija) * 100) / 100;
-    const montoProveedor = Math.max(pago.monto - comision, 0);
-
-    pago.montoComision = comision;
-    pago.montoProveedor = montoProveedor;
-    pago.comisionPorcentajeAplicado = porcentaje;
-    pago.comisionFijaAplicada = fija;
-    await this.pagoRepository.save(pago);
+    return { status: paymentData.status, externalReference };
   }
 
   _mapearEstadoMP(mpStatus) {

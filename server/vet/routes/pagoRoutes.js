@@ -9,10 +9,5 @@ export default function pagoRoutes(getController) {
     getController(PagoController).webhook(req, res, next);
   });
 
-  // Reintentar pago — genera nueva preferencia si la anterior falló
-  router.post("/petcare/pagos/reintentar/:reservaId", (req, res, next) => {
-    getController(PagoController).reintentarPago(req, res, next);
-  });
-
   return router;
 }

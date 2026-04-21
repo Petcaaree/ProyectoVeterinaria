@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
 
+interface RangoBloqueado {
+  fechaInicio: string | Date;
+  fechaFin: string | Date;
+}
+
 interface CalendarioModernoProps {
   fechaSeleccionada?: string;
   onFechaSeleccionada: (fecha: string) => void;
@@ -10,6 +15,7 @@ interface CalendarioModernoProps {
   colorTema?: 'blue' | 'green' | 'orange';
   titulo?: string;
   diasDisponibles?: string[]; // Nuevo: Array de días disponibles en español mayúsculas
+  rangosNoDisponibles?: RangoBloqueado[]; // Rangos {fechaInicio, fechaFin} a deshabilitar (cuidador)
 }
 
 const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
@@ -20,7 +26,8 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   fechaMaxima,
   colorTema = 'blue',
   titulo = 'Seleccionar fecha',
-  diasDisponibles
+  diasDisponibles,
+  rangosNoDisponibles
 }) => {
   // Función helper para parsear fechas DD/MM/AAAA
   const parsearFechaDDMMAAAA = (fechaStr: string): Date | null => {
@@ -246,38 +253,73 @@ const CalendarioModerno: React.FC<CalendarioModernoProps> = ({
   // Función para verificar si un día de la semana está disponible
   const esDiaDisponible = (fecha: Date): boolean => {
     if (!diasDisponibles || diasDisponibles.length === 0) return true;
-    
+
     const diaSemana = obtenerDiaSemana(fecha);
     return diasDisponibles.includes(diaSemana);
+  };
+
+  // Convierte cualquier formato (Date, ISO string, DD/MM/AAAA) a Date a medianoche local.
+  const aDateLocal = (valor: string | Date): Date | null => {
+    if (!valor) return null;
+    if (valor instanceof Date) {
+      if (isNaN(valor.getTime())) return null;
+      return new Date(valor.getFullYear(), valor.getMonth(), valor.getDate());
+    }
+    if (typeof valor === 'string') {
+      if (valor.includes('/')) {
+        return parsearFechaDDMMAAAA(valor);
+      }
+      // ISO: tomar sólo YYYY-MM-DD para evitar corrimientos por TZ
+      const soloFecha = valor.split('T')[0];
+      const [a, m, d] = soloFecha.split('-').map(n => parseInt(n));
+      if (isNaN(a) || isNaN(m) || isNaN(d)) return null;
+      return new Date(a, m - 1, d);
+    }
+    return null;
+  };
+
+  // True si `fecha` cae dentro de algún rango bloqueado (inclusive en ambos extremos).
+  const estaEnRangoBloqueado = (fecha: Date): boolean => {
+    if (!rangosNoDisponibles || rangosNoDisponibles.length === 0) return false;
+    const tFecha = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()).getTime();
+    return rangosNoDisponibles.some(r => {
+      const ini = aDateLocal(r.fechaInicio);
+      const fin = aDateLocal(r.fechaFin);
+      if (!ini || !fin) return false;
+      return tFecha >= ini.getTime() && tFecha <= fin.getTime();
+    });
   };
 
   const esFechaDeshabilitada = (fecha: Date) => {
     try {
       if (!fecha || isNaN(fecha.getTime())) return true;
-      
+
       // Primero verificar si el día de la semana está disponible
       if (!esDiaDisponible(fecha)) return true;
-      
+
+      // Bloquear días reservados por otros (rangos del cuidador)
+      if (estaEnRangoBloqueado(fecha)) return true;
+
       const fechaStr = fechaAISO(fecha);
       if (!fechaStr) return true;
-      
+
       // Convertir fechas mínima y máxima a ISO si están en formato DD/MM/AAAA
       let fechaMinimaISO = fechaMinima;
       let fechaMaximaISO = fechaMaxima;
-      
+
       if (fechaMinima && fechaMinima.includes('/')) {
         const fechaParsed = parsearFechaDDMMAAAA(fechaMinima);
         fechaMinimaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMinima;
       }
-      
+
       if (fechaMaxima && fechaMaxima.includes('/')) {
         const fechaParsed = parsearFechaDDMMAAAA(fechaMaxima);
         fechaMaximaISO = fechaParsed ? fechaAISO(fechaParsed) : fechaMaxima;
       }
-      
+
       if (fechaMinimaISO && fechaStr < fechaMinimaISO) return true;
       if (fechaMaximaISO && fechaStr > fechaMaximaISO) return true;
-      
+
       return false;
     } catch (error) {
       console.warn('Error checking if date is disabled:', fecha, error);

@@ -13,81 +13,92 @@ permissions:
   actions: read
 
 jobs:
-  # ─────────────────────────────────────────────
-  # 1, 2, 3 y 4: Mantenemos tus validaciones originales
-  # ─────────────────────────────────────────────
-  lint:
-    name: "🔍 Linting & Style"
+  # ─────────────────────────────────────────────────────────────────────────
+  # 1. VALIDACIÓN TÉCNICA (Linting, Tests y Seguridad)
+  # ─────────────────────────────────────────────────────────────────────────
+  quality-check:
+    name: "🔍 Quality & Security"
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: |
-          cd cliente && (npm ci || npm install)
-          cd ../server && (npm ci || npm install)
-      - name: Run Lint
-        run: |
-          cd cliente && (npx eslint . --max-warnings 0 || echo "Skip")
-          cd ../server && (npx eslint . --max-warnings 0 || echo "Skip")
+    strategy:
+      matrix:
+        node-version: [20.x] # Se estandariza en Node 20 por estabilidad del proyecto
 
-  tests:
-    name: "🧪 Tests"
-    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Run Tests
-        run: |
-          cd cliente && (npm test -- --watchAll=false --passWithNoTests || echo "Skip")
-          cd ../server && (npm test --passWithNoTests || echo "Skip")
 
-  security:
-    name: "🔒 Security Scan"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Trivy scanner
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          # Se define el path del cache para evitar instalaciones redundantes
+          cache-dependency-path: |
+            server/package-lock.json
+            cliente/package-lock.json
+
+      - name: Install Dependencies (Deterministic)
+        run: |
+          cd server && npm ci
+          cd ../cliente && npm ci
+        # Se utiliza npm ci para garantizar consistencia con package-lock.json
+
+      - name: Linting
+        run: |
+          cd server && (npm run lint || npx eslint . --max-warnings 0)
+          cd ../cliente && npm run lint
+
+      - name: Server Tests (Unit & Integration)
+        working-directory: server
+        run: |
+          npm run unit-test
+          npm run integration-test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: test_jwt_secret_ci
+        # Se ejecutan ambos niveles de prueba definidos en el servidor
+
+      - name: Security Scan (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           severity: 'CRITICAL,HIGH'
 
-  build:
-    name: "🏗️ Build"
+  # ─────────────────────────────────────────────────────────────────────────
+  # 2. CONSTRUCCIÓN
+  # ─────────────────────────────────────────────────────────────────────────
+  build-check:
+    name: "🏗️ Build Verification"
+    needs: quality-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Build check
+          cache: 'npm'
+          cache-dependency-path: cliente/package-lock.json
+      - name: Build Frontend
         run: |
-          cd cliente && (npm run build || echo "Skip")
+          cd cliente && npm ci && npm run build
+        # Verifica que el bundle de Vite se genere correctamente
 
-  # ─────────────────────────────────────────────
-  # 5. AI CODE REVIEW (MIGRADO A GEMINI)
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────
+  # 3. AI CODE REVIEW (Gemini)
+  # ─────────────────────────────────────────────────────────────────────────
   ai-review:
     name: "🤖 Gemini Code Review"
+    needs: quality-check
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Get diff
+      - name: Get Diff
         id: diff
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
-          else
-            git diff HEAD~1 HEAD > pr_diff.txt 2>/dev/null || git show HEAD > pr_diff.txt
-          fi
+          git diff origin/${{ github.base_ref }}...HEAD > pr_diff.txt
           echo "diff_size=$(wc -l < pr_diff.txt)" >> $GITHUB_OUTPUT
 
       - name: Review with Gemini
@@ -100,7 +111,8 @@ jobs:
           python3 -c "
           import json
           diff = open('pr_diff_trimmed.txt').read()
-          prompt = f'Sos un code reviewer senior de la UTN. Analizá este diff de un proyecto de Veterinaria (Node/React) y respondé en ESPAÑOL con este formato:\n\n## Resumen\n## Problemas\n## Sugerencias\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n\nIMPORTANTE: La última línea debe ser VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS.\n\nDiff:\n{diff}'
+          # Prompt optimizado para el stack específico del proyecto (Node/React/Mongoose)
+          prompt = f'Sos un code reviewer senior de la UTN. Analizá este diff de un proyecto de Veterinaria (Node.js/Express, React/Vite, MongoDB/Mongoose). Respondé en ESPAÑOL con este formato:\n\n## Resumen\n## Problemas de Lógica/Seguridad\n## Sugerencias de Arquitectura\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n\nIMPORTANTE: La última línea debe ser VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS.\n\nDiff:\n{diff}'
           payload = {'contents': [{'parts': [{'text': prompt}]}]}
           with open('request.json', 'w') as f:
               json.dump(payload, f)
@@ -126,31 +138,37 @@ jobs:
           VERDICT=$(echo \"$REVIEW\" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
           echo \"verdict=${VERDICT:-APROBADO}\" >> $GITHUB_ENV
 
-      - name: Post review on PR
-        if: steps.diff.outputs.diff_size > 0 && github.event_name == 'pull_request'
+      - name: Post Comment
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const review = fs.readFileSync('ai_review.txt', 'utf8');
-            const verdict = process.env.verdict || 'APROBADO';
-            const icon = verdict === 'APROBADO' ? '✅' : '❌';
+            if (fs.existsSync('ai_review.txt')) {
+              const review = fs.readFileSync('ai_review.txt', 'utf8');
+              const verdict = process.env.verdict || 'APROBADO';
+              const icon = verdict === 'APROBADO' ? '✅' : '❌';
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## 🤖 Gemini AI Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
+              });
+            }
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `## 🤖 Gemini AI Review\n\n${review}\n\n---\n**Status: ${icon} ${verdict}**`
-            });
-
-  # ─────────────────────────────────────────────
-  # 6. READY TO DEPLOY (MIGRADO A GEMINI PARA EXPLICAR ERRORES)
-  # ─────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────
+  # 4. REPORTE FINAL
+  # ─────────────────────────────────────────────────────────────────────────
   ready-to-deploy:
-    name: "Ready to Deploy"
+    name: "🚀 Final Status"
+    needs: [quality-check, build-check, ai-review]
+    if: always()
     runs-on: ubuntu-latest
-    needs: [lint, tests, security, build, ai-review]
-    if: always() && github.event_name == 'pull_request'
     steps:
-      - name: Final Report
-        run: echo "Generando reporte de despliegue con Gemini..."
+      - name: Check Overall Results
+        run: |
+          if [[ "${{ needs.quality-check.result }}" == "success" && "${{ needs.build-check.result }}" == "success" ]]; then
+            echo "✅ El proyecto cumple con los estándares de calidad y construcción."
+          else
+            echo "❌ El pipeline ha detectado fallos críticos. Revisar logs."
+            exit 1
+          fi

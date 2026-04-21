@@ -73,3 +73,24 @@ Cualquier cambio de estado en una `Reserva` debe invocar los métodos de `AuthCo
 ## ⚠️ 6. Estándares de Código
 - **Normalización**: Siempre usar las funciones auxiliares `parseFechaToDate` y `normalizarHorarios` definidas en los esquemas de Mongoose para evitar errores de formato en la DB.
 - **UI/UX**: Mantener la estética de `purple-600` para componentes de acción y `red-600` para acciones destructivas.
+
+---
+
+## ⚡ 7. Protocolo de Eficiencia y Ahorro de Tokens
+
+Para optimizar el rendimiento y reducir el consumo de recursos, Claude debe seguir estas reglas estrictas:
+
+### A. Estilo de Respuesta
+* **Brevedad Máxima**: Eliminar saludos, introducciones ("¡Claro!", "Entiendo") y conclusiones. Ir directo a la solución técnica.
+* **Sin Explicaciones Obvias**: No explicar conceptos básicos de React o Mongoose a menos que se solicite.
+* **Justificación Minimalista**: Si se realiza un cambio arquitectónico, explicarlo en una sola línea.
+
+### B. Manejo de Código
+* **Formato Diff/Fragmentos**: Al editar archivos, **no reescribir el código completo**. Proporcionar solo el fragmento modificado o usar comentarios `// ... resto del código` para indicar partes omitidas.
+* **DRY (Don't Repeat Yourself)**: Priorizar el uso de `Repository` y `Service` existentes. Prohibido duplicar lógica en controladores.
+* **Tipado Implícito**: No redundar en tipos de TypeScript si ya están definidos en la Sección 1.
+
+### C. Flujo de Trabajo
+* **Confirmación Pre-Acción**: Para tareas complejas o refactorizaciones, presentar un **plan de 3 puntos** y esperar aprobación antes de generar código extenso.
+* **Error Reporting**: Si una tarea entra en conflicto con las Reglas de Negocio (Sección 2), detenerse y notificar el conflicto inmediatamente.
+* **Validación Silenciosa**: Se asume cumplimiento total de los estándares de la Sección 6 sin necesidad de mencionarlos.

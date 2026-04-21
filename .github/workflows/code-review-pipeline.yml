@@ -263,7 +263,7 @@ jobs:
     name: "Ready to Deploy"
     runs-on: ubuntu-latest
     needs: [lint, tests, security, build, ai-review]
-    if: always() && github.event_name == 'pull_request'
+    if: always()
     steps:
       - name: Evaluate all checks
         id: evaluate
@@ -287,7 +287,7 @@ jobs:
           echo "failures=$FAILURES" >> $GITHUB_OUTPUT
 
       - name: Explain failures with Claude
-        if: steps.evaluate.outputs.ready == 'false'
+        if: steps.evaluate.outputs.ready == 'false' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -356,6 +356,7 @@ jobs:
             fs.writeFileSync('explanations.json', JSON.stringify(explanations));
 
       - name: Post deploy readiness report
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |

@@ -44,6 +44,10 @@ export const errorHandler = (err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
+  if (err.statusCode >= 500) {
+    logger.error(`[${req.method} ${req.originalUrl}] ${err.message}`, { stack: err.stack });
+  }
+
   if (process.env.NODE_ENV === 'development') {
     res.status(err.statusCode).json({
       status: err.status,

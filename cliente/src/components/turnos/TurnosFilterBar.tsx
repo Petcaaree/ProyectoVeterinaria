@@ -10,7 +10,6 @@ interface FilterConfig {
 
 const FILTERS: FilterConfig[] = [
   { key: 'TODAS', label: 'Todas', soloCliente: false },
-  { key: 'PENDIENTE_PAGO', label: 'Sin pagar', soloCliente: true },
   { key: 'PENDIENTE', label: 'Pendientes', soloCliente: false },
   { key: 'CONFIRMADA', label: 'Confirmadas', soloCliente: false },
   { key: 'COMPLETADA', label: 'Completadas', soloCliente: false },
@@ -19,7 +18,6 @@ const FILTERS: FilterConfig[] = [
 
 interface Totales {
   todas: number;
-  pendientesPago: number;
   pendientes: number;
   confirmadas: number;
   completadas: number;
@@ -36,7 +34,6 @@ interface TurnosFilterBarProps {
 const getCount = (key: FilterType, totales: Totales): number => {
   switch (key) {
     case 'TODAS': return totales.todas;
-    case 'PENDIENTE_PAGO': return totales.pendientesPago;
     case 'PENDIENTE': return totales.pendientes;
     case 'CONFIRMADA': return totales.confirmadas;
     case 'COMPLETADA': return totales.completadas;
@@ -57,7 +54,7 @@ const TurnosFilterBar: React.FC<TurnosFilterBarProps> = ({ filter, onFilterChang
           {FILTERS.filter(f => !f.soloCliente || tipoUsuario === 'cliente').map(({ key, label }) => {
             const count = getCount(key, totales);
             const shouldShowCounter = key === 'TODAS' ? false :
-              (key === 'PENDIENTE' || key === 'PENDIENTE_PAGO') ? count > 0 :
+              key === 'PENDIENTE' ? count > 0 :
               (filter === key && count > 0);
 
             return (

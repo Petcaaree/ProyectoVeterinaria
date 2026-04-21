@@ -63,6 +63,18 @@ export class ServicioPaseadorRepository {
         return resultado !== null
     }
 
+    // Persiste atómicamente los cambios de disponibilidad de un servicio tras
+    // bloquear/liberar un cupo. Evita depender del spread de un Mongoose Document
+    // (que puede perder mutaciones sobre arrays anidados) y escribe sólo los
+    // campos que realmente cambian.
+    async actualizarDisponibilidad(id, fechasNoDisponibles, cantidadReservas) {
+        return await this.model.findByIdAndUpdate(
+            id,
+            { $set: { fechasNoDisponibles, cantidadReservas } },
+            { new: true, runValidators: true }
+        );
+    }
+
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum

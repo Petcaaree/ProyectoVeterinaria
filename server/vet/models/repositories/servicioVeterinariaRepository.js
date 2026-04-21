@@ -60,6 +60,16 @@ export class ServicioVeterinariaRepository {
         return resultado !== null
     }
 
+    // Persiste atómicamente los cambios de disponibilidad tras bloquear/liberar
+    // un cupo. Ver comentario análogo en servicioPaseadorRepository.
+    async actualizarDisponibilidad(id, fechasNoDisponibles, cantidadReservas) {
+        return await this.model.findByIdAndUpdate(
+            id,
+            { $set: { fechasNoDisponibles, cantidadReservas } },
+            { new: true, runValidators: true }
+        );
+    }
+
 
     async findByPage(pageNum, limitNum){
         const skip = (pageNum - 1) * limitNum

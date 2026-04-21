@@ -9,7 +9,6 @@ interface AppointmentCardProps {
   onConfirmar: (id: string | undefined) => void;
   onRechazar: (id: string | undefined) => void;
   onVerDetalles: (appointment: Appointment) => void;
-  onPagar: (appointment: Appointment) => void;
 }
 
 const getReservaId = (appointment: Appointment): string | undefined => {
@@ -26,7 +25,6 @@ const getReservaId = (appointment: Appointment): string | undefined => {
 
 const getStatusConfig = (status: string) => {
   switch (status) {
-    case 'PENDIENTE_PAGO': return { icon: AlertCircle, text: 'Pendiente de pago', bg: 'bg-orange-100', textColor: 'text-orange-800' };
     case 'PENDIENTE': return { icon: AlertCircle, text: 'Pendiente', bg: 'bg-yellow-100', textColor: 'text-yellow-800' };
     case 'CONFIRMADA': return { icon: CheckCircle, text: 'Confirmada', bg: 'bg-blue-100', textColor: 'text-blue-800' };
     case 'COMPLETADA': return { icon: CheckCircle, text: 'Completada', bg: 'bg-green-100', textColor: 'text-green-800' };
@@ -47,7 +45,6 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
   onConfirmar,
   onRechazar,
   onVerDetalles,
-  onPagar,
 }) => {
   const uniqueKey = getReservaId(appointment);
   const statusConfig = getStatusConfig(appointment.estado);
@@ -135,15 +132,7 @@ const AppointmentCard: React.FC<AppointmentCardProps> = ({
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           {tipoUsuario === 'cliente' && (
             <div className="flex space-x-2">
-              {appointment.estado === 'PENDIENTE_PAGO' && (
-                <button
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-semibold"
-                  onClick={() => onPagar(appointment)}
-                >
-                  Completar pago
-                </button>
-              )}
-              {(appointment.estado === 'PENDIENTE' || appointment.estado === 'PENDIENTE_PAGO' || appointment.status === 'pending') && (
+              {(appointment.estado === 'PENDIENTE' || appointment.status === 'pending') && (
                 <button
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   onClick={() => onCancelar(getReservaId(appointment))}

@@ -140,12 +140,15 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment_status');
-    const reservaId = params.get('reserva_id');
+    // En el flujo nuevo, MP vuelve con pendiente_id (no hay reserva todavía hasta
+    // que el webhook la materialice). Mantenemos reserva_id como fallback para
+    // links generados antes del refactor que todavía estuvieran en vuelo.
+    const reservaId = params.get('pendiente_id') || params.get('reserva_id');
 
     if (paymentStatus) {
       setPaymentReservaId(reservaId);
       if (paymentStatus === 'approved') {
-        setCurrentView('payment-success');
+        setCurrentView('appointments');
       } else if (paymentStatus === 'failure') {
         setCurrentView('payment-failure');
       } else if (paymentStatus === 'pending') {

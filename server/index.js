@@ -31,6 +31,7 @@ import { PaseadorRepository } from "./vet/models/repositories/paseadorRepository
 import { VeterinariaRepository } from "./vet/models/repositories/veterinariaRepository.js";
 import { ClienteRepository } from "./vet/models/repositories/clienteRepository.js";
 import { ReservaRepository } from "./vet/models/repositories/reservaRepository.js";
+import { ReservaPendienteRepository } from "./vet/models/repositories/reservaPendienteRepository.js";
 import { PagoRepository } from "./vet/models/repositories/pagoRepository.js";
 
 /* 
@@ -79,6 +80,7 @@ const cuidadorRepo = new CuidadorRepository();
 const paseadorRepo = new PaseadorRepository();
 const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
+const reservaPendienteRepo = new ReservaPendienteRepository();
 const configuracionRepo = new ConfiguracionRepository();
 
 const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo, reservaRepo);
@@ -88,7 +90,7 @@ const veterinariaService = new VeterinariaService(veterinariaRepo, ciudadRepo, l
 const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeterinariaRepo, veterinariaRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
-const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
+const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, reservaPendienteRepo);
 const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo);
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
 
@@ -253,5 +255,14 @@ app.use(errorHandler)
 
 // Iniciar el servicio de recordatorios después de configurar todo
 recordatorioService.iniciar();
+
+// Job: libera cupos de ReservaPendiente vencidas (sin pago completado).
+// Corre cada minuto — costo despreciable y la granularidad es acorde a la ventana TTL.
+const PENDIENTES_CLEANUP_INTERVAL_MS = 60 * 1000;
+setInterval(() => {
+    reservaService.limpiarPendientesExpirados().catch(err => {
+        logger.error('Error en limpieza de pendientes expirados', { message: err.message });
+    });
+}, PENDIENTES_CLEANUP_INTERVAL_MS);
 
 server.launch();

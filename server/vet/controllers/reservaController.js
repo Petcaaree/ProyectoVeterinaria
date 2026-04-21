@@ -6,29 +6,33 @@ export class ReservaController {
 
     async create(req, res, next){
         try {
-            const reserva = req.body
-            const reservaDTO = await this.reservaService.create(reserva)
+            // Flujo nuevo: 1) crear ReservaPendiente (bloquea cupo), 2) generar preferencia MP.
+            // La Reserva definitiva se crea recién cuando llega el webhook de pago aprobado.
+            const pendienteDTO = await this.reservaService.crearPendiente(req.body)
 
-            // Crear preferencia de pago en MercadoPago
-            let pagoInfo = null;
+            let pagoInfo;
             try {
-                pagoInfo = await this.pagoService.crearPreferencia(reservaDTO);
+                pagoInfo = await this.pagoService.crearPreferenciaParaPendiente(pendienteDTO);
             } catch (mpError) {
-                // Si MP falla, la reserva quedó creada en PENDIENTE_PAGO.
-                // Devolvemos igualmente la reserva para que el cliente pueda reintentar.
-                console.error("Error al crear preferencia de MercadoPago:", mpError.message);
+                // Si MP falla, liberamos el cupo bloqueado — no podemos dejar un pendiente
+                // sin link de pago porque el cliente no tendría cómo avanzar.
+                await this.reservaService.revertirPendiente(pendienteDTO._id || pendienteDTO.id);
+                return next(mpError);
             }
 
             res.status(201).json({
-                ...reservaDTO,
-                init_point: pagoInfo?.init_point || null,
-                sandbox_init_point: pagoInfo?.sandbox_init_point || null,
+                pendienteId: pendienteDTO._id || pendienteDTO.id,
+                preferenceId: pagoInfo.preferenceId,
+                init_point: pagoInfo.init_point,
+                sandbox_init_point: pagoInfo.sandbox_init_point,
+                precioTotal: pendienteDTO.precioTotal,
+                expiresAt: pendienteDTO.expiresAt,
             })
         } catch(error) {
             next(error)
         }
     }
-    
+
     async findAll(req, res, next) {
         try {
             const { page, limit } = req.query
@@ -77,9 +81,4 @@ export class ReservaController {
             next(error)
         }
     }
-
-
-
-    
 }
-

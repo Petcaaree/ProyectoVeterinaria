@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
-import { cambiarEstadoReserva, reintentarPago } from '../../api/api';
+import { cambiarEstadoReserva } from '../../api/api';
 import ReservaDetalleModal from './ReservaDetalleModal';
 import TurnosFilterBar from './TurnosFilterBar';
 import AppointmentCard from './AppointmentCard';
@@ -38,21 +38,6 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
       showError(err?.response?.data?.message || err?.message || `Error al cambiar estado a ${estado}`);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handlePagar = async (appointment: Appointment) => {
-    try {
-      let prefId = appointment.mercadoPagoPreferenceId;
-      if (!prefId) {
-        const reservaId = appointment._id || appointment.id;
-        const pagoInfo = await reintentarPago(reservaId);
-        prefId = pagoInfo.preferenceId;
-      }
-      window.location.href = `https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=${prefId}`;
-    } catch (err: unknown) {
-      console.error('Error completar pago:', err);
-      showError('No se pudo generar el link de pago. Intenta de nuevo.');
     }
   };
 
@@ -147,7 +132,6 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
                 onConfirmar={(id) => handleAccion(id, 'CONFIRMADA', 'Reserva confirmada correctamente')}
                 onRechazar={(id) => handleAccion(id, 'CANCELADA', 'Reserva rechazada correctamente')}
                 onVerDetalles={(a) => { setSelectedReserva(a); setModalOpen(true); }}
-                onPagar={handlePagar}
               />
             ))}
           </div>

@@ -7,13 +7,13 @@ import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js";
 import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
-import { enviarEmailReservaCreada, enviarEmailReservaConfirmada, enviarEmailReservaCancelada } from "./emailService.js";
+import { enviarEmailReservaConfirmada, enviarEmailReservaCancelada } from "./emailService.js";
 
 
 dayjs.extend(customParseFormat)
 
 export class ReservaService {
-    constructor(reservaRepository, servicioVeterinariaRepository, servicioCuidadorRepository, servicioPaseadorRepository, clienteRepository, cuidadorRepository, paseadorRepository, veterinariaRepository) {
+    constructor(reservaRepository, servicioVeterinariaRepository, servicioCuidadorRepository, servicioPaseadorRepository, clienteRepository, cuidadorRepository, paseadorRepository, veterinariaRepository, reservaPendienteRepository) {
         this.reservaRepository = reservaRepository
         this.servicioVeterinariaRepository = servicioVeterinariaRepository
         this.servicioCuidadorRepository = servicioCuidadorRepository
@@ -22,7 +22,12 @@ export class ReservaService {
         this.cuidadorRepository = cuidadorRepository
         this.paseadorRepository = paseadorRepository
         this.veterinariaRepository = veterinariaRepository
+        this.reservaPendienteRepository = reservaPendienteRepository
     }
+
+    // Ventana (minutos) durante la cual la ReservaPendiente mantiene el cupo bloqueado.
+    // Si el pago no se completa antes, el job de limpieza libera el slot.
+    static PENDIENTE_TTL_MINUTOS = 30;
 
     async findAll({page = 1, limit = 10}) {
         const pageNum = Math.max(Number(page), 1)
@@ -183,12 +188,14 @@ export class ReservaService {
         }
     }
 
-    async create(reserva) {
-        const { clienteId, serviciOfrecido, servicioReservadoId, IdMascota, rangoFechas, horario, notaAdicional, nombreDeContacto, telefonoContacto, emailContacto } = reserva
+    // Crea una ReservaPendiente que bloquea el cupo mientras dura el checkout de MP.
+    // Nunca crea una Reserva definitiva — eso sólo ocurre cuando el pago se aprueba,
+    // vía crearDesdePendiente(). Si el usuario abandona el checkout, el job de
+    // limpieza llama a revertirPendiente() y libera el slot.
+    async crearPendiente(datos) {
+        const { clienteId, serviciOfrecido, servicioReservadoId, IdMascota, rangoFechas, horario, notaAdicional, nombreDeContacto, telefonoContacto, emailContacto } = datos
 
-        // Validar datos obligatorios básicos (sin horario, que es condicional)
         if(!clienteId || !serviciOfrecido || !servicioReservadoId || !IdMascota || !rangoFechas  || !nombreDeContacto || !telefonoContacto || !emailContacto) {
-            
             const faltantes = []
             if (!clienteId) faltantes.push("clienteId")
             if (!serviciOfrecido) faltantes.push("serviciOfrecido")
@@ -199,102 +206,242 @@ export class ReservaService {
             if (!telefonoContacto) faltantes.push("telefonoContacto")
             if (!emailContacto) faltantes.push("emailContacto")
             throw new ValidationError(`Faltan datos obligatorios: ${faltantes.join(", ")}`)
-            //throw new ValidationError("Faltan datos obligatorios")
         }
 
-        
-        // Validar horario solo si NO es un servicio de cuidador
         if (serviciOfrecido !== ServicioOfrecido.SERVICIOCUIDADOR && (horario === undefined || horario === '' || horario === null)) {
             throw new ValidationError("El horario es obligatorio para servicios de veterinaria y paseador")
         }
 
-       
-
         const cliente = await this.clienteRepository.findById(clienteId)
-        if(!cliente) {
-            throw new NotFoundError("Cliente no existente")
-        }
-        
-        const mascota = await this.clienteRepository.findMascotaByCliente(clienteId, IdMascota)
+        if(!cliente) throw new NotFoundError("Cliente no existente")
 
+        const mascota = await this.clienteRepository.findMascotaByCliente(clienteId, IdMascota)
 
         let servicio;
         if (serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-             servicio = await this.servicioVeterinariaRepository.findById(servicioReservadoId)
+            servicio = await this.servicioVeterinariaRepository.findById(servicioReservadoId)
         } else if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-             servicio = await this.servicioCuidadorRepository.findById(servicioReservadoId)
+            servicio = await this.servicioCuidadorRepository.findById(servicioReservadoId)
         } else if (serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
-             servicio = await this.servicioPaseadorRepository.findById(servicioReservadoId)
+            servicio = await this.servicioPaseadorRepository.findById(servicioReservadoId)
         }
+
+        if (!servicio) throw new NotFoundError("Servicio no existente")
 
         if (servicio.mascotasAceptadas && !servicio.mascotasAceptadas.includes(mascota.tipo)) {
             throw new ValidationError("La mascota no es aceptada por el servicio");
         }
 
-        if(!servicio) {
-            throw new NotFoundError("Servicio no existente")
-        }
-
         const parsearFecha = (fechaStr, formato) => {
-            const fecha = dayjs(fechaStr, formato, true) // true = modo estricto
+            const fecha = dayjs(fechaStr, formato, true)
             if (!fecha.isValid()) {
                 throw new ValidationError(`Fecha inválida: ${fechaStr}. Formato requerido: ${formato}`);
             }
             return fecha.toDate();
         };
 
-
         const objectFechas = new RangoFechas(
             parsearFecha(rangoFechas.fechaInicio, "DD/MM/YYYY"),
             parsearFecha(rangoFechas.fechaFin, "DD/MM/YYYY")
         )
 
+        const horarioNormalizado = horario === "null" ? null : (horario || null);
+
+        // Bloquear cupo antes de persistir el pendiente. Si el pago no se completa,
+        // revertirPendiente() restaura el cupo; si se completa, el cupo se mantiene
+        // y se asocia a la Reserva definitiva creada por crearDesdePendiente().
         if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            
             if (!servicio.estasDisponibleEn(objectFechas)) {
-            throw new ValidationError("El servicio no está disponible en las fechas indicadas")
+                throw new ValidationError("El servicio no está disponible en las fechas indicadas")
             }
             servicio.agregarFechasReserva(objectFechas)
         } else {
             const objectFechaHorarioTurno = new FechaHorarioTurno(
                 parsearFecha(rangoFechas.fechaInicio, "DD/MM/YYYY"),
-                horario
+                horarioNormalizado
             )
             if (!servicio.estaDisponibleParaFechaYHorario(objectFechaHorarioTurno)) {
                 throw new ValidationError("El servicio no está disponible en el horario indicado")
-            } else {
-                servicio.agregarFechasReserva(objectFechaHorarioTurno)
             }
-        }
-        
-
-        const fechaActual = new Date()
-
-        let nuevaReserva;
-
-        if (horario === "null"){
-         nuevaReserva = new Reserva(cliente, servicio, mascota, objectFechas,  null, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto, fechaActual);
-        } else {
-             nuevaReserva = new Reserva(cliente, servicio, mascota, objectFechas, horario, notaAdicional, serviciOfrecido, nombreDeContacto, telefonoContacto, emailContacto, fechaActual);
+            servicio.agregarFechasReserva(objectFechaHorarioTurno)
         }
 
-        // Incrementar contador de reservas del servicio
         servicio.incrementarReservas()
 
-        // Guardamos el servicio pero NO notificamos al proveedor todavía.
-        // La notificación ocurrirá en confirmarPorPago() cuando el pago sea aprobado.
-        if (serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            await this.servicioCuidadorRepository.save(servicio)
-        } else if (serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-            await this.servicioVeterinariaRepository.save(servicio)
-        } else if (serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
-            await this.servicioPaseadorRepository.save(servicio)
+        // Persistimos con un $set atómico en vez del save() genérico: el save
+        // hace spread del Mongoose Document y en algunos casos no detecta
+        // mutaciones en arrays anidados (fechasNoDisponibles), por lo que el
+        // bloqueo de cupo no llegaba a la DB y los siguientes clientes veían
+        // el horario como disponible.
+        const repoServicio = serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR
+            ? this.servicioCuidadorRepository
+            : serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA
+            ? this.servicioVeterinariaRepository
+            : this.servicioPaseadorRepository;
+        await repoServicio.actualizarDisponibilidad(
+            servicio._id || servicio.id,
+            servicio.fechasNoDisponibles,
+            servicio.cantidadReservas,
+        );
+
+        const cantidadDias = serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR
+            ? Math.ceil(Math.abs(objectFechas.fechaFin - objectFechas.fechaInicio) / (1000 * 60 * 60 * 24)) + 1
+            : 1;
+        const precioTotal = (servicio.precio || 0) * cantidadDias;
+
+        const expiresAt = new Date(Date.now() + ReservaService.PENDIENTE_TTL_MINUTOS * 60 * 1000);
+
+        const nuevoPendiente = {
+            cliente: cliente._id || cliente.id,
+            mascota: mascota._id,
+            servicioReservado: servicio._id || servicio.id,
+            serviciOfrecido,
+            rangoFechas: { fechaInicio: objectFechas.fechaInicio, fechaFin: objectFechas.fechaFin },
+            horario: horarioNormalizado,
+            notaAdicional,
+            cantidadDias,
+            precioTotal,
+            nombreDeContacto,
+            telefonoContacto,
+            emailContacto,
+            expiresAt,
+        };
+
+        const guardado = await this.reservaPendienteRepository.save(nuevoPendiente);
+        return this.pendienteToDTO(guardado);
+    }
+
+    // Asocia el preferenceId de MP al pendiente — lo llama pagoService después de
+    // crear la preferencia. Útil para poder localizar el pendiente luego sólo con el
+    // preferenceId (p. ej. flujos de reintento manual si fueran necesarios).
+    async guardarPreferenceIdPendiente(idPendiente, preferenceId) {
+        const pendiente = await this.reservaPendienteRepository.findById(idPendiente);
+        if (!pendiente) return;
+        pendiente.mercadoPagoPreferenceId = preferenceId;
+        await this.reservaPendienteRepository.save(pendiente);
+    }
+
+    // Promueve un pendiente a Reserva definitiva tras la aprobación del pago.
+    // - Crea la Reserva con estado=CONFIRMADA directamente (sin pasar por PENDIENTE_PAGO).
+    // - Notifica al proveedor (nueva reserva) y al cliente (confirmada).
+    // - Borra el pendiente.
+    // Idempotente: si el pendiente ya no existe, devuelve null (el webhook pudo
+    // haberse procesado antes en una entrega duplicada de MP).
+    async crearDesdePendiente(idPendiente, mercadoPagoPaymentId, mercadoPagoPreferenceId) {
+        // claimById borra y devuelve el pendiente en una sola operación atómica.
+        // Si dos webhooks de MP llegan concurrentes, sólo uno obtiene el documento;
+        // el otro recibe null y sale sin crear una Reserva duplicada.
+        const pendiente = await this.reservaPendienteRepository.claimById(idPendiente);
+        if (!pendiente) return null;
+
+        const fechaActual = new Date();
+        const objectFechas = new RangoFechas(pendiente.rangoFechas.fechaInicio, pendiente.rangoFechas.fechaFin);
+
+        const nuevaReserva = new Reserva(
+            pendiente.cliente,
+            pendiente.servicioReservado,
+            pendiente.mascota,
+            objectFechas,
+            pendiente.horario,
+            pendiente.notaAdicional,
+            pendiente.serviciOfrecido,
+            pendiente.nombreDeContacto,
+            pendiente.telefonoContacto,
+            pendiente.emailContacto,
+            fechaActual,
+        );
+
+        // El pago ya fue aprobado: saltamos PENDIENTE_PAGO y vamos directo a CONFIRMADA.
+        nuevaReserva.estado = EstadoReserva.CONFIRMADA;
+        if (mercadoPagoPaymentId) nuevaReserva.mercadoPagoPaymentId = mercadoPagoPaymentId;
+        if (mercadoPagoPreferenceId) nuevaReserva.mercadoPagoPreferenceId = mercadoPagoPreferenceId;
+
+        const reservaGuardada = await this.reservaRepository.save(nuevaReserva);
+
+        if (reservaGuardada._id && !reservaGuardada.id) {
+            reservaGuardada.id = reservaGuardada._id.toString();
         }
-        await this.reservaRepository.save(nuevaReserva)
 
-        enviarEmailReservaCreada(nuevaReserva).catch(() => {})
+        const proveedor = reservaGuardada.servicioReservado.usuarioProveedor;
+        const notificacionProveedor = FactoryNotificacion.crearSegunReserva(reservaGuardada);
+        if (!proveedor.notificaciones) proveedor.notificaciones = [];
+        proveedor.notificaciones.push(notificacionProveedor);
+        if (proveedor._id && !proveedor.id) proveedor.id = proveedor._id.toString();
 
-        return this.toDTO(nuevaReserva)
+        const notificacionCliente = FactoryNotificacion.crearConfirmacion(reservaGuardada);
+        if (!reservaGuardada.cliente.notificaciones) reservaGuardada.cliente.notificaciones = [];
+        reservaGuardada.cliente.notificaciones.push(notificacionCliente);
+        if (reservaGuardada.cliente._id && !reservaGuardada.cliente.id) {
+            reservaGuardada.cliente.id = reservaGuardada.cliente._id.toString();
+        }
+
+        await this.clienteRepository.save(reservaGuardada.cliente);
+
+        if (reservaGuardada.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            await this.cuidadorRepository.save(proveedor);
+        } else if (reservaGuardada.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+            await this.veterinariaRepository.save(proveedor);
+        } else if (reservaGuardada.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            await this.paseadorRepository.save(proveedor);
+        }
+
+        // El correo de "reserva creada" y el de "confirmada" se fusionan en uno:
+        // como no hay estado intermedio visible para el cliente, enviamos sólo
+        // el de confirmación (que incluye fecha, horario, etc.).
+        enviarEmailReservaConfirmada(reservaGuardada).catch(() => {})
+
+        return this.toDTO(reservaGuardada);
+    }
+
+    // Libera el cupo cuando el pago se rechaza o el pendiente expira sin pagarse.
+    // Idempotente: si el pendiente ya no existe, no hace nada.
+    async revertirPendiente(idPendiente) {
+        // Mismo patrón atómico que crearDesdePendiente: sólo un caller gana el
+        // documento. Evita doble decremento de cupos si llegan webhooks concurrentes.
+        const pendiente = await this.reservaPendienteRepository.claimById(idPendiente);
+        if (!pendiente) return;
+
+        const servicio = pendiente.servicioReservado;
+        const fechasReserva = pendiente.rangoFechas;
+
+        let repoServicio;
+        if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            servicio.eliminarFechasReserva(fechasReserva);
+            repoServicio = this.servicioCuidadorRepository;
+        } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
+            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
+            repoServicio = this.servicioVeterinariaRepository;
+        } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
+            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
+            repoServicio = this.servicioPaseadorRepository;
+        }
+        servicio.decrementarReservas();
+        await repoServicio.actualizarDisponibilidad(
+            servicio._id || servicio.id,
+            servicio.fechasNoDisponibles,
+            servicio.cantidadReservas,
+        );
+    }
+
+    // Recorre pendientes con expiresAt ya vencido y libera sus cupos.
+    // Invocado por el job periódico en server/index.js.
+    async limpiarPendientesExpirados() {
+        const expirados = await this.reservaPendienteRepository.findExpirados();
+        for (const p of expirados) {
+            try {
+                await this.revertirPendiente(p._id || p.id);
+            } catch (e) {
+                console.error(`Error revertiendo pendiente ${p._id || p.id}:`, e.message);
+            }
+        }
+        return expirados.length;
+    }
+
+    async findPendienteById(id) {
+        const p = await this.reservaPendienteRepository.findById(id);
+        return p ? this.pendienteToDTO(p) : null;
     }
 
     async modificarEstado(idUsuario, idReserva, nuevoEstado, motivo=null) {
@@ -392,34 +539,27 @@ export class ReservaService {
             this.validarRestriccionesCancelacion(reserva);
             
             const fechasReserva = reserva.rangoFechas
+            const servicio = reserva.servicioReservado
+            let repoServicio;
             if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-                const servicio = reserva.servicioReservado
                 servicio.eliminarFechasReserva(fechasReserva)
-                // Decrementar contador de reservas
-                servicio.decrementarReservas()
-                await this.servicioCuidadorRepository.save(servicio)
-
-            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA ) {
-                const servicio = reserva.servicioReservado
-                const objectFechaHorarioTurno = new FechaHorarioTurno(
-                    fechasReserva.fechaInicio,
-                    reserva.horario
-                )
+                repoServicio = this.servicioCuidadorRepository
+            } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
+                const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, reserva.horario)
                 servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
-                // Decrementar contador de reservas
-                servicio.decrementarReservas()
-                await this.servicioVeterinariaRepository.save(servicio)
+                repoServicio = this.servicioVeterinariaRepository
             } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
-                const servicio = reserva.servicioReservado
-                const objectFechaHorarioTurno = new FechaHorarioTurno(
-                    fechasReserva.fechaInicio,
-                    reserva.horario
-                )
+                const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, reserva.horario)
                 servicio.cancelarHorarioReserva(objectFechaHorarioTurno)
-                // Decrementar contador de reservas
-                servicio.decrementarReservas()
-                await this.servicioPaseadorRepository.save(servicio)
+                repoServicio = this.servicioPaseadorRepository
             }
+            servicio.decrementarReservas()
+            // $set atómico: mismo motivo que en crearPendiente/revertirPendiente.
+            await repoServicio.actualizarDisponibilidad(
+                servicio._id || servicio.id,
+                servicio.fechasNoDisponibles,
+                servicio.cantidadReservas,
+            )
 
             if (cliente){
                 // Cliente cancela - notificar al proveedor
@@ -578,121 +718,28 @@ export class ReservaService {
         }
     }
 
-    // Guarda el preferenceId de MercadoPago en la reserva
-    async guardarPreferenceId(idReserva, preferenceId) {
-        const reserva = await this.reservaRepository.findById(idReserva);
-        if (!reserva) return;
-        reserva.mercadoPagoPreferenceId = preferenceId;
-        await this.reservaRepository.save(reserva);
-    }
-
-    // Confirma la reserva cuando MercadoPago aprueba el pago.
-    // Notifica al proveedor (nueva reserva) y al cliente (confirmación).
-    async confirmarPorPago(idReserva, mercadoPagoPaymentId) {
-        const reserva = await this.reservaRepository.findById(idReserva);
-        if (!reserva) {
-            throw new NotFoundError(`Reserva ${idReserva} no encontrada`);
-        }
-
-        if (reserva.estado === EstadoReserva.CONFIRMADA) return this.toDTO(reserva);
-
-        if (reserva._id && !reserva.id) {
-            reserva.id = reserva._id.toString();
-        }
-
-        reserva.estado = EstadoReserva.CONFIRMADA;
-        if (mercadoPagoPaymentId) {
-            reserva.mercadoPagoPaymentId = mercadoPagoPaymentId;
-        }
-
-        // Notificar al proveedor — "nueva reserva recibida y pagada"
-        const notificacionProveedor = FactoryNotificacion.crearSegunReserva(reserva);
-        const proveedor = reserva.servicioReservado.usuarioProveedor;
-        if (!proveedor.notificaciones) proveedor.notificaciones = [];
-        proveedor.notificaciones.push(notificacionProveedor);
-        if (proveedor._id && !proveedor.id) proveedor.id = proveedor._id.toString();
-
-        // Notificar al cliente — "tu reserva fue confirmada"
-        const notificacionCliente = FactoryNotificacion.crearConfirmacion(reserva);
-        if (!reserva.cliente.notificaciones) reserva.cliente.notificaciones = [];
-        reserva.cliente.notificaciones.push(notificacionCliente);
-        if (reserva.cliente._id && !reserva.cliente.id) {
-            reserva.cliente.id = reserva.cliente._id.toString();
-        }
-
-        await this.clienteRepository.save(reserva.cliente);
-        await this.reservaRepository.save(reserva);
-
-        // Guardar proveedor según tipo
-        if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            await this.cuidadorRepository.save(proveedor);
-        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-            await this.veterinariaRepository.save(proveedor);
-        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
-            await this.paseadorRepository.save(proveedor);
-        }
-
-        return this.toDTO(reserva);
-    }
-
-    // Cancela la reserva cuando MercadoPago rechaza el pago.
-    // Restaura la disponibilidad del servicio y notifica al cliente.
-    async cancelarPorPago(idReserva) {
-        const reserva = await this.reservaRepository.findById(idReserva);
-        if (!reserva) {
-            throw new NotFoundError(`Reserva ${idReserva} no encontrada`);
-        }
-
-        if (reserva.estado === EstadoReserva.CANCELADA) return this.toDTO(reserva);
-
-        if (reserva._id && !reserva.id) {
-            reserva.id = reserva._id.toString();
-        }
-
-        // Restaurar disponibilidad en el servicio
-        const fechasReserva = reserva.rangoFechas;
-        if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            const servicio = reserva.servicioReservado;
-            servicio.eliminarFechasReserva(fechasReserva);
-            servicio.decrementarReservas();
-            await this.servicioCuidadorRepository.save(servicio);
-        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-            const servicio = reserva.servicioReservado;
-            const objectFechaHorarioTurno = new FechaHorarioTurno(
-                fechasReserva.fechaInicio,
-                reserva.horario
-            );
-            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
-            servicio.decrementarReservas();
-            await this.servicioVeterinariaRepository.save(servicio);
-        } else if (reserva.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
-            const servicio = reserva.servicioReservado;
-            const objectFechaHorarioTurno = new FechaHorarioTurno(
-                fechasReserva.fechaInicio,
-                reserva.horario
-            );
-            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
-            servicio.decrementarReservas();
-            await this.servicioPaseadorRepository.save(servicio);
-        }
-
-        reserva.estado = EstadoReserva.CANCELADA;
-
-        // Notificar al cliente que el pago fue rechazado y la reserva cancelada
-        const notificacion = FactoryNotificacion.crearCancelacionAutomaticaParaCliente(
-            reserva,
-            "Pago rechazado o cancelado"
-        );
-        if (!reserva.cliente.notificaciones) reserva.cliente.notificaciones = [];
-        reserva.cliente.notificaciones.push(notificacion);
-        if (reserva.cliente._id && !reserva.cliente.id) {
-            reserva.cliente.id = reserva.cliente._id.toString();
-        }
-
-        await this.clienteRepository.save(reserva.cliente);
-        await this.reservaRepository.save(reserva);
-
-        return this.toDTO(reserva);
+    // DTO ligero del pendiente para el frontend y para pagoService.crearPreferencia.
+    pendienteToDTO(pendiente) {
+        return {
+            _id: pendiente._id,
+            id: pendiente.id,
+            cliente: pendiente.cliente ? {
+                nombreUsuario: pendiente.cliente.nombreUsuario,
+                email: pendiente.cliente.email,
+            } : null,
+            serviciOfrecido: pendiente.serviciOfrecido,
+            servicioReservado: pendiente.servicioReservado,
+            rangoFechas: {
+                fechaInicio: dayjs(pendiente.rangoFechas.fechaInicio).format("DD/MM/YYYY"),
+                fechaFin: dayjs(pendiente.rangoFechas.fechaFin).format("DD/MM/YYYY"),
+            },
+            horario: pendiente.horario,
+            notaAdicional: pendiente.notaAdicional,
+            cantidadDias: pendiente.cantidadDias,
+            precioTotal: pendiente.precioTotal,
+            mercadoPagoPreferenceId: pendiente.mercadoPagoPreferenceId,
+            expiresAt: pendiente.expiresAt,
+        };
     }
 
     // Validar restricciones específicas de cancelación según el tipo de servicio

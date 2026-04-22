@@ -329,7 +329,9 @@ export class ServicioCuidadorService {
             fechasNoDisponibles: servicoCuidador.fechasNoDisponibles,
             estado: servicoCuidador.estado,
             fechaCreacion: servicoCuidador.fechaCreacion,
-            cantidadReservas: servicoCuidador.cantidadReservas
+            cantidadReservas: servicoCuidador.cantidadReservas,
+            calificacionPromedio: servicoCuidador.calificacionPromedio ?? 0,
+            cantidadResenas: servicoCuidador.cantidadResenas ?? 0
         }
     }
 

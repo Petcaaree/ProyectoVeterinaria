@@ -307,7 +307,9 @@ export class ServicioVeterinariaService {
             fechasNoDisponibles: servicoVeterinaria.fechasNoDisponibles,
             estado: servicoVeterinaria.estado,
             fechaCreacion: servicoVeterinaria.fechaCreacion,
-            cantidadReservas: servicoVeterinaria.cantidadReservas
+            cantidadReservas: servicoVeterinaria.cantidadReservas,
+            calificacionPromedio: servicoVeterinaria.calificacionPromedio ?? 0,
+            cantidadResenas: servicoVeterinaria.cantidadResenas ?? 0
         }
     }
 

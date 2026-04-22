@@ -23,7 +23,7 @@ export class ResenaRepository {
         .sort({ fecha: -1 })
         .skip(skip)
         .limit(limit)
-        .populate({ path: "cliente", select: "nombreUsuario email" }),
+        .populate({ path: "cliente", select: "nombreUsuario" }),
       this.model.countDocuments({ servicio: servicioId }),
     ]);
     return { data, total };

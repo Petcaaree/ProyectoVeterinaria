@@ -16,9 +16,9 @@ const TarjetaClinica: React.FC<TarjetaClinicaProps> = ({ clinica, alReservar }) 
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
         <h3 className="text-xl font-bold mb-2">{clinica.name}</h3>
         <div className="flex items-center space-x-2 mb-3">
-          <EstrellaCalificacion calificacion={(clinica as any).calificacionPromedio ?? clinica.rating ?? 0} />
-          {(clinica as any).cantidadResenas > 0 && (
-            <span className="text-xs text-white/90">({(clinica as any).cantidadResenas})</span>
+          <EstrellaCalificacion calificacion={clinica.calificacionPromedio ?? clinica.rating ?? 0} />
+          {(clinica.cantidadResenas ?? 0) > 0 && (
+            <span className="text-xs text-white/90">({clinica.cantidadResenas})</span>
           )}
         </div>
         <div className="flex items-center text-blue-100">

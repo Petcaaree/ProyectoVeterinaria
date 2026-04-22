@@ -314,7 +314,9 @@ async delete(id) {
             estado: servicoPaseador.estado,
             fechaCreacion: servicoPaseador.fechaCreacion,
             cantidadReservas: servicoPaseador.cantidadReservas,
-            maxPerros: servicoPaseador.maxPerros ?? 1
+            maxPerros: servicoPaseador.maxPerros ?? 1,
+            calificacionPromedio: servicoPaseador.calificacionPromedio ?? 0,
+            cantidadResenas: servicoPaseador.cantidadResenas ?? 0
         }
     }
     notificacionToDTO(notificacion) {

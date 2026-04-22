@@ -168,7 +168,7 @@ export class ServicioCuidadorRepository {
     }
 
     async findByName(nombre) {
-        return await this.model.findOne({nombre : nombreServicio})
+        return await this.model.findOne({nombre : nombre})
             .populate('usuarioProveedor')
             .populate({
                 path: 'direccion.localidad',

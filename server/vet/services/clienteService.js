@@ -225,7 +225,7 @@ export class ClienteService {
     async leerNotificacion(idUsuario, idNotificacion) {
         const cliente = await this.clienteRepository.findById(idUsuario)
         if(!cliente) {
-            throw new NotFoundError(`Cliente con id ${id} no encontrado`)
+            throw new NotFoundError(`Cliente con id ${idUsuario} no encontrado`)
         }
 
         const index = cliente.notificaciones.findIndex(n => n.id == idNotificacion)

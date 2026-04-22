@@ -23,6 +23,10 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
+      // Downgraded a warn: el codebase actual tiene uso extendido que se irá limpiando.
+      // Ver CLAUDE.md §1 — objetivo final es error.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   }
 );

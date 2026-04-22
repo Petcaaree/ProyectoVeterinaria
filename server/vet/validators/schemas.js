@@ -167,4 +167,17 @@ export const idParamSchema = Joi.object({
     id: objectIdSchema.required()
 }).unknown(true); // permite params extra (:idReserva, :estado, etc.)
 
+// ─── Reseñas ────────────────────────────────────────────────
+
+export const resenaSchema = Joi.object({
+    reservaId: objectIdSchema.required(),
+    puntuacion: Joi.number().integer().min(1).max(5).required().messages({
+        'number.base': 'La puntuación debe ser un número',
+        'number.min': 'La puntuación mínima es 1',
+        'number.max': 'La puntuación máxima es 5',
+        'any.required': 'La puntuación es obligatoria'
+    }),
+    comentario: Joi.string().trim().max(500).allow('').optional()
+});
+
 export { paginationSchema };

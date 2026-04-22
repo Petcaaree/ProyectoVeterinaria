@@ -33,6 +33,7 @@ import { ClienteRepository } from "./vet/models/repositories/clienteRepository.j
 import { ReservaRepository } from "./vet/models/repositories/reservaRepository.js";
 import { ReservaPendienteRepository } from "./vet/models/repositories/reservaPendienteRepository.js";
 import { PagoRepository } from "./vet/models/repositories/pagoRepository.js";
+import { ResenaRepository } from "./vet/models/repositories/resenaRepository.js";
 
 /* 
 */
@@ -45,6 +46,7 @@ import { ServicioCuidadorService } from "./vet/services/servicioCuidadorService.
 import { ServicioPaseadorService } from "./vet/services/servicioPaseadorService.js";
 import { ReservaService } from "./vet/services/reservaService.js";
 import { PagoService } from "./vet/services/pagoService.js";
+import { ResenaService } from "./vet/services/resenaService.js";
 import { CiudadService } from "./vet/services/ciudadService.js";
 import { RecordatorioService } from "./vet/services/recordatorioService.js";
 
@@ -59,6 +61,7 @@ import { ServicioCuidadorController } from "./vet/controllers/servicioCuidadorCo
 import { ServicioPaseadorController } from "./vet/controllers/servicioPaseadorController.js";
 import { ReservaController } from "./vet/controllers/reservaController.js";
 import { PagoController } from "./vet/controllers/pagoController.js";
+import { ResenaController } from "./vet/controllers/resenaController.js";
 
 import { AdminRepository } from "./vet/models/repositories/adminRepository.js";
 import { ConfiguracionRepository } from "./vet/models/repositories/configuracionRepository.js";
@@ -82,6 +85,7 @@ const veterinariaRepo = new VeterinariaRepository();
 const reservaRepo = new ReservaRepository();
 const reservaPendienteRepo = new ReservaPendienteRepository();
 const configuracionRepo = new ConfiguracionRepository();
+const resenaRepo = new ResenaRepository();
 
 const clienteService = new ClienteService(clienteRepo, ciudadRepo, localidadRepo, reservaRepo);
 const cuidadorService = new CuidadorService(cuidadorRepo, ciudadRepo, localidadRepo);
@@ -93,6 +97,7 @@ const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, reservaPendienteRepo);
 const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo);
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
+const resenaService = new ResenaService(resenaRepo, reservaRepo, servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo);
 
 // Inicializar servicio de recordatorios
 const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
@@ -120,6 +125,7 @@ const reservaController = new ReservaController(reservaService, pagoService);
 const pagoController = new PagoController(pagoService, reservaService);
 const ciudadController = new CiudadController(ciudadService);
 const adminController = new AdminController(adminService, adminDashboardService);
+const resenaController = new ResenaController(resenaService);
 
 const app = express();
 
@@ -208,6 +214,7 @@ server.setController(ReservaController, reservaController);
 server.setController(PagoController, pagoController);
 server.setController(CiudadController, ciudadController);
 server.setController(AdminController, adminController);
+server.setController(ResenaController, resenaController);
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

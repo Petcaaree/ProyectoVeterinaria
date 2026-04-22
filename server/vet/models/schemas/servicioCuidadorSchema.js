@@ -98,6 +98,19 @@ const servicioCuidadorSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  calificacionPromedio: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  cantidadResenas: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
   direccion: {
       calle: {
         type: String,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Calendar, Clock, User, Phone, Mail, Dog, Shield, CheckCircle, Heart } from 'lucide-react';
 import CalendarioModerno from './comun/CalendarioModerno';
+import EstrellaCalificacion from './comun/EstrellaCalificacion';
+import ListaResenas from './comun/ListaResenas';
 import { useAuth } from '../context/authContext.tsx';
 import { obtenerServicioVeterinariaPorId, obtenerServicioPaseadorPorId, obtenerServicioCuidadorPorId } from '../api/api.js';
 
@@ -828,6 +830,26 @@ const ModalReserva: React.FC<ModalReservaProps> = ({ isOpen, onClose, service, s
               </div>
             )}
           </div>
+
+          {/* Reseñas del servicio */}
+          {(servicioActualizado?._id || service?._id || service?.id) && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {(() => {
+                const svc = servicioActualizado || service;
+                const promedio = svc?.calificacionPromedio ?? 0;
+                const cantidad = svc?.cantidadResenas ?? 0;
+                return cantidad > 0 ? (
+                  <div className="flex items-center space-x-2 mb-4">
+                    <EstrellaCalificacion calificacion={promedio} tamaño="md" />
+                    <span className="text-sm text-gray-500">
+                      ({cantidad} reseña{cantidad === 1 ? '' : 's'})
+                    </span>
+                  </div>
+                ) : null;
+              })()}
+              <ListaResenas servicioId={String(servicioActualizado?._id || service?._id || service?.id)} />
+            </div>
+          )}
 
           {/* Additional Notes */}
           <div>

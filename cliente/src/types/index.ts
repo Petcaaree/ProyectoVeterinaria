@@ -34,6 +34,8 @@ export interface VeterinaryClinic {
   phone: string;
   rating: number;
   services: VeterinaryService[];
+  calificacionPromedio?: number;
+  cantidadResenas?: number;
 }
 
 export interface WalkerService {

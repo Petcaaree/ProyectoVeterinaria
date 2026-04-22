@@ -215,7 +215,7 @@ export class PaseadorService {
     async leerNotificacion(idUsuario, idNotificacion) {
         const paseador = await this.paseadorRepository.findById(idUsuario)
         if(!paseador) {
-            throw new NotFoundError(`Paseador con id ${id} no encontrado`)
+            throw new NotFoundError(`Paseador con id ${idUsuario} no encontrado`)
         }
 
         const index = paseador.notificaciones.findIndex(n => n.id == idNotificacion)

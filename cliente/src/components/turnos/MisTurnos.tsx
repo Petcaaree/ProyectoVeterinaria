@@ -3,6 +3,7 @@ import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
 import { cambiarEstadoReserva } from '../../api/api';
 import ReservaDetalleModal from './ReservaDetalleModal';
+import ModalResena from './ModalResena';
 import TurnosFilterBar from './TurnosFilterBar';
 import AppointmentCard from './AppointmentCard';
 import { useReservas } from '../../hooks/useReservas';
@@ -17,6 +18,7 @@ interface MisTurnosProps {
 const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReserva, setSelectedReserva] = useState<Appointment | null>(null);
+  const [resenaReservaId, setResenaReservaId] = useState<string | null>(null);
   const { toast, showError, showSuccess, hideToast } = useToast();
 
   const {
@@ -158,7 +160,23 @@ const MisTurnos: React.FC<MisTurnosProps> = ({ userType, onBack }) => {
       <Toast message={toast.message} type={toast.type} isVisible={toast.isVisible} onClose={hideToast} />
 
       {selectedReserva && (
-        <ReservaDetalleModal appointment={selectedReserva} isOpen={modalOpen} onClose={() => setModalOpen(false)} userType={userType} />
+        <ReservaDetalleModal
+          appointment={selectedReserva}
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          userType={userType}
+          onCalificar={(id) => { setResenaReservaId(id); setModalOpen(false); }}
+        />
+      )}
+
+      {resenaReservaId && (
+        <ModalResena
+          isOpen={!!resenaReservaId}
+          reservaId={resenaReservaId}
+          onClose={() => setResenaReservaId(null)}
+          onSuccess={() => showSuccess('¡Gracias por tu reseña!')}
+          onError={(msg) => showError(msg)}
+        />
       )}
     </div>
   );

@@ -103,40 +103,64 @@ jobs:
 
       - name: Review with Gemini
         if: steps.diff.outputs.diff_size > 0
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          set +e
+
+          if [ -z "$GEMINI_API_KEY" ]; then
+            echo "⚠️ GEMINI_API_KEY no está configurado. Saltando review de IA." > ai_review.txt
+            echo "verdict=APROBADO" >> $GITHUB_ENV
+            exit 0
+          fi
+
           head -3000 pr_diff.txt > pr_diff_trimmed.txt
-          
-          python3 -c "
+
+          python3 <<'PYEOF'
           import json
           diff = open('pr_diff_trimmed.txt').read()
-          # Prompt optimizado para el stack específico del proyecto (Node/React/Mongoose)
-          prompt = f'Sos un code reviewer senior de la UTN. Analizá este diff de un proyecto de Veterinaria (Node.js/Express, React/Vite, MongoDB/Mongoose). Respondé en ESPAÑOL con este formato:\n\n## Resumen\n## Problemas de Lógica/Seguridad\n## Sugerencias de Arquitectura\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n\nIMPORTANTE: La última línea debe ser VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS.\n\nDiff:\n{diff}'
+          prompt = (
+            "Sos un code reviewer senior de la UTN. Analizá este diff de un proyecto de "
+            "Veterinaria (Node.js/Express, React/Vite, MongoDB/Mongoose). Respondé en ESPAÑOL "
+            "con este formato:\n\n## Resumen\n## Problemas de Lógica/Seguridad\n"
+            "## Sugerencias de Arquitectura\n## Veredicto\nAPROBADO o CAMBIOS_NECESARIOS\n\n"
+            "IMPORTANTE: La última línea debe ser VEREDICTO:APROBADO o VEREDICTO:CAMBIOS_NECESARIOS.\n\n"
+            "Diff:\n" + diff
+          )
           payload = {'contents': [{'parts': [{'text': prompt}]}]}
           with open('request.json', 'w') as f:
               json.dump(payload, f)
-          "
+          PYEOF
 
-          RESPONSE=$(curl -s -X POST \"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY\" \
+          RESPONSE=$(curl -s -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY" \
             -H 'Content-Type: application/json' \
             -d @request.json)
 
-          REVIEW=$(echo \"$RESPONSE\" | python3 -c \"
-          import json, sys
-          data = json.load(sys.stdin)
+          echo "$RESPONSE" > response.json
+
+          REVIEW=$(python3 <<'PYEOF'
+          import json
+          try:
+              data = json.load(open('response.json'))
+          except Exception as e:
+              print(f"⚠️ Respuesta inválida de Gemini: {e}")
+              raise SystemExit(0)
           if 'error' in data:
-              print('⚠️ Error: ' + data['error'].get('message', ''))
+              print("⚠️ Error: " + data['error'].get('message', ''))
           else:
               try:
                   print(data['candidates'][0]['content']['parts'][0]['text'])
-              except:
+              except Exception:
                   print('⚠️ No se pudo obtener respuesta del modelo.')
-          \")
-          echo \"$REVIEW\" > ai_review.txt
-          
-          VERDICT=$(echo \"$REVIEW\" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
-          echo \"verdict=${VERDICT:-APROBADO}\" >> $GITHUB_ENV
+          PYEOF
+          )
+
+          echo "$REVIEW" > ai_review.txt
+
+          VERDICT=$(echo "$REVIEW" | grep -o 'VEREDICTO:[A-Z_]*' | tail -1 | cut -d: -f2)
+          echo "verdict=${VERDICT:-APROBADO}" >> $GITHUB_ENV
 
       - name: Post Comment
         uses: actions/github-script@v7

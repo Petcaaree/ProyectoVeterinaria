@@ -709,8 +709,11 @@ const comentariosPool = [
 
 async function seedResenas(reservas) {
     const completadas = reservas.filter((r) => r.estado === 'COMPLETADA');
+    // Solo reseñamos las primeras ceil(n/2); las restantes quedan sin reseña
+    // para poder probar el flujo de calificación desde la UI.
+    const limite = Math.ceil(completadas.length / 2);
     const creadas = [];
-    for (let i = 0; i < completadas.length; i++) {
+    for (let i = 0; i < limite; i++) {
         const r = completadas[i];
         const puntuacion = 3 + ((i + 1) % 3); // 3, 4, 5 alternados
         const resena = await ResenaModel.create({
@@ -724,7 +727,7 @@ async function seedResenas(reservas) {
         });
         creadas.push(resena);
     }
-    logOk(`Reseñas: ${creadas.length}`);
+    logOk(`Reseñas: ${creadas.length} (${completadas.length - creadas.length} COMPLETADAS quedan sin reseña para testing)`);
     return creadas;
 }
 

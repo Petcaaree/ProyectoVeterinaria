@@ -2,10 +2,11 @@ import React from 'react';
 import { Clock, CheckCircle, MapPin } from 'lucide-react';
 import EstrellaCalificacion from '../comun/EstrellaCalificacion';
 import Boton from '../comun/Boton';
-import { CaregiverService } from '../../types';
+import { ServicioCuidadorDTO } from '../../types';
 
 interface TarjetaCuidadorProps {
-  alContratar: (cuidador: CaregiverService) => void;
+  cuidador: ServicioCuidadorDTO;
+  alContratar: (cuidador: ServicioCuidadorDTO) => void;
 }
 
 const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar }) => {
@@ -54,7 +55,7 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
         </h3>
         <div className="flex items-center space-x-2 mb-3">
           <EstrellaCalificacion calificacion={cuidador?.calificacionPromedio ?? 0} />
-          {cuidador?.cantidadResenas > 0 && (
+          {(cuidador?.cantidadResenas ?? 0) > 0 && (
             <span className="text-xs text-white/90">({cuidador.cantidadResenas})</span>
           )}
         </div>

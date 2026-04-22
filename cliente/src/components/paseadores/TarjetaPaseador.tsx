@@ -2,10 +2,11 @@ import React from 'react';
 import { MapPin, Award, Clock } from 'lucide-react';
 import EstrellaCalificacion from '../comun/EstrellaCalificacion';
 import Boton from '../comun/Boton';
+import { ServicioPaseadorDTO } from '../../types';
 
 interface TarjetaPaseadorProps {
-  paseador: any; // Temporal hasta que tengamos la estructura correcta de la API
-  alContratar: (paseador: any) => void;
+  paseador: ServicioPaseadorDTO;
+  alContratar: (paseador: ServicioPaseadorDTO) => void;
 }
 
 const TarjetaPaseador: React.FC<TarjetaPaseadorProps> = ({ paseador, alContratar }) => {
@@ -47,7 +48,7 @@ const TarjetaPaseador: React.FC<TarjetaPaseadorProps> = ({ paseador, alContratar
         </h3>
         <div className="flex items-center space-x-2 mb-3">
           <EstrellaCalificacion calificacion={paseador?.calificacionPromedio ?? 0} />
-          {paseador?.cantidadResenas > 0 && (
+          {(paseador?.cantidadResenas ?? 0) > 0 && (
             <span className="text-xs text-white/90">({paseador.cantidadResenas})</span>
           )}
         </div>

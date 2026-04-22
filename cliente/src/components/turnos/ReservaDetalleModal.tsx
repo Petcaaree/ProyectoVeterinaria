@@ -153,7 +153,7 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
       className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col">
         {/* Header con gradiente */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white relative overflow-hidden">
           {/* Elementos decorativos */}
@@ -189,7 +189,7 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
         </div>
 
         {/* Contenido principal */}
-        <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
+        <div className="p-8 overflow-y-auto flex-1 min-h-0">
           {/* Información del servicio */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 mb-6 border border-blue-100">
             <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">

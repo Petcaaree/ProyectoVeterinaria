@@ -1,4 +1,4 @@
-name: "Code Review Pipeline - Veterinaria UTN"
+name: Code Review Pipeline - Veterinaria UTN
 
 on:
   pull_request:
@@ -7,47 +7,43 @@ on:
     branches-ignore: [main]
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
   issues: write
   actions: read
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────
-  # 1. VALIDACIÓN TÉCNICA (Linting, Tests y Seguridad)
-  # ─────────────────────────────────────────────────────────────────────────
   quality-check:
     name: "🔍 Quality & Security"
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x] # Se estandariza en Node 20 por estabilidad del proyecto
+        node-version: [20.x]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-          # Se define el path del cache para evitar instalaciones redundantes
+          cache: npm
           cache-dependency-path: |
             server/package-lock.json
             cliente/package-lock.json
 
-      - name: Install Dependencies (Deterministic)
+      - name: Install Dependencies
         run: |
           cd server && npm ci
           cd ../cliente && npm ci
-        # Se utiliza npm ci para garantizar consistencia con package-lock.json
 
       - name: Linting
         run: |
           cd server && (npm run lint || npx eslint . --max-warnings 0)
           cd ../cliente && npm run lint
 
-      - name: Server Tests (Unit & Integration)
+      - name: Server Tests
         working-directory: server
         run: |
           npm run unit-test
@@ -55,43 +51,40 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test_jwt_secret_ci
-        # Se ejecutan ambos niveles de prueba definidos en el servidor
 
       - name: Security Scan (Trivy)
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
-          severity: 'CRITICAL,HIGH'
+          scan-type: fs
+          severity: CRITICAL,HIGH
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # 2. CONSTRUCCIÓN
-  # ─────────────────────────────────────────────────────────────────────────
   build-check:
     name: "🏗️ Build Verification"
     needs: quality-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
           cache-dependency-path: cliente/package-lock.json
+
       - name: Build Frontend
         run: |
           cd cliente && npm ci && npm run build
-        # Verifica que el bundle de Vite se genere correctamente
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # 3. AI CODE REVIEW (Gemini)
-  # ─────────────────────────────────────────────────────────────────────────
   ai-review:
     name: "🤖 Gemini Code Review"
     needs: quality-check
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -179,20 +172,19 @@ jobs:
               });
             }
 
-  # ─────────────────────────────────────────────────────────────────────────
-  # 4. REPORTE FINAL
-  # ─────────────────────────────────────────────────────────────────────────
   ready-to-deploy:
-    name: "🚀 Final Status"
+    name: "Ready to Deploy"
     needs: [quality-check, build-check, ai-review]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Check Overall Results
         run: |
-          if [[ "${{ needs.quality-check.result }}" == "success" && "${{ needs.build-check.result }}" == "success" ]]; then
-            echo "✅ El proyecto cumple con los estándares de calidad y construcción."
+          if [[ "${{ needs.quality-check.result }}" == "success" && \
+                "${{ needs.build-check.result }}" == "success" && \
+                ( "${{ needs.ai-review.result }}" == "success" || "${{ needs.ai-review.result }}" == "skipped" ) ]]; then
+            echo "✅ El proyecto está listo para merge."
           else
-            echo "❌ El pipeline ha detectado fallos críticos. Revisar logs."
+            echo "❌ El pipeline detectó fallos. Revisá los jobs anteriores."
             exit 1
           fi

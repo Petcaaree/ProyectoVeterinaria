@@ -63,6 +63,7 @@ async function connectDB() {
     log(`Conectado a MongoDB: ${mongoose.connection.name}`);
 }
 
+
 async function clearDatabase() {
     logWarn('Limpiando base de datos...');
     await Promise.all([

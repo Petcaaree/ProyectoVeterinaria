@@ -8,3 +8,4 @@ export { crearServicioVeterinaria, crearServicioPaseador, crearServicioCuidador,
 export { obtenerNotificacionesNoLeidas, obtenerNotificaciones, marcarLeidaCliente, marcarLeidaProveedor, marcarTodasLeidasProveedor, marcarTodasLeidasCliente, obtenerContadorNotificacionesNoLeidas, eliminarNotificacion } from './notificacionApi.js';
 export { getAlojamientos, getDestinos, getAlojamientosAnfitrion, crearAlojamiento, getNotificacionesHuesped, getNotificacionesAnfitrion } from './legacyApi.js';
 export { getLocalidades } from './localidadApi.js';
+export { crearResena, getResenasByServicio } from './resenaApi.js';

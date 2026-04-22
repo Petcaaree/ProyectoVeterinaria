@@ -10,7 +10,8 @@ import reservaRoutes from "./reservaRoutes.js"
 import localidadRoutes from "./localidadRoutes.js"
 import pagoRoutes from "./pagoRoutes.js"
 import adminRoutes from "./adminRoutes.js"
+import resenaRoutes from "./resenaRoutes.js"
 
-const routes = [clienteRoutes, cuidadorRoutes, paseadorRoutes, veterinariaRoutes, servicioVeterinariaRoutes, servicioCuidadorRoutes, servicioPaseadorRoutes, reservaRoutes, localidadRoutes, pagoRoutes, adminRoutes]
+const routes = [clienteRoutes, cuidadorRoutes, paseadorRoutes, veterinariaRoutes, servicioVeterinariaRoutes, servicioCuidadorRoutes, servicioPaseadorRoutes, reservaRoutes, localidadRoutes, pagoRoutes, adminRoutes, resenaRoutes]
 
 export default routes

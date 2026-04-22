@@ -53,7 +53,10 @@ const TarjetaCuidador: React.FC<TarjetaCuidadorProps> = ({ cuidador, alContratar
           {cuidador.nombreContacto}
         </h3>
         <div className="flex items-center space-x-2 mb-3">
-          <EstrellaCalificacion calificacion={3} />
+          <EstrellaCalificacion calificacion={cuidador?.calificacionPromedio ?? 0} />
+          {cuidador?.cantidadResenas > 0 && (
+            <span className="text-xs text-white/90">({cuidador.cantidadResenas})</span>
+          )}
         </div>
         <div className="bg-white text-orange-600 px-3 py-1 rounded-full text-sm font-bold inline-block">
           {formatearPrecio(cuidador.precio)}/día

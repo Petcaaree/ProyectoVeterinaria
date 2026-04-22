@@ -72,20 +72,21 @@ class BreedsService {
         return this.formatDogBreeds(this.dogBreedsCache);
       }
 
-      const response = await fetch('https://api.thedogapi.com/v1/breeds');
-      
+      const apiKey = import.meta.env.VITE_DOG_API_KEY;
+      const headers: Record<string, string> = {};
+      if (apiKey) headers['x-api-key'] = apiKey;
+      const response = await fetch('https://api.thedogapi.com/v1/breeds', { headers });
+
       if (!response.ok) {
         throw new Error(`Error al obtener razas de perros: ${response.status}`);
       }
 
       const breeds: DogBreed[] = await response.json();
       this.dogBreedsCache = breeds;
-      
+
       return this.formatDogBreeds(breeds);
 
-    } catch (error) {
-      console.error('❌ Error al cargar razas de perros:', error);
-      // Fallback con razas comunes
+    } catch {
       return this.getFallbackDogBreeds();
     }
   }
@@ -99,20 +100,21 @@ class BreedsService {
         return this.formatCatBreeds(this.catBreedsCache);
       }
 
-      const response = await fetch('https://api.thecatapi.com/v1/breeds');
-      
+      const apiKey = import.meta.env.VITE_CAT_API_KEY;
+      const headers: Record<string, string> = {};
+      if (apiKey) headers['x-api-key'] = apiKey;
+      const response = await fetch('https://api.thecatapi.com/v1/breeds', { headers });
+
       if (!response.ok) {
         throw new Error(`Error al obtener razas de gatos: ${response.status}`);
       }
 
       const breeds: CatBreed[] = await response.json();
       this.catBreedsCache = breeds;
-      
+
       return this.formatCatBreeds(breeds);
 
-    } catch (error) {
-      console.error('❌ Error al cargar razas de gatos:', error);
-      // Fallback con razas comunes
+    } catch {
       return this.getFallbackCatBreeds();
     }
   }

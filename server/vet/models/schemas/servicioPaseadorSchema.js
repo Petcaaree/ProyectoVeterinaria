@@ -122,6 +122,19 @@ const servicioPaseadorSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  calificacionPromedio: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  cantidadResenas: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
   maxPerros: {
     type: Number,
     required: true,

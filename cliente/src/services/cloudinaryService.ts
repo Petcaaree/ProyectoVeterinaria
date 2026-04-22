@@ -4,11 +4,12 @@ const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Función para verificar configuración
+const PLACEHOLDERS = ['tu-cloud-name-aqui', 'tu-upload-preset-aqui', 'tu_cloud_name', 'tu_upload_preset'];
 const isCloudinaryConfigured = (): boolean => {
-  return !!(CLOUDINARY_CLOUD_NAME && 
-           UPLOAD_PRESET && 
-           CLOUDINARY_CLOUD_NAME !== 'tu-cloud-name-aqui' && 
-           UPLOAD_PRESET !== 'tu-upload-preset-aqui');
+  return !!(CLOUDINARY_CLOUD_NAME &&
+           UPLOAD_PRESET &&
+           !PLACEHOLDERS.includes(CLOUDINARY_CLOUD_NAME) &&
+           !PLACEHOLDERS.includes(UPLOAD_PRESET));
 };
 
 // Validar que las variables de entorno estén configuradas

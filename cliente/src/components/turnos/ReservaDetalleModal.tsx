@@ -9,13 +9,15 @@ interface ReservaDetalleModalProps {
     [key: string]: any;
   }; // Datos flexibles tal como vienen del backend
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
+  onCalificar?: (reservaId: string) => void;
 }
 
 const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
   isOpen,
   onClose,
   appointment,
-  userType
+  userType,
+  onCalificar
 }) => {
   if (!isOpen || !appointment) return null;
 
@@ -534,8 +536,14 @@ const ReservaDetalleModal: React.FC<ReservaDetalleModalProps> = ({
                 </>
               )}
               
-              {(appointment.estado === 'COMPLETADA' || appointment.status === 'completed') && (
-                <button className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-semibold shadow-lg hover:shadow-xl transform hover:scale-105">
+              {(appointment.estado === 'COMPLETADA' || appointment.status === 'completed') && userType === 'cliente' && onCalificar && (
+                <button
+                  onClick={() => {
+                    const id = appointment._id || appointment.id;
+                    if (id) onCalificar(String(id));
+                  }}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
                   <Star className="h-4 w-4 mr-2 inline" />
                   Calificar Servicio
                 </button>

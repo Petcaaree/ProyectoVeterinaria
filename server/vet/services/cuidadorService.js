@@ -215,7 +215,7 @@ export class CuidadorService {
     async leerNotificacion(idUsuario, idNotificacion) {
         const cuidador = await this.cuidadorRepository.findById(idUsuario)
         if(!cuidador) {
-            throw new NotFoundError(`Cuidador con id ${id} no encontrado`)
+            throw new NotFoundError(`Cuidador con id ${idUsuario} no encontrado`)
         }
 
         const index = cuidador.notificaciones.findIndex(n => n.id == idNotificacion)

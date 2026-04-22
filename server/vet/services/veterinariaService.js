@@ -218,7 +218,7 @@ export class VeterinariaService {
     async leerNotificacion(idUsuario, idNotificacion) {
         const veterinaria = await this.veterinariaRepository.findById(idUsuario)
         if(!veterinaria) {
-            throw new NotFoundError(`Veterinaria con id ${id} no encontrado`)
+            throw new NotFoundError(`Veterinaria con id ${idUsuario} no encontrado`)
         }
 
         const index = veterinaria.notificaciones.findIndex(n => n.id == idNotificacion)

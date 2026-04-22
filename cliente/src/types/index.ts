@@ -58,6 +58,42 @@ export interface CaregiverService {
   rating: number;
 }
 
+// ─── Payloads reales del backend (DTOs) ─────────────────────────
+interface DireccionBackend {
+  calle?: string;
+  altura?: string;
+  localidad?: {
+    nombre?: string;
+    ciudad?: { nombre?: string } | string;
+  };
+}
+
+interface ServicioProveedorBase {
+  id: string;
+  nombreServicio: string;
+  descripcion: string;
+  precio: number;
+  nombreContacto: string;
+  emailContacto: string;
+  telefonoContacto: string;
+  diasDisponibles: string[];
+  direccion?: DireccionBackend;
+  estado: 'Activada' | 'Desactivada';
+  cantidadReservas?: number;
+  calificacionPromedio?: number;
+  cantidadResenas?: number;
+}
+
+export interface ServicioPaseadorDTO extends ServicioProveedorBase {
+  duracionMinutos: number;
+  horariosDisponibles: string[];
+  maxPerros: number;
+}
+
+export interface ServicioCuidadorDTO extends ServicioProveedorBase {
+  mascotasAceptadas: string[];
+}
+
 export interface Booking {
   id: string;
   userId: string;

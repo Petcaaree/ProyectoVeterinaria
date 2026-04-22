@@ -42,8 +42,6 @@ const adminSchema = new mongoose.Schema({
     timestamps: true,
 });
 
-adminSchema.index({ email: 1 });
-
 adminSchema.loadClass(Admin);
 
 export const AdminModel = mongoose.model("Admin", adminSchema);

@@ -1,0 +1,177 @@
+import { jest } from "@jest/globals";
+import crypto from "crypto";
+
+// Mock del logger antes de importar el middleware
+jest.unstable_mockModule("../../vet/utils/logger.js", () => ({
+  default: { warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+}));
+
+const { verificarFirmaMP } = await import("../../vet/middlewares/verificarFirmaMP.js");
+
+const SECRET = "test_secret_xyz";
+
+function firmaValida({ dataId, xRequestId, ts, secret = SECRET }) {
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+  return crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+}
+
+function buildReq({ headers = {}, body = {}, query = {}, ip = "::1" } = {}) {
+  return { headers, body, query, ip };
+}
+
+function buildRes() {
+  const res = {};
+  res.status = jest.fn().mockReturnValue(res);
+  res.json = jest.fn().mockReturnValue(res);
+  return res;
+}
+
+describe("verificarFirmaMP", () => {
+  const envOriginal = process.env.MP_WEBHOOK_SECRET;
+
+  beforeEach(() => {
+    process.env.MP_WEBHOOK_SECRET = SECRET;
+  });
+
+  afterAll(() => {
+    if (envOriginal === undefined) delete process.env.MP_WEBHOOK_SECRET;
+    else process.env.MP_WEBHOOK_SECRET = envOriginal;
+  });
+
+  it("responde 403 si falta el header x-signature", () => {
+    const req = buildReq({
+      headers: { "x-request-id": "req-1" },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si falta el header x-request-id", () => {
+    const req = buildReq({
+      headers: { "x-signature": "ts=1,v1=abc" },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si la firma es invalida", () => {
+    const req = buildReq({
+      headers: {
+        "x-signature": "ts=1704908010,v1=deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        "x-request-id": "req-1",
+      },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si MP_WEBHOOK_SECRET no está configurado", () => {
+    delete process.env.MP_WEBHOOK_SECRET;
+    const req = buildReq({
+      headers: { "x-signature": "ts=1,v1=abc", "x-request-id": "req-1" },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si falta data.id (no puede reconstruir el manifest)", () => {
+    const ts = "1704908010";
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${ts},v1=${firmaValida({ dataId: "123", xRequestId: "req-1", ts })}`,
+        "x-request-id": "req-1",
+      },
+      body: {},
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("llama a next() cuando la firma es válida", () => {
+    const ts = "1704908010";
+    const dataId = "123456789";
+    const xRequestId = "req-abc";
+    const v1 = firmaValida({ dataId, xRequestId, ts });
+
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${ts},v1=${v1}`,
+        "x-request-id": xRequestId,
+      },
+      body: { data: { id: dataId } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("acepta data.id desde query params (flujo IPN legacy)", () => {
+    const ts = "1704908010";
+    const dataId = "987";
+    const xRequestId = "req-legacy";
+    const v1 = firmaValida({ dataId, xRequestId, ts });
+
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${ts},v1=${v1}`,
+        "x-request-id": xRequestId,
+      },
+      query: { id: dataId, topic: "payment" },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("es resistente a firmas de longitud distinta (no lanza)", () => {
+    const req = buildReq({
+      headers: {
+        "x-signature": "ts=1,v1=short",
+        "x-request-id": "req-1",
+      },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    expect(() => verificarFirmaMP(req, res, next)).not.toThrow();
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+});

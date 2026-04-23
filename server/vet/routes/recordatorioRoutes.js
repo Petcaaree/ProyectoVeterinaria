@@ -1,9 +1,10 @@
 import { Router } from "express";
+import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
-// Endpoint temporal para verificar recordatorios manualmente
-router.get('/verificar-recordatorios', async (req, res) => {
+// Endpoint temporal para verificar recordatorios manualmente (solo admin)
+router.get('/verificar-recordatorios', authMiddleware, authorizationMiddleware('admin'), async (req, res) => {
     try {
         // Acceder al servicio de recordatorios desde el contexto global
         const recordatorioService = req.app.get('recordatorioService');

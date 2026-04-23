@@ -168,6 +168,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           />
         </div>
 
+
         {/* Comisiones */}
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Comisiones PetConnect</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

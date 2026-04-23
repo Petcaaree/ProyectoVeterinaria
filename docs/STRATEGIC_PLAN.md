@@ -1,4 +1,4 @@
-# PetCare — Audit Completo & Plan Estrategico de Monetizacion
+# PetConnect — Audit Completo & Plan Estrategico de Monetizacion
 
 ---
 
@@ -75,7 +75,7 @@
 
 ### Modelo de negocio propuesto
 
-PetCare es un **marketplace de servicios pet-care** con modelo de comision:
+PetConnect es un **marketplace de servicios pet-care** con modelo de comision:
 
 ```
                    Comision por reserva completada
@@ -83,7 +83,7 @@ Cliente ────────────────────────
     |                                                  |
     |  Paga precio + fee (ej: 10%)                    |  Recibe precio - fee (ej: 5%)
     |                                                  |
-    └──────────── PetCare se queda 15% ───────────────┘
+    └──────────── PetConnect se queda 15% ───────────────┘
 ```
 
 Alternativas/complementarias:

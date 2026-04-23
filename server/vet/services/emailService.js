@@ -36,7 +36,7 @@ function wrapTemplate(contenido) {
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
         <div style="background: linear-gradient(135deg, #7c3aed, #9333ea); padding: 28px 20px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">
-                🐾 PetCare
+                🐾 PetConnect
             </h1>
             <p style="color: rgba(255,255,255,0.85); margin: 4px 0 0; font-size: 13px;">Cuidamos a quienes más querés</p>
         </div>
@@ -45,7 +45,7 @@ function wrapTemplate(contenido) {
         </div>
         <div style="text-align: center; padding: 16px 0 0;">
             <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                &copy; ${new Date().getFullYear()} PetCare &mdash; Este email fue generado automáticamente, no respondas a este mensaje.
+                &copy; ${new Date().getFullYear()} PetConnect &mdash; Este email fue generado automáticamente, no respondas a este mensaje.
             </p>
         </div>
     </div>`;
@@ -65,6 +65,14 @@ function separador() {
     return '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">';
 }
 
+// Acepta Date, ISO string o string "DD/MM/YYYY" (viene así desde ReservaService.toDTO).
+function formatearFecha(fecha) {
+    if (!fecha) return '-';
+    if (typeof fecha === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) return fecha;
+    const d = dayjs(fecha);
+    return d.isValid() ? d.format('DD/MM/YYYY') : String(fecha);
+}
+
 // ─── Envío genérico ─────────────────────────────────────────────────
 
 async function enviarEmail(to, subject, html) {
@@ -80,7 +88,7 @@ async function enviarEmail(to, subject, html) {
 
     try {
         const info = await transport.sendMail({
-            from: process.env.EMAIL_FROM || `"PetCare" <${process.env.SMTP_USER}>`,
+            from: process.env.EMAIL_FROM || `"PetConnect" <${process.env.SMTP_USER}>`,
             to,
             subject,
             html
@@ -114,7 +122,7 @@ export async function enviarEmailResetPassword(email, token, nombreUsuario) {
         </p>
     `);
 
-    await enviarEmail(email, 'Restablecer tu contraseña - PetCare', html);
+    await enviarEmail(email, 'Restablecer tu contraseña - PetConnect', html);
 }
 
 // ─── 1. BIENVENIDA (registro) ───────────────────────────────────────
@@ -131,19 +139,19 @@ export async function enviarEmailBienvenida(email, nombreUsuario, tipoUsuario) {
     const html = wrapTemplate(`
         <h2 style="color: #1f2937; margin-top: 0;">¡Bienvenido/a, ${nombreUsuario}! 🎉</h2>
         <p style="color: #4b5563; line-height: 1.7;">
-            Tu cuenta como <strong>${rol}</strong> fue creada exitosamente en PetCare.
+            Tu cuenta como <strong>${rol}</strong> fue creada exitosamente en PetConnect.
         </p>
         <p style="color: #4b5563; line-height: 1.7;">
             Ya podés ingresar a la plataforma y ${tipoUsuario === 'cliente'
                 ? 'buscar los mejores servicios para tu mascota.'
                 : 'publicar tus servicios y empezar a recibir reservas.'}
         </p>
-        ${boton('Ingresar a PetCare', FRONTEND_URL)}
+        ${boton('Ingresar a PetConnect', FRONTEND_URL)}
         ${separador()}
         <p style="color: #6b7280; font-size: 13px;">Si no creaste esta cuenta, podés ignorar este email.</p>
     `);
 
-    await enviarEmail(email, '¡Bienvenido/a a PetCare! 🐾', html);
+    await enviarEmail(email, '¡Bienvenido/a a PetConnect! 🐾', html);
 }
 
 // ─── 2. CONFIRMACIÓN DE RESERVA (al crear) ──────────────────────────
@@ -193,13 +201,13 @@ export async function enviarEmailReservaCreada(reserva) {
                 ${horario ? `<tr><td style="padding: 6px 0; font-weight: 600;">Horario:</td><td style="padding: 6px 0;">${horario} hs</td></tr>` : ''}
             </table>
         </div>
-        <p style="color: #6b7280; font-size: 13px;">Ingresá a PetCare para confirmar o rechazar la reserva.</p>
+        <p style="color: #6b7280; font-size: 13px;">Ingresá a PetConnect para confirmar o rechazar la reserva.</p>
         ${boton('Ver mis turnos', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, 'Tu reserva fue creada - PetCare', htmlCliente);
+    await enviarEmail(cliente.email, 'Tu reserva fue creada - PetConnect', htmlCliente);
     if (proveedorEmail) {
-        await enviarEmail(proveedorEmail, 'Nueva reserva recibida - PetCare', htmlProveedor);
+        await enviarEmail(proveedorEmail, 'Nueva reserva recibida - PetConnect', htmlProveedor);
     }
 }
 
@@ -227,7 +235,7 @@ export async function enviarEmailReservaConfirmada(reserva) {
         ${boton('Ver mis reservas', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, '¡Reserva confirmada! - PetCare', html);
+    await enviarEmail(cliente.email, '¡Reserva confirmada! - PetConnect', html);
 }
 
 // ─── 4. RESERVA CANCELADA ───────────────────────────────────────────
@@ -249,10 +257,10 @@ export async function enviarEmailReservaCancelada(reserva, destinatarioEmail, de
                 <tr><td style="padding: 6px 0; font-weight: 600;">Estado:</td><td style="padding: 6px 0;"><span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 12px;">CANCELADA</span></td></tr>
             </table>
         </div>
-        ${boton('Ir a PetCare', FRONTEND_URL)}
+        ${boton('Ir a PetConnect', FRONTEND_URL)}
     `);
 
-    await enviarEmail(destinatarioEmail, 'Reserva cancelada - PetCare', html);
+    await enviarEmail(destinatarioEmail, 'Reserva cancelada - PetConnect', html);
 }
 
 // ─── 5. RECORDATORIO 24h / día de inicio ────────────────────────────
@@ -288,15 +296,16 @@ export async function enviarEmailRecordatorio(reserva, tipoRecordatorio) {
         ${boton('Ver mis reservas', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, `Recordatorio: ${servicioReservado.nombreServicio || 'tu cita'} - PetCare`, html);
+    await enviarEmail(cliente.email, `Recordatorio: ${servicioReservado.nombreServicio || 'tu cita'} - PetConnect`, html);
 }
 
 // ─── 6. PAGO CONFIRMADO (comprobante) ───────────────────────────────
 
 export async function enviarEmailPagoConfirmado(reserva, monto, referencia) {
     const { cliente, servicioReservado, rangoFechas, horario, serviciOfrecido } = reserva;
-    const fechaInicio = dayjs(rangoFechas.fechaInicio).format('DD/MM/YYYY');
-    const fechaFin = dayjs(rangoFechas.fechaFin).format('DD/MM/YYYY');
+    // rangoFechas viene del DTO ya formateado como "DD/MM/YYYY" (ver ReservaService.toDTO).
+    const fechaInicio = formatearFecha(rangoFechas.fechaInicio);
+    const fechaFin = formatearFecha(rangoFechas.fechaFin);
     const proveedor = servicioReservado.usuarioProveedor?.nombreUsuario || '';
     const nombreServicio = servicioReservado.nombreServicio || 'Servicio';
     const montoFormateado = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
@@ -322,7 +331,7 @@ export async function enviarEmailPagoConfirmado(reserva, monto, referencia) {
         ${boton('Ver mis reservas', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, 'Pago confirmado - Comprobante de reserva - PetCare', html);
+    await enviarEmail(cliente.email, 'Pago confirmado - Comprobante de reserva - PetConnect', html);
 }
 
 // ─── 7. CANCELACIÓN AUTOMÁTICA ──────────────────────────────────────
@@ -345,8 +354,8 @@ export async function enviarEmailCancelacionAutomatica(reserva, email, nombreUsu
             </table>
         </div>
         <p style="color: #6b7280; font-size: 13px;">Podés crear una nueva reserva desde la plataforma.</p>
-        ${boton('Ir a PetCare', FRONTEND_URL)}
+        ${boton('Ir a PetConnect', FRONTEND_URL)}
     `);
 
-    await enviarEmail(email, 'Reserva cancelada automáticamente - PetCare', html);
+    await enviarEmail(email, 'Reserva cancelada automáticamente - PetConnect', html);
 }

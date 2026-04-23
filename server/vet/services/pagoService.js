@@ -24,7 +24,7 @@ export class PagoService {
     const nombreServicio =
       pendienteDTO.servicioReservado?.nombreServicio ||
       pendienteDTO.serviciOfrecido ||
-      "Servicio PetCare";
+      "Servicio PetConnect";
 
     const precioBase = pendienteDTO.precioTotal || pendienteDTO.servicioReservado?.precio || 0;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -54,7 +54,7 @@ export class PagoService {
       },
       external_reference: pendienteId,
       notification_url: `${process.env.BACKEND_URL || "http://localhost:3000"}/petcare/pagos/webhook`,
-      statement_descriptor: "PetCare",
+      statement_descriptor: "PetConnect",
     };
 
     const preference = new Preference(this.client);
@@ -131,17 +131,16 @@ export class PagoService {
         pago.reservaPendienteId = null;
       }
 
-      // Email de comprobante al cliente. No bloquea el flujo si falla.
+      // Email de comprobante al cliente: fire-and-forget para no demorar la
+      // respuesta al webhook de MP (MP reintenta si tardamos mucho).
       if (reservaDTO) {
-        try {
-          const referencia = (reservaDTO._id || reservaDTO.id)?.toString();
-          await enviarEmailPagoConfirmado(reservaDTO, pago?.monto, referencia);
-        } catch (emailError) {
+        const referencia = (reservaDTO._id || reservaDTO.id)?.toString();
+        enviarEmailPagoConfirmado(reservaDTO, pago?.monto, referencia).catch((emailError) => {
           logger.error("Error al enviar email de pago confirmado", {
             paymentId,
             error: emailError.message,
           });
-        }
+        });
       }
     } else if (paymentData.status === "rejected" || paymentData.status === "cancelled") {
       const pendienteId = pago?.reservaPendienteId?.toString() || externalReference;

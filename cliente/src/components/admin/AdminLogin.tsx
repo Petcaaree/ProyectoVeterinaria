@@ -41,7 +41,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onBack }) => {
             </div>
             <div>
               <h2 className="text-xl font-bold">Panel de Administracion</h2>
-              <p className="text-purple-200 text-sm">PetCare Admin</p>
+              <p className="text-purple-200 text-sm">PetConnect Admin</p>
             </div>
           </div>
         </div>

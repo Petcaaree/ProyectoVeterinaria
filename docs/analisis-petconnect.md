@@ -1,8 +1,8 @@
-# Analisis Completo de PetCare - Para Crear Tareas en Jira
+# Analisis Completo de PetConnect - Para Crear Tareas en Jira
 
 ## Contexto
 
-PetCare es una plataforma web de servicios para mascotas con 4 tipos de usuarios:
+PetConnect es una plataforma web de servicios para mascotas con 4 tipos de usuarios:
 - **Clientes (Duenos)**: Registran sus mascotas y reservan servicios.
 - **Paseadores**: Ofrecen servicios de paseo por hora con cupos (maxPerros).
 - **Cuidadores**: Ofrecen servicios de cuidado por rango de fechas.
@@ -313,7 +313,7 @@ Nota: La app usa un sistema de vistas por estado en App.tsx (no React Router). L
 
 #### T1-02: Comision por Transaccion
 - **Prioridad**: Critica
-- **Descripcion**: PetCare cobra un porcentaje (ej: 10-15%) de cada reserva pagada. Este ingreso es el core del modelo de negocio.
+- **Descripcion**: PetConnect cobra un porcentaje (ej: 10-15%) de cada reserva pagada. Este ingreso es el core del modelo de negocio.
 - **Alcance tecnico**:
   - Campo `comisionPorcentaje` configurable (inicialmente hardcodeado, luego desde panel admin)
   - Al procesar pago: calcular monto_proveedor = precio - comision

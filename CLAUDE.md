@@ -1,4 +1,4 @@
-# 🏛️ PetCare: Protocolo de Arquitectura y Desarrollo Senior
+# 🏛️ PetConnect: Protocolo de Arquitectura y Desarrollo Senior
 
 Este documento es la única fuente de verdad para la lógica de negocio y estándares técnicos. Claude debe consultarlo antes de cada tarea para asegurar la integridad del sistema.
 

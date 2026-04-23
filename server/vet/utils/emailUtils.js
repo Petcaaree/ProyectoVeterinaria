@@ -47,13 +47,13 @@ export async function enviarEmailResetPassword(email, token, nombreUsuario) {
     }
 
     const mailOptions = {
-        from: `"PetCare" <${process.env.SMTP_USER}>`,
+        from: `"PetConnect" <${process.env.SMTP_USER}>`,
         to: email,
-        subject: 'Restablecer tu contraseña - PetCare',
+        subject: 'Restablecer tu contraseña - PetConnect',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="background: linear-gradient(to right, #2563eb, #7c3aed); padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px;">PetCare</h1>
+                    <h1 style="color: white; margin: 0; font-size: 24px;">PetConnect</h1>
                 </div>
                 <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none;">
                     <h2 style="color: #1f2937; margin-top: 0;">Hola ${nombreUsuario},</h2>

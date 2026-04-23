@@ -181,7 +181,7 @@ const Encabezado: React.FC<EncabezadoProps> = ({ onServiceChange, onViewChange, 
             <div className="bg-blue-600 p-2 rounded-lg">
               <Heart className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">PetCare</span>
+            <span className="text-xl font-bold text-gray-900">PetConnect</span>
           </div>
 
           {/* Desktop User Menu */}

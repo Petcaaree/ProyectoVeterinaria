@@ -139,11 +139,11 @@ const CloudinarySetup: React.FC<CloudinarySetupProps> = ({ onClose }) => {
                 <div className="bg-gray-900 text-green-400 p-4 rounded-lg">
                   <div className="text-xs text-gray-500 mb-2">cliente/.env</div>
                   <pre className="text-sm">
-{`VITE_API_URL=http://localhost:3000
+                    {`VITE_API_URL=http://localhost:3000
 
-# Configuración de Cloudinary
-VITE_CLOUDINARY_CLOUD_NAME=tu-cloud-name-real
-VITE_CLOUDINARY_UPLOAD_PRESET=mascotas_upload`}
+                    # Configuración de Cloudinary
+                    VITE_CLOUDINARY_CLOUD_NAME=tu-cloud-name-real
+                    VITE_CLOUDINARY_UPLOAD_PRESET=mascotas_upload`}
                   </pre>
                 </div>
 

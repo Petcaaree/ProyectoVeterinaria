@@ -21,12 +21,21 @@ export class ServicioVeterinariaService {
         this.reservaRepository = reservaRepository
     }
 
+    // Filtra servicios cuyo proveedor no esté verificado (listados públicos).
+    _soloDeVeterinariasVerificadas(servicios) {
+        return servicios.filter(
+            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === "VERIFICADO"
+        )
+    }
+
     async findAll({page = 1, limit = 4}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Primero buscar todos los servicios para saber qué veterinarias tienen servicios
-        const todosLosServicios = await this.servicioVeterinariaRepository.findAll()
+        const todosLosServicios = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findAll()
+        )
         
         // Obtener IDs únicos de veterinarias que tienen servicios
         const veterinariaIdsConServicios = [...new Set(
@@ -67,7 +76,9 @@ export class ServicioVeterinariaService {
     
     
     
-            let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByFilters(filtro);
+            let serviciosVeterinarias = this._soloDeVeterinariasVerificadas(
+                await this.servicioVeterinariaRepository.findByFilters(filtro)
+            );
     
             let veterinariaIds = [];
             for (let i = 0; i < serviciosVeterinarias.length; i++) {

@@ -143,6 +143,26 @@ async function seedClientes(localidades, hash) {
     return clientes;
 }
 
+// Verificación dummy para que las veterinarias del seed estén habilitadas a crear servicios.
+function verificacionDummy({ tipo, razonSocial, cuit, matricula, calle, numero, localidad, provincia, telefono }) {
+    return {
+        tipoEstablecimiento: tipo,
+        razonSocial: razonSocial ?? null,
+        cuit,
+        matriculaProfesional: matricula,
+        direccion: { calle, numero, piso: null, depto: null, localidad, provincia, codigoPostal: '1000' },
+        telefono,
+        documentos: [
+            { tipo: 'HABILITACION_MUNICIPAL', url: 'https://via.placeholder.com/400?text=Habilitacion' },
+            { tipo: 'FOTO_FRENTE', url: 'https://via.placeholder.com/400?text=Frente' },
+            { tipo: 'FOTO_INTERIOR', url: 'https://via.placeholder.com/400?text=Interior' },
+        ],
+        estadoVerificacion: 'VERIFICADO',
+        motivoRechazo: null,
+        fechaActualizacion: new Date(),
+    };
+}
+
 async function seedVeterinarias(localidades, hash) {
     const vets = await Promise.all([
         VeterinariaModel.create({
@@ -153,6 +173,11 @@ async function seedVeterinarias(localidades, hash) {
             telefono: '1133445566',
             direccion: { calle: 'Honduras', altura: '4800', localidad: localidades.palermo._id },
             notificaciones: [],
+            verificacion: verificacionDummy({
+                tipo: 'CLINICA', razonSocial: 'Clínica Palermo SRL', cuit: '30-12345678-9',
+                matricula: 'MP-1234', calle: 'Honduras', numero: '4800',
+                localidad: 'Palermo', provincia: 'CABA', telefono: '1133445566',
+            }),
         }),
         VeterinariaModel.create({
             nombreUsuario: 'Dr. Carlos López',
@@ -162,6 +187,11 @@ async function seedVeterinarias(localidades, hash) {
             telefono: '3514556677',
             direccion: { calle: 'Av. Hipólito Yrigoyen', altura: '350', localidad: localidades.nuevaCordoba._id },
             notificaciones: [],
+            verificacion: verificacionDummy({
+                tipo: 'HOSPITAL', razonSocial: 'VetCenter Córdoba SA', cuit: '30-87654321-2',
+                matricula: 'MP-5678', calle: 'Av. Hipólito Yrigoyen', numero: '350',
+                localidad: 'Nueva Córdoba', provincia: 'Córdoba', telefono: '3514556677',
+            }),
         }),
         VeterinariaModel.create({
             nombreUsuario: 'Dra. Marta Silva',
@@ -171,6 +201,11 @@ async function seedVeterinarias(localidades, hash) {
             telefono: '1155112233',
             direccion: { calle: 'Juramento', altura: '2500', localidad: localidades.belgrano._id },
             notificaciones: [],
+            verificacion: verificacionDummy({
+                tipo: 'CLINICA', razonSocial: 'Belgrano Pet SRL', cuit: '30-11223344-5',
+                matricula: 'MP-9012', calle: 'Juramento', numero: '2500',
+                localidad: 'Belgrano', provincia: 'CABA', telefono: '1155112233',
+            }),
         }),
     ]);
     logOk(`Veterinarias: ${vets.length}`);

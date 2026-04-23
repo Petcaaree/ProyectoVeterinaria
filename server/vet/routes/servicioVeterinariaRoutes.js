@@ -1,6 +1,7 @@
 import express from "express"
 import { ServicioVeterinariaController } from "../controllers/servicioVeterinariaController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { requireVerificacionAprobada } from "../middlewares/requireVerificacionAprobada.js"
 import { validate } from "../middlewares/validateMiddleware.js"
 import { servicioVeterinariaSchema, paginationSchema } from "../validators/schemas.js"
 
@@ -25,7 +26,7 @@ export default function servicioVeterinariaRoutes(getController) {
     })
 
     // --- Rutas protegidas (solo veterinaria) ---
-    router.post("/petcare/servicioVet", authMiddleware, authorizationMiddleware('veterinaria'), validate(servicioVeterinariaSchema), (req, res, next) => {
+    router.post("/petcare/servicioVet", authMiddleware, authorizationMiddleware('veterinaria'), requireVerificacionAprobada, validate(servicioVeterinariaSchema), (req, res, next) => {
         getController(ServicioVeterinariaController).create(req, res, next)
     })
 

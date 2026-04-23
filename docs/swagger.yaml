@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: PetCare API
+  title: PetConnect API
   description: |
-    API REST del marketplace de servicios veterinarios **PetCare**.
+    API REST del marketplace de servicios veterinarios **PetConnect**.
     Conecta clientes con veterinarias, paseadores y cuidadores de mascotas.
 
     ## Autenticacion
@@ -18,7 +18,7 @@ info:
     | `cuidador` | Cuidador/guarderia de mascotas |
   version: 1.0.0
   contact:
-    name: Equipo PetCare
+    name: Equipo PetConnect
 
 servers:
   - url: http://localhost:3000

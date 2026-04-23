@@ -1,4 +1,4 @@
-# PetCare - Informe de Auditoria Tecnica y Roadmap a Produccion
+# PetConnect - Informe de Auditoria Tecnica y Roadmap a Produccion
 
 **Fecha:** 2026-03-23
 **Autor:** Auditoria CTO / Lead Architect

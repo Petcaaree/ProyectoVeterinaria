@@ -1,5 +1,7 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError } from "../errors/AppError.js";
+import { enviarEmailPagoConfirmado } from "./emailService.js";
+import logger from "../utils/logger.js";
 
 export class PagoService {
   constructor(reservaService, pagoRepository, configuracionRepo) {
@@ -127,6 +129,18 @@ export class PagoService {
       if (pago && reservaDTO) {
         pago.reservaId = reservaDTO._id || reservaDTO.id;
         pago.reservaPendienteId = null;
+      }
+
+      // Email de comprobante al cliente: fire-and-forget para no demorar la
+      // respuesta al webhook de MP (MP reintenta si tardamos mucho).
+      if (reservaDTO) {
+        const referencia = (reservaDTO._id || reservaDTO.id)?.toString();
+        enviarEmailPagoConfirmado(reservaDTO, pago?.monto, referencia).catch((emailError) => {
+          logger.error("Error al enviar email de pago confirmado", {
+            paymentId,
+            error: emailError.message,
+          });
+        });
       }
     } else if (paymentData.status === "rejected" || paymentData.status === "cancelled") {
       const pendienteId = pago?.reservaPendienteId?.toString() || externalReference;

@@ -59,7 +59,7 @@ const ModalAutenticacion: React.FC<ModalAutenticacionProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-base sm:text-lg md:text-xl font-bold truncate">
-                {modo === 'login' ? 'Bienvenido de vuelta' : modo === 'forgot-password' ? 'Recuperar contraseña' : 'Únete a PetCare'}
+                {modo === 'login' ? 'Bienvenido de vuelta' : modo === 'forgot-password' ? 'Recuperar contraseña' : 'Únete a PetConnect'}
               </h2>
               <p className="text-blue-100 text-xs sm:text-sm leading-tight">
                 {modo === 'login'

@@ -65,6 +65,14 @@ function separador() {
     return '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">';
 }
 
+// Acepta Date, ISO string o string "DD/MM/YYYY" (viene así desde ReservaService.toDTO).
+function formatearFecha(fecha) {
+    if (!fecha) return '-';
+    if (typeof fecha === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) return fecha;
+    const d = dayjs(fecha);
+    return d.isValid() ? d.format('DD/MM/YYYY') : String(fecha);
+}
+
 // ─── Envío genérico ─────────────────────────────────────────────────
 
 async function enviarEmail(to, subject, html) {
@@ -78,13 +86,18 @@ async function enviarEmail(to, subject, html) {
         return;
     }
 
-    await transport.sendMail({
-        from: `"PetConnect" <${process.env.SMTP_USER}>`,
-        to,
-        subject,
-        html
-    });
-    logger.info(`Email enviado: "${subject}" → ${to}`);
+    try {
+        const info = await transport.sendMail({
+            from: process.env.EMAIL_FROM || `"PetConnect" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html
+        });
+        logger.info(`Email enviado: "${subject}" → ${to} [messageId=${info.messageId}]`);
+    } catch (error) {
+        logger.error(`FALLO envio email a ${to}: ${error.message}`, { code: error.code, response: error.response });
+        throw error;
+    }
 }
 
 // ─── 0. RESET DE CONTRASEÑA ─────────────────────────────────────────
@@ -286,7 +299,42 @@ export async function enviarEmailRecordatorio(reserva, tipoRecordatorio) {
     await enviarEmail(cliente.email, `Recordatorio: ${servicioReservado.nombreServicio || 'tu cita'} - PetConnect`, html);
 }
 
-// ─── 6. CANCELACIÓN AUTOMÁTICA ──────────────────────────────────────
+// ─── 6. PAGO CONFIRMADO (comprobante) ───────────────────────────────
+
+export async function enviarEmailPagoConfirmado(reserva, monto, referencia) {
+    const { cliente, servicioReservado, rangoFechas, horario, serviciOfrecido } = reserva;
+    // rangoFechas viene del DTO ya formateado como "DD/MM/YYYY" (ver ReservaService.toDTO).
+    const fechaInicio = formatearFecha(rangoFechas.fechaInicio);
+    const fechaFin = formatearFecha(rangoFechas.fechaFin);
+    const proveedor = servicioReservado.usuarioProveedor?.nombreUsuario || '';
+    const nombreServicio = servicioReservado.nombreServicio || 'Servicio';
+    const montoFormateado = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
+
+    const html = wrapTemplate(`
+        <h2 style="color: #1f2937; margin-top: 0;">¡Pago confirmado! 💳</h2>
+        <p style="color: #4b5563; line-height: 1.7;">
+            Hola <strong>${cliente.nombreUsuario}</strong>, recibimos tu pago correctamente y tu reserva quedó <strong>confirmada</strong>.
+        </p>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <table style="width: 100%; font-size: 14px; color: #374151;">
+                <tr><td style="padding: 6px 0; font-weight: 600;">Referencia:</td><td style="padding: 6px 0; font-family: monospace;">${referencia || '-'}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Servicio:</td><td style="padding: 6px 0;">${nombreServicio}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Tipo:</td><td style="padding: 6px 0;">${serviciOfrecido || '-'}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Proveedor:</td><td style="padding: 6px 0;">${proveedor}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Fecha:</td><td style="padding: 6px 0;">${fechaInicio}${fechaInicio !== fechaFin ? ` al ${fechaFin}` : ''}</td></tr>
+                ${horario ? `<tr><td style="padding: 6px 0; font-weight: 600;">Horario:</td><td style="padding: 6px 0;">${horario} hs</td></tr>` : ''}
+                <tr><td style="padding: 6px 0; font-weight: 600;">Monto pagado:</td><td style="padding: 6px 0; font-weight: 700; color: #065f46;">${montoFormateado}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Estado:</td><td style="padding: 6px 0;"><span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 12px;">CONFIRMADA</span></td></tr>
+            </table>
+        </div>
+        <p style="color: #6b7280; font-size: 13px;">Guardá este email como comprobante de tu reserva.</p>
+        ${boton('Ver mis reservas', FRONTEND_URL)}
+    `);
+
+    await enviarEmail(cliente.email, 'Pago confirmado - Comprobante de reserva - PetConnect', html);
+}
+
+// ─── 7. CANCELACIÓN AUTOMÁTICA ──────────────────────────────────────
 
 export async function enviarEmailCancelacionAutomatica(reserva, email, nombreUsuario, motivo) {
     const { servicioReservado, rangoFechas, horario } = reserva;

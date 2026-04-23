@@ -402,7 +402,7 @@ useEffect(() => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                ¿Cómo quieres usar PetCare?
+                ¿Cómo quieres usar PetConnect?
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {userTypes.map((type) => {

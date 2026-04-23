@@ -232,7 +232,7 @@ app.use(authRoutes);
 // Swagger API docs
 const swaggerDocument = YAML.load("../docs/swagger.yaml");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-    customSiteTitle: 'PetCare API Docs',
+    customSiteTitle: 'PetConnect API Docs',
     customCss: '.swagger-ui .topbar { display: none }'
 }));
 

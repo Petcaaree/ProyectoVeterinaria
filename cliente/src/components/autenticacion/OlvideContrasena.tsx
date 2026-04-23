@@ -82,7 +82,7 @@ const OlvideContrasena: React.FC<OlvideContrasenaProps> = ({ onVolver }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            ¿Cómo usás PetCare?
+            ¿Cómo usás PetConnect?
           </label>
           <div className="grid grid-cols-2 gap-2">
             {userTypes.map((type) => {

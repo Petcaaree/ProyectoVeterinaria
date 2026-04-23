@@ -99,7 +99,7 @@ describe("verificarFirmaMP", () => {
   });
 
   it("responde 403 si falta data.id (no puede reconstruir el manifest)", () => {
-    const ts = "1704908010";
+    const ts = String(Date.now());
     const req = buildReq({
       headers: {
         "x-signature": `ts=${ts},v1=${firmaValida({ dataId: "123", xRequestId: "req-1", ts })}`,
@@ -117,7 +117,7 @@ describe("verificarFirmaMP", () => {
   });
 
   it("llama a next() cuando la firma es válida", () => {
-    const ts = "1704908010";
+    const ts = String(Date.now());
     const dataId = "123456789";
     const xRequestId = "req-abc";
     const v1 = firmaValida({ dataId, xRequestId, ts });
@@ -139,7 +139,7 @@ describe("verificarFirmaMP", () => {
   });
 
   it("acepta data.id desde query params (flujo IPN legacy)", () => {
-    const ts = "1704908010";
+    const ts = String(Date.now());
     const dataId = "987";
     const xRequestId = "req-legacy";
     const v1 = firmaValida({ dataId, xRequestId, ts });
@@ -157,6 +157,45 @@ describe("verificarFirmaMP", () => {
     verificarFirmaMP(req, res, next);
 
     expect(next).toHaveBeenCalled();
+  });
+
+  it("responde 403 si ts no es numérico", () => {
+    const req = buildReq({
+      headers: {
+        "x-signature": "ts=abc,v1=deadbeef",
+        "x-request-id": "req-1",
+      },
+      body: { data: { id: "123" } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si ts está fuera de la ventana (posible replay)", () => {
+    const tsViejo = String(Date.now() - 10 * 60 * 1000); // 10 min atrás
+    const dataId = "123";
+    const xRequestId = "req-1";
+    const v1 = firmaValida({ dataId, xRequestId, ts: tsViejo });
+
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${tsViejo},v1=${v1}`,
+        "x-request-id": xRequestId,
+      },
+      body: { data: { id: dataId } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("es resistente a firmas de longitud distinta (no lanza)", () => {

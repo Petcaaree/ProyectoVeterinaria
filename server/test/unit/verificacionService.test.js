@@ -128,6 +128,17 @@ describe('VerificacionService', () => {
             await expect(service.crear(VET_ID, payload)).rejects.toThrow(/url/);
         });
 
+        it('devuelve ValidationError (no TypeError) si campos string llegan como número', async () => {
+            repo.findById.mockResolvedValue(crearVetFake());
+
+            await expect(service.crear(VET_ID, { ...payloadClinica(), matriculaProfesional: 1234 }))
+                .rejects.toThrow(ValidationError);
+            await expect(service.crear(VET_ID, { ...payloadClinica(), telefono: 1133445566 }))
+                .rejects.toThrow(ValidationError);
+            await expect(service.crear(VET_ID, { ...payloadClinica(), razonSocial: 123 }))
+                .rejects.toThrow(ValidationError);
+        });
+
         it('lanza NotFoundError si la vet no existe', async () => {
             repo.findById.mockResolvedValue(null);
             await expect(service.crear(VET_ID, payloadClinica())).rejects.toThrow(NotFoundError);

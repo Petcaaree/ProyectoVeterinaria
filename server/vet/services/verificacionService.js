@@ -36,16 +36,16 @@ export class VerificacionService {
         if (!cuit || !CUIT_REGEX.test(cuit)) {
             throw new ValidationError("CUIT debe tener formato XX-XXXXXXXX-X");
         }
-        if (!matriculaProfesional || !matriculaProfesional.trim()) {
+        if (typeof matriculaProfesional !== "string" || !matriculaProfesional.trim()) {
             throw new ValidationError("matriculaProfesional es requerida");
         }
-        if (!telefono || !telefono.trim()) {
+        if (typeof telefono !== "string" || !telefono.trim()) {
             throw new ValidationError("telefono es requerido");
         }
         if (!direccion || !direccion.calle || !direccion.numero || !direccion.localidad || !direccion.provincia || !direccion.codigoPostal) {
             throw new ValidationError("direccion incompleta (calle, numero, localidad, provincia y codigoPostal son requeridos)");
         }
-        if (TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento) && !razonSocial?.trim()) {
+        if (TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento) && (typeof razonSocial !== "string" || !razonSocial.trim())) {
             throw new ValidationError("razonSocial es requerida para CLINICA/HOSPITAL");
         }
         if (!Array.isArray(documentos) || documentos.length === 0) {
@@ -132,7 +132,7 @@ export class VerificacionService {
         if (![EstadoVerificacion.VERIFICADO, EstadoVerificacion.RECHAZADO].includes(estado)) {
             throw new ValidationError("estado debe ser VERIFICADO o RECHAZADO");
         }
-        if (estado === EstadoVerificacion.RECHAZADO && !motivoRechazo?.trim()) {
+        if (estado === EstadoVerificacion.RECHAZADO && (typeof motivoRechazo !== "string" || !motivoRechazo.trim())) {
             throw new ValidationError("motivoRechazo es requerido al rechazar");
         }
 
@@ -157,7 +157,7 @@ export class VerificacionService {
             matriculaProfesional: verificacion.matriculaProfesional,
             direccion: verificacion.direccion,
             telefono: verificacion.telefono,
-            documentos: verificacion.documentos.map((d) => ({
+            documentos: (verificacion.documentos ?? []).map((d) => ({
                 tipo: d.tipo,
                 url: d.url,
                 fechaSubida: d.fechaSubida,

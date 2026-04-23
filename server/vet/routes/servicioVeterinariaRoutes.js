@@ -34,7 +34,7 @@ export default function servicioVeterinariaRoutes(getController) {
         getController(ServicioVeterinariaController).delete(req, res, next)
     })
 
-    router.post("/petcare/serviciosVet/array", authMiddleware, authorizationMiddleware('veterinaria'), (req, res, next) => {
+    router.post("/petcare/serviciosVet/array", authMiddleware, authorizationMiddleware('veterinaria'), requireVerificacionAprobada, (req, res, next) => {
         getController(ServicioVeterinariaController).importArray(req, res, next)
     })
 

@@ -7,6 +7,7 @@ import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
+import { EstadoVerificacion } from "../models/entidades/enums/EstadoVerificacion.js"
 
 import mongoose from "mongoose"
 
@@ -24,7 +25,7 @@ export class ServicioVeterinariaService {
     // Filtra servicios cuyo proveedor no esté verificado (listados públicos).
     _soloDeVeterinariasVerificadas(servicios) {
         return servicios.filter(
-            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === "VERIFICADO"
+            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === EstadoVerificacion.VERIFICADO
         )
     }
 

@@ -36,7 +36,7 @@ function wrapTemplate(contenido) {
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #ffffff;">
         <div style="background: linear-gradient(135deg, #7c3aed, #9333ea); padding: 28px 20px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.5px;">
-                🐾 PetConnect
+                🐾 PetCare
             </h1>
             <p style="color: rgba(255,255,255,0.85); margin: 4px 0 0; font-size: 13px;">Cuidamos a quienes más querés</p>
         </div>
@@ -45,7 +45,7 @@ function wrapTemplate(contenido) {
         </div>
         <div style="text-align: center; padding: 16px 0 0;">
             <p style="color: #9ca3af; font-size: 11px; margin: 0;">
-                &copy; ${new Date().getFullYear()} PetConnect &mdash; Este email fue generado automáticamente, no respondas a este mensaje.
+                &copy; ${new Date().getFullYear()} PetCare &mdash; Este email fue generado automáticamente, no respondas a este mensaje.
             </p>
         </div>
     </div>`;
@@ -78,13 +78,18 @@ async function enviarEmail(to, subject, html) {
         return;
     }
 
-    await transport.sendMail({
-        from: `"PetConnect" <${process.env.SMTP_USER}>`,
-        to,
-        subject,
-        html
-    });
-    logger.info(`Email enviado: "${subject}" → ${to}`);
+    try {
+        const info = await transport.sendMail({
+            from: process.env.EMAIL_FROM || `"PetCare" <${process.env.SMTP_USER}>`,
+            to,
+            subject,
+            html
+        });
+        logger.info(`Email enviado: "${subject}" → ${to} [messageId=${info.messageId}]`);
+    } catch (error) {
+        logger.error(`FALLO envio email a ${to}: ${error.message}`, { code: error.code, response: error.response });
+        throw error;
+    }
 }
 
 // ─── 0. RESET DE CONTRASEÑA ─────────────────────────────────────────
@@ -109,7 +114,7 @@ export async function enviarEmailResetPassword(email, token, nombreUsuario) {
         </p>
     `);
 
-    await enviarEmail(email, 'Restablecer tu contraseña - PetConnect', html);
+    await enviarEmail(email, 'Restablecer tu contraseña - PetCare', html);
 }
 
 // ─── 1. BIENVENIDA (registro) ───────────────────────────────────────
@@ -126,19 +131,19 @@ export async function enviarEmailBienvenida(email, nombreUsuario, tipoUsuario) {
     const html = wrapTemplate(`
         <h2 style="color: #1f2937; margin-top: 0;">¡Bienvenido/a, ${nombreUsuario}! 🎉</h2>
         <p style="color: #4b5563; line-height: 1.7;">
-            Tu cuenta como <strong>${rol}</strong> fue creada exitosamente en PetConnect.
+            Tu cuenta como <strong>${rol}</strong> fue creada exitosamente en PetCare.
         </p>
         <p style="color: #4b5563; line-height: 1.7;">
             Ya podés ingresar a la plataforma y ${tipoUsuario === 'cliente'
                 ? 'buscar los mejores servicios para tu mascota.'
                 : 'publicar tus servicios y empezar a recibir reservas.'}
         </p>
-        ${boton('Ingresar a PetConnect', FRONTEND_URL)}
+        ${boton('Ingresar a PetCare', FRONTEND_URL)}
         ${separador()}
         <p style="color: #6b7280; font-size: 13px;">Si no creaste esta cuenta, podés ignorar este email.</p>
     `);
 
-    await enviarEmail(email, '¡Bienvenido/a a PetConnect! 🐾', html);
+    await enviarEmail(email, '¡Bienvenido/a a PetCare! 🐾', html);
 }
 
 // ─── 2. CONFIRMACIÓN DE RESERVA (al crear) ──────────────────────────
@@ -188,13 +193,13 @@ export async function enviarEmailReservaCreada(reserva) {
                 ${horario ? `<tr><td style="padding: 6px 0; font-weight: 600;">Horario:</td><td style="padding: 6px 0;">${horario} hs</td></tr>` : ''}
             </table>
         </div>
-        <p style="color: #6b7280; font-size: 13px;">Ingresá a PetConnect para confirmar o rechazar la reserva.</p>
+        <p style="color: #6b7280; font-size: 13px;">Ingresá a PetCare para confirmar o rechazar la reserva.</p>
         ${boton('Ver mis turnos', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, 'Tu reserva fue creada - PetConnect', htmlCliente);
+    await enviarEmail(cliente.email, 'Tu reserva fue creada - PetCare', htmlCliente);
     if (proveedorEmail) {
-        await enviarEmail(proveedorEmail, 'Nueva reserva recibida - PetConnect', htmlProveedor);
+        await enviarEmail(proveedorEmail, 'Nueva reserva recibida - PetCare', htmlProveedor);
     }
 }
 
@@ -222,7 +227,7 @@ export async function enviarEmailReservaConfirmada(reserva) {
         ${boton('Ver mis reservas', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, '¡Reserva confirmada! - PetConnect', html);
+    await enviarEmail(cliente.email, '¡Reserva confirmada! - PetCare', html);
 }
 
 // ─── 4. RESERVA CANCELADA ───────────────────────────────────────────
@@ -244,10 +249,10 @@ export async function enviarEmailReservaCancelada(reserva, destinatarioEmail, de
                 <tr><td style="padding: 6px 0; font-weight: 600;">Estado:</td><td style="padding: 6px 0;"><span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 12px;">CANCELADA</span></td></tr>
             </table>
         </div>
-        ${boton('Ir a PetConnect', FRONTEND_URL)}
+        ${boton('Ir a PetCare', FRONTEND_URL)}
     `);
 
-    await enviarEmail(destinatarioEmail, 'Reserva cancelada - PetConnect', html);
+    await enviarEmail(destinatarioEmail, 'Reserva cancelada - PetCare', html);
 }
 
 // ─── 5. RECORDATORIO 24h / día de inicio ────────────────────────────
@@ -283,10 +288,44 @@ export async function enviarEmailRecordatorio(reserva, tipoRecordatorio) {
         ${boton('Ver mis reservas', FRONTEND_URL)}
     `);
 
-    await enviarEmail(cliente.email, `Recordatorio: ${servicioReservado.nombreServicio || 'tu cita'} - PetConnect`, html);
+    await enviarEmail(cliente.email, `Recordatorio: ${servicioReservado.nombreServicio || 'tu cita'} - PetCare`, html);
 }
 
-// ─── 6. CANCELACIÓN AUTOMÁTICA ──────────────────────────────────────
+// ─── 6. PAGO CONFIRMADO (comprobante) ───────────────────────────────
+
+export async function enviarEmailPagoConfirmado(reserva, monto, referencia) {
+    const { cliente, servicioReservado, rangoFechas, horario, serviciOfrecido } = reserva;
+    const fechaInicio = dayjs(rangoFechas.fechaInicio).format('DD/MM/YYYY');
+    const fechaFin = dayjs(rangoFechas.fechaFin).format('DD/MM/YYYY');
+    const proveedor = servicioReservado.usuarioProveedor?.nombreUsuario || '';
+    const nombreServicio = servicioReservado.nombreServicio || 'Servicio';
+    const montoFormateado = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(monto || 0);
+
+    const html = wrapTemplate(`
+        <h2 style="color: #1f2937; margin-top: 0;">¡Pago confirmado! 💳</h2>
+        <p style="color: #4b5563; line-height: 1.7;">
+            Hola <strong>${cliente.nombreUsuario}</strong>, recibimos tu pago correctamente y tu reserva quedó <strong>confirmada</strong>.
+        </p>
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <table style="width: 100%; font-size: 14px; color: #374151;">
+                <tr><td style="padding: 6px 0; font-weight: 600;">Referencia:</td><td style="padding: 6px 0; font-family: monospace;">${referencia || '-'}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Servicio:</td><td style="padding: 6px 0;">${nombreServicio}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Tipo:</td><td style="padding: 6px 0;">${serviciOfrecido || '-'}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Proveedor:</td><td style="padding: 6px 0;">${proveedor}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Fecha:</td><td style="padding: 6px 0;">${fechaInicio}${fechaInicio !== fechaFin ? ` al ${fechaFin}` : ''}</td></tr>
+                ${horario ? `<tr><td style="padding: 6px 0; font-weight: 600;">Horario:</td><td style="padding: 6px 0;">${horario} hs</td></tr>` : ''}
+                <tr><td style="padding: 6px 0; font-weight: 600;">Monto pagado:</td><td style="padding: 6px 0; font-weight: 700; color: #065f46;">${montoFormateado}</td></tr>
+                <tr><td style="padding: 6px 0; font-weight: 600;">Estado:</td><td style="padding: 6px 0;"><span style="background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 12px;">CONFIRMADA</span></td></tr>
+            </table>
+        </div>
+        <p style="color: #6b7280; font-size: 13px;">Guardá este email como comprobante de tu reserva.</p>
+        ${boton('Ver mis reservas', FRONTEND_URL)}
+    `);
+
+    await enviarEmail(cliente.email, 'Pago confirmado - Comprobante de reserva - PetCare', html);
+}
+
+// ─── 7. CANCELACIÓN AUTOMÁTICA ──────────────────────────────────────
 
 export async function enviarEmailCancelacionAutomatica(reserva, email, nombreUsuario, motivo) {
     const { servicioReservado, rangoFechas, horario } = reserva;
@@ -306,8 +345,8 @@ export async function enviarEmailCancelacionAutomatica(reserva, email, nombreUsu
             </table>
         </div>
         <p style="color: #6b7280; font-size: 13px;">Podés crear una nueva reserva desde la plataforma.</p>
-        ${boton('Ir a PetConnect', FRONTEND_URL)}
+        ${boton('Ir a PetCare', FRONTEND_URL)}
     `);
 
-    await enviarEmail(email, 'Reserva cancelada automáticamente - PetConnect', html);
+    await enviarEmail(email, 'Reserva cancelada automáticamente - PetCare', html);
 }

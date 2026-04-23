@@ -1,4 +1,4 @@
-# PetConnect - Backend
+# PetCare - Backend
 
 ## Requisitos
 
@@ -80,7 +80,7 @@ Copiar la URL `https://xxxx.ngrok.io` que genera y pegarla en el `.env` como `BA
 1. Backend corriendo (`npm run dev`) con `BACKEND_URL` apuntando a ngrok.
 2. Frontend corriendo (`npm run dev` en `cliente/`).
 3. Ventana incognito logueada con el `TESTUSER...`.
-4. En PetConnect, crear una reserva como cliente → redirige al checkout sandbox.
+4. En PetCare, crear una reserva como cliente → redirige al checkout sandbox.
 5. Pagar con tarjeta APRO → volves al front con `?payment_status=approved`.
 6. Verificar en Mongo: la reserva pasa a `CONFIRMADA` y el pago queda en `APROBADO`.
 

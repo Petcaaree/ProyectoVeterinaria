@@ -1,5 +1,7 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError } from "../errors/AppError.js";
+import { enviarEmailPagoConfirmado } from "./emailService.js";
+import logger from "../utils/logger.js";
 
 export class PagoService {
   constructor(reservaService, pagoRepository, configuracionRepo) {
@@ -22,7 +24,7 @@ export class PagoService {
     const nombreServicio =
       pendienteDTO.servicioReservado?.nombreServicio ||
       pendienteDTO.serviciOfrecido ||
-      "Servicio PetConnect";
+      "Servicio PetCare";
 
     const precioBase = pendienteDTO.precioTotal || pendienteDTO.servicioReservado?.precio || 0;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
@@ -52,7 +54,7 @@ export class PagoService {
       },
       external_reference: pendienteId,
       notification_url: `${process.env.BACKEND_URL || "http://localhost:3000"}/petcare/pagos/webhook`,
-      statement_descriptor: "PetConnect",
+      statement_descriptor: "PetCare",
     };
 
     const preference = new Preference(this.client);
@@ -127,6 +129,19 @@ export class PagoService {
       if (pago && reservaDTO) {
         pago.reservaId = reservaDTO._id || reservaDTO.id;
         pago.reservaPendienteId = null;
+      }
+
+      // Email de comprobante al cliente. No bloquea el flujo si falla.
+      if (reservaDTO) {
+        try {
+          const referencia = (reservaDTO._id || reservaDTO.id)?.toString();
+          await enviarEmailPagoConfirmado(reservaDTO, pago?.monto, referencia);
+        } catch (emailError) {
+          logger.error("Error al enviar email de pago confirmado", {
+            paymentId,
+            error: emailError.message,
+          });
+        }
       }
     } else if (paymentData.status === "rejected" || paymentData.status === "cancelled") {
       const pendienteId = pago?.reservaPendienteId?.toString() || externalReference;

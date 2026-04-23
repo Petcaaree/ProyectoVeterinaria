@@ -60,7 +60,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, onViewChange, 
             </svg>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-gray-900">PetConnect</h1>
+            <h1 className="text-lg font-bold text-gray-900">PetCare</h1>
             <p className="text-xs text-gray-500">Panel Admin</p>
           </div>
         </div>

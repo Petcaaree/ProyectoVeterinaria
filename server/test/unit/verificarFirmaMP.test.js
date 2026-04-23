@@ -67,9 +67,10 @@ describe("verificarFirmaMP", () => {
   });
 
   it("responde 403 si la firma es invalida", () => {
+    const ts = String(Date.now());
     const req = buildReq({
       headers: {
-        "x-signature": "ts=1704908010,v1=deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+        "x-signature": `ts=${ts},v1=deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef`,
         "x-request-id": "req-1",
       },
       body: { data: { id: "123" } },
@@ -174,6 +175,54 @@ describe("verificarFirmaMP", () => {
 
     expect(res.status).toHaveBeenCalledWith(403);
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("responde 403 si el hash no coincide (ts dentro de ventana, v1 incorrecto)", () => {
+    const ts = String(Date.now());
+    const dataId = "123";
+    const xRequestId = "req-1";
+    const firmaCorrecta = firmaValida({ dataId, xRequestId, ts });
+    // Alterar el último char para romper la igualdad manteniendo longitud/hex válido.
+    const ultimoChar = firmaCorrecta.slice(-1);
+    const charMutado = ultimoChar === "0" ? "1" : "0";
+    const v1Falso = firmaCorrecta.slice(0, -1) + charMutado;
+
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${ts},v1=${v1Falso}`,
+        "x-request-id": xRequestId,
+      },
+      body: { data: { id: dataId } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("acepta ts en segundos (Unix de 10 dígitos)", () => {
+    const ts = String(Math.floor(Date.now() / 1000));
+    const dataId = "123";
+    const xRequestId = "req-seg";
+    const v1 = firmaValida({ dataId, xRequestId, ts });
+
+    const req = buildReq({
+      headers: {
+        "x-signature": `ts=${ts},v1=${v1}`,
+        "x-request-id": xRequestId,
+      },
+      body: { data: { id: dataId } },
+    });
+    const res = buildRes();
+    const next = jest.fn();
+
+    verificarFirmaMP(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(res.status).not.toHaveBeenCalled();
   });
 
   it("responde 403 si ts está fuera de la ventana (posible replay)", () => {

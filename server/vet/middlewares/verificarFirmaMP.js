@@ -62,8 +62,10 @@ export function verificarFirmaMP(req, res, next) {
   if (!/^\d+$/.test(ts)) {
     return rechazar(req, res, "ts no numérico");
   }
-  // MP envía ts en milisegundos.
-  const tsMs = Number(ts);
+  // MP puede enviar ts en segundos (Unix, ~10 dígitos) o milisegundos (~13).
+  // Normalizamos solo para la comparación; el manifest usa el ts original.
+  const tsNumber = Number(ts);
+  const tsMs = tsNumber < 1e12 ? tsNumber * 1000 : tsNumber;
   if (Math.abs(Date.now() - tsMs) > TS_SKEW_MS) {
     return rechazar(req, res, "ts fuera de ventana (posible replay)");
   }

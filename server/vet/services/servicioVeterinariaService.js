@@ -7,6 +7,7 @@ import { Notificacion } from "../models/entidades/Notificacion.js"
 import { ValidationError, ConflictError, NotFoundError } from "../errors/AppError.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
+import { EstadoVerificacion } from "../models/entidades/enums/EstadoVerificacion.js"
 
 import mongoose from "mongoose"
 
@@ -21,12 +22,21 @@ export class ServicioVeterinariaService {
         this.reservaRepository = reservaRepository
     }
 
+    // Filtra servicios cuyo proveedor no esté verificado (listados públicos).
+    _soloDeVeterinariasVerificadas(servicios) {
+        return servicios.filter(
+            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === EstadoVerificacion.VERIFICADO
+        )
+    }
+
     async findAll({page = 1, limit = 4}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Primero buscar todos los servicios para saber qué veterinarias tienen servicios
-        const todosLosServicios = await this.servicioVeterinariaRepository.findAll()
+        const todosLosServicios = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findAll()
+        )
         
         // Obtener IDs únicos de veterinarias que tienen servicios
         const veterinariaIdsConServicios = [...new Set(
@@ -67,7 +77,9 @@ export class ServicioVeterinariaService {
     
     
     
-            let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByFilters(filtro);
+            let serviciosVeterinarias = this._soloDeVeterinariasVerificadas(
+                await this.servicioVeterinariaRepository.findByFilters(filtro)
+            );
     
             let veterinariaIds = [];
             for (let i = 0; i < serviciosVeterinarias.length; i++) {
@@ -115,6 +127,10 @@ export class ServicioVeterinariaService {
         if(!servicioVeterinaria) {
             throw new NotFoundError(`Servicio Veterinaria con id ${id} no encontrado`)
         }
+        // Servicios de vets no verificadas no son públicos: se tratan como 404.
+        if (servicioVeterinaria?.usuarioProveedor?.verificacion?.estadoVerificacion !== EstadoVerificacion.VERIFICADO) {
+            throw new NotFoundError(`Servicio Veterinaria con id ${id} no encontrado`)
+        }
         return this.toDTO(servicioVeterinaria)
     }
 
@@ -122,7 +138,9 @@ export class ServicioVeterinariaService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByVeterinariaId(id);
+        let serviciosVeterinarias = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findByVeterinariaId(id)
+        );
 
         const total = serviciosVeterinarias.length;
         const startIndex = (pageNum - 1) * limitNum;
@@ -267,7 +285,9 @@ export class ServicioVeterinariaService {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioVeterinariaRepository.findByEstadoByVeterinaria(estado, veterinariaID);
+        const servicios = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findByEstadoByVeterinaria(estado, veterinariaID)
+        );
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

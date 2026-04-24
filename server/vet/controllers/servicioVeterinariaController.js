@@ -71,7 +71,9 @@ export class ServicioVeterinariaController {
     // Endpoint para crear un nuevo servicioVeterinaria
     async create (req, res,next) {
         try {
-            const servicioVeterinaria = req.body;
+            // idVeterinaria siempre viene del JWT — nunca confiamos en el body
+            // para evitar que una vet cree servicios a nombre de otra.
+            const servicioVeterinaria = { ...req.body, idVeterinaria: req.usuario.id };
             const nuevo = await this.servicioVeterinariaService.create(servicioVeterinaria);
 
             res.status(201).json(nuevo);
@@ -106,7 +108,7 @@ export class ServicioVeterinariaController {
     async importArray(req, res, next) {
         try {
             let array = req.body
-            
+
             if (!Array.isArray(array)) {
             if (typeof array === 'object' && array !== null) {
                 array = [array];
@@ -115,8 +117,9 @@ export class ServicioVeterinariaController {
             }
         }
 
+            // idVeterinaria proviene SIEMPRE del JWT, nunca del body.
             for(const a of array) {
-                await this.servicioVeterinariaService.create(a)
+                await this.servicioVeterinariaService.create({ ...a, idVeterinaria: req.usuario.id })
             }
 
             res.status(200).send({message: `Importación completa. ${array.length} documentos insertados.`})

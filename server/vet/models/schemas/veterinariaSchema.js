@@ -1,5 +1,52 @@
 import mongoose, { Schema } from "mongoose"
 import { Veterinaria } from "../entidades/Veterinaria.js";
+import { TipoEstablecimiento } from "../entidades/enums/TipoEstablecimiento.js";
+import { EstadoVerificacion } from "../entidades/enums/EstadoVerificacion.js";
+import { TipoDocumento } from "../entidades/enums/TipoDocumento.js";
+
+const documentoVerificacionSchema = new mongoose.Schema({
+    tipo: {
+        type: String,
+        enum: Object.values(TipoDocumento),
+        required: true,
+    },
+    url: { type: String, required: true, trim: true },
+    fechaSubida: { type: Date, default: Date.now },
+}, { _id: false });
+
+const verificacionSchema = new mongoose.Schema({
+    tipoEstablecimiento: {
+        type: String,
+        enum: Object.values(TipoEstablecimiento),
+        required: true,
+    },
+    razonSocial: { type: String, trim: true, maxlength: 200 },
+    cuit: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^\d{2}-\d{8}-\d{1}$/, "CUIT debe tener formato XX-XXXXXXXX-X"],
+    },
+    matriculaProfesional: { type: String, required: true, trim: true, maxlength: 50 },
+    direccion: {
+        calle: { type: String, required: true, trim: true },
+        numero: { type: String, required: true, trim: true },
+        piso: { type: String, trim: true, default: null },
+        depto: { type: String, trim: true, default: null },
+        localidad: { type: String, required: true, trim: true },
+        provincia: { type: String, required: true, trim: true },
+        codigoPostal: { type: String, required: true, trim: true },
+    },
+    telefono: { type: String, required: true, trim: true, minlength: 7, maxlength: 20 },
+    documentos: { type: [documentoVerificacionSchema], default: [] },
+    estadoVerificacion: {
+        type: String,
+        enum: Object.values(EstadoVerificacion),
+        default: EstadoVerificacion.PENDIENTE,
+    },
+    motivoRechazo: { type: String, trim: true, default: null },
+    fechaActualizacion: { type: Date, default: Date.now },
+}, { _id: false });
 
 const veterinariaSchema = new mongoose.Schema({
   nombreUsuario: {
@@ -95,6 +142,10 @@ const veterinariaSchema = new mongoose.Schema({
     },
     motivoSuspension: {
         type: String,
+        default: null,
+    },
+    verificacion: {
+        type: verificacionSchema,
         default: null,
     },
 });

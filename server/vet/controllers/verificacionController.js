@@ -36,7 +36,7 @@ export class VerificacionController {
     // Admin
     async resolver(req, res, next) {
         try {
-            const resultado = await this.verificacionService.resolver(req.params.id, req.body);
+            const resultado = await this.verificacionService.resolver(req.params.veterinariaId, req.body);
             res.status(200).json(resultado);
         } catch (error) {
             next(error);

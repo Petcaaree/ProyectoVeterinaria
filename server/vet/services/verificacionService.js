@@ -42,8 +42,17 @@ export class VerificacionService {
         if (typeof telefono !== "string" || !telefono.trim()) {
             throw new ValidationError("telefono es requerido");
         }
-        if (!direccion || !direccion.calle || !direccion.numero || !direccion.localidad || !direccion.provincia || !direccion.codigoPostal) {
-            throw new ValidationError("direccion incompleta (calle, numero, localidad, provincia y codigoPostal son requeridos)");
+        if (
+            !direccion ||
+            typeof direccion !== "object" ||
+            Array.isArray(direccion) ||
+            typeof direccion.calle !== "string" || !direccion.calle.trim() ||
+            typeof direccion.numero !== "string" || !direccion.numero.trim() ||
+            typeof direccion.localidad !== "string" || !direccion.localidad.trim() ||
+            typeof direccion.provincia !== "string" || !direccion.provincia.trim() ||
+            typeof direccion.codigoPostal !== "string" || !direccion.codigoPostal.trim()
+        ) {
+            throw new ValidationError("direccion incompleta (calle, numero, localidad, provincia y codigoPostal son requeridos como string)");
         }
         if (TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento) && (typeof razonSocial !== "string" || !razonSocial.trim())) {
             throw new ValidationError("razonSocial es requerida para CLINICA/HOSPITAL");
@@ -57,9 +66,10 @@ export class VerificacionService {
             if (!d?.tipo || !Object.values(TipoDocumento).includes(d.tipo)) {
                 throw new ValidationError(`Tipo de documento inválido: ${d?.tipo}`);
             }
-            if (!d?.url || typeof d.url !== "string") {
+            if (typeof d?.url !== "string" || d.url.trim().length === 0) {
                 throw new ValidationError(`Documento ${d.tipo}: url es requerida`);
             }
+            d.url = d.url.trim();
         }
 
         const requeridos = DOCS_REQUERIDOS_POR_TIPO[tipoEstablecimiento];
@@ -70,10 +80,22 @@ export class VerificacionService {
     }
 
     async crear(veterinariaId, payload) {
-        this._validarPayload(payload);
-
         const vet = await this.veterinariaRepository.findById(veterinariaId);
         if (!vet) throw new NotFoundError("Veterinaria no encontrada");
+
+        // Solo permitimos crear si nunca se inició el proceso.
+        // Para estados activos existe un flujo dedicado:
+        //   - RECHAZADO → PUT /reenviar
+        //   - PENDIENTE/VERIFICADO → no se reabre
+        if (vet.verificacion) {
+            const estado = vet.verificacion.estadoVerificacion;
+            if (estado === EstadoVerificacion.RECHAZADO) {
+                throw new ValidationError("Ya existe una verificación rechazada. Usá el endpoint de reenvío para corregirla.");
+            }
+            throw new ValidationError(`Ya existe una verificación en estado ${estado}. No se puede crear otra.`);
+        }
+
+        this._validarPayload(payload);
 
         vet.verificacion = {
             ...payload,

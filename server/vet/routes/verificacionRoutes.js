@@ -27,9 +27,9 @@ export default function verificacionRoutes(getController) {
         (req, res, next) => getController(VerificacionController).reenviar(req, res, next)
     );
 
-    // Admin: aprobar/rechazar
+    // Admin: aprobar/rechazar. La verificación es sub-recurso de una veterinaria.
     router.patch(
-        "/petcare/admin/verificaciones/:id",
+        "/petcare/admin/veterinarias/:veterinariaId/verificacion",
         authMiddleware,
         authorizationMiddleware("admin"),
         (req, res, next) => getController(VerificacionController).resolver(req, res, next)

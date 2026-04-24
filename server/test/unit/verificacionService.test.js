@@ -54,6 +54,9 @@ describe('VerificacionService', () => {
     beforeEach(() => {
         repo = crearRepo();
         service = new VerificacionService(repo);
+        // Mock por defecto: vet existe y aún no inició verificación.
+        // Los tests que necesitan otro estado lo sobreescriben.
+        repo.findById.mockResolvedValue(crearVetFake(null));
     });
 
     describe('crear', () => {
@@ -116,6 +119,48 @@ describe('VerificacionService', () => {
             await expect(service.crear(VET_ID, payload)).rejects.toThrow(/direccion/);
         });
 
+        it('rechaza dirección con campos no-string (evita coercion de Mongoose)', async () => {
+            repo.findById.mockResolvedValue(crearVetFake());
+            const payloadNumeroInt = {
+                ...payloadClinica(),
+                direccion: {
+                    calle: 'Honduras', numero: 4800, localidad: 'Palermo',
+                    provincia: 'CABA', codigoPostal: '1414',
+                },
+            };
+            await expect(service.crear(VET_ID, payloadNumeroInt)).rejects.toThrow(/direccion/);
+
+            const payloadDireccionNoObj = { ...payloadClinica(), direccion: "Honduras 4800" };
+            await expect(service.crear(VET_ID, payloadDireccionNoObj)).rejects.toThrow(/direccion/);
+        });
+
+        it('rechaza documentos con url vacía o solo espacios', async () => {
+            const payload = {
+                ...payloadClinica(),
+                documentos: [
+                    { tipo: 'HABILITACION_MUNICIPAL', url: 'https://x/1.jpg' },
+                    { tipo: 'FOTO_FRENTE', url: '   ' },
+                    { tipo: 'FOTO_INTERIOR', url: 'https://x/3.jpg' },
+                ],
+            };
+            await expect(service.crear(VET_ID, payload)).rejects.toThrow(/url/);
+        });
+
+        it('normaliza urls con espacios al crear', async () => {
+            const vet = crearVetFake();
+            repo.findById.mockResolvedValue(vet);
+            const payload = {
+                ...payloadClinica(),
+                documentos: [
+                    { tipo: 'HABILITACION_MUNICIPAL', url: '  https://x/1.jpg  ' },
+                    { tipo: 'FOTO_FRENTE', url: 'https://x/2.jpg' },
+                    { tipo: 'FOTO_INTERIOR', url: 'https://x/3.jpg' },
+                ],
+            };
+            await service.crear(VET_ID, payload);
+            expect(vet.verificacion.documentos[0].url).toBe('https://x/1.jpg');
+        });
+
         it('rechaza documentos con url faltante', async () => {
             const payload = {
                 ...payloadClinica(),
@@ -142,6 +187,21 @@ describe('VerificacionService', () => {
         it('lanza NotFoundError si la vet no existe', async () => {
             repo.findById.mockResolvedValue(null);
             await expect(service.crear(VET_ID, payloadClinica())).rejects.toThrow(NotFoundError);
+        });
+
+        it('bloquea si ya existe una verificación PENDIENTE', async () => {
+            repo.findById.mockResolvedValue(crearVetFake({ estadoVerificacion: 'PENDIENTE' }));
+            await expect(service.crear(VET_ID, payloadClinica())).rejects.toThrow(/PENDIENTE/);
+        });
+
+        it('bloquea si ya existe una verificación VERIFICADA', async () => {
+            repo.findById.mockResolvedValue(crearVetFake({ estadoVerificacion: 'VERIFICADO' }));
+            await expect(service.crear(VET_ID, payloadClinica())).rejects.toThrow(/VERIFICADO/);
+        });
+
+        it('bloquea si está RECHAZADO y sugiere reenviar', async () => {
+            repo.findById.mockResolvedValue(crearVetFake({ estadoVerificacion: 'RECHAZADO' }));
+            await expect(service.crear(VET_ID, payloadClinica())).rejects.toThrow(/reenvío/);
         });
     });
 

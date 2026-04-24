@@ -82,6 +82,12 @@ describe('VerificacionService', () => {
             expect(vet.save).toHaveBeenCalled();
         });
 
+        it('devuelve ValidationError (no TypeError) si payload es null, array o primitivo', async () => {
+            await expect(service.crear(VET_ID, null)).rejects.toThrow(/payload/);
+            await expect(service.crear(VET_ID, [])).rejects.toThrow(/payload/);
+            await expect(service.crear(VET_ID, "string")).rejects.toThrow(/payload/);
+        });
+
         it('rechaza CUIT con formato inválido', async () => {
             const payload = { ...payloadClinica(), cuit: '30123456789' };
             await expect(service.crear(VET_ID, payload)).rejects.toThrow(ValidationError);
@@ -161,6 +167,23 @@ describe('VerificacionService', () => {
             expect(vet.verificacion.documentos[0].url).toBe('https://x/1.jpg');
         });
 
+        it('no muta el payload original (normalización devuelve copia)', async () => {
+            const vet = crearVetFake();
+            repo.findById.mockResolvedValue(vet);
+            const urlConEspacios = '  https://x/1.jpg  ';
+            const payload = {
+                ...payloadClinica(),
+                documentos: [
+                    { tipo: 'HABILITACION_MUNICIPAL', url: urlConEspacios },
+                    { tipo: 'FOTO_FRENTE', url: 'https://x/2.jpg' },
+                    { tipo: 'FOTO_INTERIOR', url: 'https://x/3.jpg' },
+                ],
+            };
+            await service.crear(VET_ID, payload);
+            // El payload original mantiene los espacios; solo la copia persistida está trim.
+            expect(payload.documentos[0].url).toBe(urlConEspacios);
+        });
+
         it('rechaza documentos con url faltante', async () => {
             const payload = {
                 ...payloadClinica(),
@@ -234,6 +257,14 @@ describe('VerificacionService', () => {
     });
 
     describe('reenviar', () => {
+        it('devuelve ValidationError (no TypeError) si payload es null o primitivo', async () => {
+            const vet = crearVetFake({ ...payloadClinica(), estadoVerificacion: 'RECHAZADO' });
+            repo.findById.mockResolvedValue(vet);
+            await expect(service.reenviar(VET_ID, null)).rejects.toThrow(/payload/);
+            await expect(service.reenviar(VET_ID, "string")).rejects.toThrow(/payload/);
+            await expect(service.reenviar(VET_ID, [])).rejects.toThrow(/payload/);
+        });
+
         it('solo permite reenviar si estado es RECHAZADO', async () => {
             const vet = crearVetFake({ ...payloadClinica(), estadoVerificacion: 'VERIFICADO' });
             repo.findById.mockResolvedValue(vet);
@@ -260,6 +291,14 @@ describe('VerificacionService', () => {
     });
 
     describe('resolver (admin)', () => {
+        it('devuelve ValidationError (no TypeError) si payload es null o primitivo', async () => {
+            const vet = crearVetFake({ estadoVerificacion: 'PENDIENTE' });
+            repo.findById.mockResolvedValue(vet);
+            await expect(service.resolver(VET_ID, null)).rejects.toThrow(/payload/);
+            await expect(service.resolver(VET_ID, "x")).rejects.toThrow(/payload/);
+            await expect(service.resolver(VET_ID, [])).rejects.toThrow(/payload/);
+        });
+
         it('marca como VERIFICADO', async () => {
             const vet = crearVetFake({ ...payloadClinica(), estadoVerificacion: 'PENDIENTE' });
             repo.findById.mockResolvedValue(vet);

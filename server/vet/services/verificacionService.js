@@ -29,7 +29,11 @@ export class VerificacionService {
         this.veterinariaRepository = veterinariaRepository;
     }
 
-    _validarPayload({ tipoEstablecimiento, razonSocial, cuit, matriculaProfesional, direccion, telefono, documentos }) {
+    _validarPayload(payload) {
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+            throw new ValidationError("payload inválido");
+        }
+        const { tipoEstablecimiento, razonSocial, cuit, matriculaProfesional, direccion, telefono, documentos } = payload;
         if (!tipoEstablecimiento || !Object.values(TipoEstablecimiento).includes(tipoEstablecimiento)) {
             throw new ValidationError("tipoEstablecimiento inválido");
         }
@@ -62,6 +66,7 @@ export class VerificacionService {
         }
 
         const tiposSubidos = new Set(documentos.map((d) => d?.tipo));
+        const documentosNormalizados = [];
         for (const d of documentos) {
             if (!d?.tipo || !Object.values(TipoDocumento).includes(d.tipo)) {
                 throw new ValidationError(`Tipo de documento inválido: ${d?.tipo}`);
@@ -69,7 +74,7 @@ export class VerificacionService {
             if (typeof d?.url !== "string" || d.url.trim().length === 0) {
                 throw new ValidationError(`Documento ${d.tipo}: url es requerida`);
             }
-            d.url = d.url.trim();
+            documentosNormalizados.push({ tipo: d.tipo, url: d.url.trim() });
         }
 
         const requeridos = DOCS_REQUERIDOS_POR_TIPO[tipoEstablecimiento];
@@ -77,6 +82,17 @@ export class VerificacionService {
         if (faltantes.length > 0) {
             throw new ValidationError(`Faltan documentos obligatorios: ${faltantes.join(", ")}`);
         }
+
+        // Devuelve una copia normalizada; el payload original queda intacto.
+        return {
+            tipoEstablecimiento,
+            razonSocial: razonSocial ?? null,
+            cuit,
+            matriculaProfesional,
+            direccion,
+            telefono,
+            documentos: documentosNormalizados,
+        };
     }
 
     async crear(veterinariaId, payload) {
@@ -95,10 +111,10 @@ export class VerificacionService {
             throw new ValidationError(`Ya existe una verificación en estado ${estado}. No se puede crear otra.`);
         }
 
-        this._validarPayload(payload);
+        const normalizado = this._validarPayload(payload);
 
         vet.verificacion = {
-            ...payload,
+            ...normalizado,
             estadoVerificacion: EstadoVerificacion.PENDIENTE,
             motivoRechazo: null,
             fechaActualizacion: new Date(),
@@ -127,20 +143,27 @@ export class VerificacionService {
             throw new ValidationError("Solo se puede reenviar una verificación en estado RECHAZADO");
         }
 
+        // Payload vacío también es válido (re-someter sin cambios — preserva todo).
+        const safePayload = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : null;
+        if (payload !== undefined && safePayload === null) {
+            throw new ValidationError("payload inválido");
+        }
+        const src = safePayload ?? {};
+
         // Mergeamos: los campos no enviados preservan el valor previo.
         const merged = {
-            tipoEstablecimiento: payload.tipoEstablecimiento ?? vet.verificacion.tipoEstablecimiento,
-            razonSocial: payload.razonSocial ?? vet.verificacion.razonSocial,
-            cuit: payload.cuit ?? vet.verificacion.cuit,
-            matriculaProfesional: payload.matriculaProfesional ?? vet.verificacion.matriculaProfesional,
-            direccion: payload.direccion ?? vet.verificacion.direccion,
-            telefono: payload.telefono ?? vet.verificacion.telefono,
-            documentos: payload.documentos ?? vet.verificacion.documentos,
+            tipoEstablecimiento: src.tipoEstablecimiento ?? vet.verificacion.tipoEstablecimiento,
+            razonSocial: src.razonSocial ?? vet.verificacion.razonSocial,
+            cuit: src.cuit ?? vet.verificacion.cuit,
+            matriculaProfesional: src.matriculaProfesional ?? vet.verificacion.matriculaProfesional,
+            direccion: src.direccion ?? vet.verificacion.direccion,
+            telefono: src.telefono ?? vet.verificacion.telefono,
+            documentos: src.documentos ?? vet.verificacion.documentos,
         };
-        this._validarPayload(merged);
+        const normalizado = this._validarPayload(merged);
 
         vet.verificacion = {
-            ...merged,
+            ...normalizado,
             estadoVerificacion: EstadoVerificacion.PENDIENTE,
             motivoRechazo: null,
             fechaActualizacion: new Date(),
@@ -150,7 +173,12 @@ export class VerificacionService {
     }
 
     // Endpoint admin: aprobar o rechazar.
-    async resolver(veterinariaId, { estado, motivoRechazo }) {
+    async resolver(veterinariaId, payload) {
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+            throw new ValidationError("payload inválido");
+        }
+        const { estado, motivoRechazo } = payload;
+
         if (![EstadoVerificacion.VERIFICADO, EstadoVerificacion.RECHAZADO].includes(estado)) {
             throw new ValidationError("estado debe ser VERIFICADO o RECHAZADO");
         }

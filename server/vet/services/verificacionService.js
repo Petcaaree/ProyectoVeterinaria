@@ -58,6 +58,10 @@ export class VerificacionService {
         ) {
             throw new ValidationError("direccion incompleta (calle, numero, localidad, provincia y codigoPostal son requeridos como string)");
         }
+        // Si razonSocial viene presente, debe ser string (evita coerción de Mongoose).
+        if (razonSocial !== undefined && razonSocial !== null && typeof razonSocial !== "string") {
+            throw new ValidationError("razonSocial debe ser string");
+        }
         if (TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento) && (typeof razonSocial !== "string" || !razonSocial.trim())) {
             throw new ValidationError("razonSocial es requerida para CLINICA/HOSPITAL");
         }
@@ -84,9 +88,12 @@ export class VerificacionService {
         }
 
         // Devuelve una copia normalizada; el payload original queda intacto.
+        const razonSocialNormalizada = TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento)
+            ? razonSocial.trim()
+            : null;
         return {
             tipoEstablecimiento,
-            razonSocial: razonSocial ?? null,
+            razonSocial: razonSocialNormalizada,
             cuit,
             matriculaProfesional,
             direccion,

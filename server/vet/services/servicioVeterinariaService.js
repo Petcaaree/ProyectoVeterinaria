@@ -127,6 +127,10 @@ export class ServicioVeterinariaService {
         if(!servicioVeterinaria) {
             throw new NotFoundError(`Servicio Veterinaria con id ${id} no encontrado`)
         }
+        // Servicios de vets no verificadas no son públicos: se tratan como 404.
+        if (servicioVeterinaria?.usuarioProveedor?.verificacion?.estadoVerificacion !== EstadoVerificacion.VERIFICADO) {
+            throw new NotFoundError(`Servicio Veterinaria con id ${id} no encontrado`)
+        }
         return this.toDTO(servicioVeterinaria)
     }
 
@@ -134,7 +138,9 @@ export class ServicioVeterinariaService {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
-        let serviciosVeterinarias = await this.servicioVeterinariaRepository.findByVeterinariaId(id);
+        let serviciosVeterinarias = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findByVeterinariaId(id)
+        );
 
         const total = serviciosVeterinarias.length;
         const startIndex = (pageNum - 1) * limitNum;
@@ -279,7 +285,9 @@ export class ServicioVeterinariaService {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioVeterinariaRepository.findByEstadoByVeterinaria(estado, veterinariaID);
+        const servicios = this._soloDeVeterinariasVerificadas(
+            await this.servicioVeterinariaRepository.findByEstadoByVeterinaria(estado, veterinariaID)
+        );
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

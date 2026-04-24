@@ -93,6 +93,19 @@ describe('VerificacionService', () => {
             await expect(service.crear(VET_ID, payload)).rejects.toThrow(ValidationError);
         });
 
+        it('rechaza razonSocial no-string aunque sea consultorio (evita coerción)', async () => {
+            const payload = { ...payloadConsultorio(), razonSocial: 12345 };
+            await expect(service.crear(VET_ID, payload)).rejects.toThrow(/razonSocial/);
+        });
+
+        it('ignora razonSocial enviada por consultorio (la normaliza a null)', async () => {
+            const vet = crearVetFake();
+            repo.findById.mockResolvedValue(vet);
+            const payload = { ...payloadConsultorio(), razonSocial: 'Consultorio Pérez' };
+            await service.crear(VET_ID, payload);
+            expect(vet.verificacion.razonSocial).toBeNull();
+        });
+
         it('rechaza clínica sin razonSocial', async () => {
             const payload = { ...payloadClinica(), razonSocial: '' };
             await expect(service.crear(VET_ID, payload)).rejects.toThrow(/razonSocial/);

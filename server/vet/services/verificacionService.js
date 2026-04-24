@@ -88,6 +88,8 @@ export class VerificacionService {
         }
 
         // Devuelve una copia normalizada; el payload original queda intacto.
+        // Cloneamos objetos anidados para evitar que Mongoose mute referencias
+        // del caller al aplicar defaults/casts.
         const razonSocialNormalizada = TIPOS_ENTIDAD_COMERCIAL.includes(tipoEstablecimiento)
             ? razonSocial.trim()
             : null;
@@ -96,7 +98,7 @@ export class VerificacionService {
             razonSocial: razonSocialNormalizada,
             cuit,
             matriculaProfesional,
-            direccion,
+            direccion: { ...direccion },
             telefono,
             documentos: documentosNormalizados,
         };

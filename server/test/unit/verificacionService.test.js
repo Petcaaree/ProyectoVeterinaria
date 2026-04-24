@@ -192,9 +192,13 @@ describe('VerificacionService', () => {
                     { tipo: 'FOTO_INTERIOR', url: 'https://x/3.jpg' },
                 ],
             };
+            const direccionOriginal = payload.direccion;
             await service.crear(VET_ID, payload);
-            // El payload original mantiene los espacios; solo la copia persistida está trim.
+            // El payload original mantiene los espacios y la misma referencia de dirección.
             expect(payload.documentos[0].url).toBe(urlConEspacios);
+            expect(payload.direccion).toBe(direccionOriginal);
+            // Lo persistido debe ser una copia, no la misma referencia.
+            expect(vet.verificacion.direccion).not.toBe(direccionOriginal);
         });
 
         it('rechaza documentos con url faltante', async () => {

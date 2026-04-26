@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import {marcarTodasLeidasProveedor, marcarTodasLeidasCliente,marcarLeidaProveedor, marcarLeidaCliente,getTodasReservas, obtenerNotificacionesNoLeidas,obtenerNotificaciones, obtenerContadorNotificacionesNoLeidas, eliminarNotificacion as eliminarNotificacionApi, createReserva, obtenerServiciosCuidadores,obtenerServiciosPaseadores,obtenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServicioVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
-import { consultarEstadoVerificacion, crearVerificacion, reenviarVerificacion } from '../api/verificacionApi.js';
+import { consultarEstadoVerificacion, crearVerificacion, reenviarVerificacion } from '../api/verificacionApi';
 import type { AuthContextType, Usuario } from '../types/auth';
 import type { EstadoVerificacionResponse, PayloadVerificacion } from '../types/verificacion';
 

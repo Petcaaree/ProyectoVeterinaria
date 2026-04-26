@@ -120,10 +120,19 @@ const SubidorDocumentos: React.FC<SubidorDocumentosProps> = ({ tipo, urlActual, 
         </div>
       ) : (
         <div
+          role="button"
+          tabIndex={subiendo ? -1 : 0}
+          aria-label={`Subir archivo para ${tipo}`}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-gray-300 rounded p-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 transition-colors"
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !subiendo) {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          className="border-2 border-dashed border-gray-300 rounded p-6 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
         >
           <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
           <p className="text-sm text-gray-600">

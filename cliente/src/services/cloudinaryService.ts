@@ -27,12 +27,13 @@ if (!isCloudinaryConfigured()) {
 export interface CloudinaryResponse {
   secure_url: string;
   public_id: string;
-  format: string;
   resource_type: string;
   created_at: string;
   bytes: number;
-  width: number;
-  height: number;
+  // Estos solo vienen para imágenes (resource_type === "image"); en raw/PDF Cloudinary los omite.
+  format?: string;
+  width?: number;
+  height?: number;
   folder?: string;
   original_filename: string;
 }

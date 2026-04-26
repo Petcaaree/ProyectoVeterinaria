@@ -48,8 +48,11 @@ function App() {
 
     const handleAddService = () => {
     if (tipoUsuario === 'veterinaria') {
+      // Si el estado todavía no cargó, evitamos redirigir por error.
+      // El usuario puede reintentar en un instante; mientras tanto, no hacemos nada.
+      if (!estadoVerificacion) return;
       // Guard de verificación: solo VERIFICADO puede crear servicios.
-      if (estadoVerificacion?.estadoVerificacion !== 'VERIFICADO') {
+      if (estadoVerificacion.estadoVerificacion !== 'VERIFICADO') {
         setCurrentView('verification');
         return;
       }

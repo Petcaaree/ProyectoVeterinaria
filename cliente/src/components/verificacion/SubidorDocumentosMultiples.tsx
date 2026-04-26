@@ -121,10 +121,19 @@ const SubidorDocumentosMultiples: React.FC<SubidorDocumentosMultiplesProps> = ({
       {/* Dropzone para agregar más */}
       {!lleno && (
         <div
+          role="button"
+          tabIndex={subiendo > 0 ? -1 : 0}
+          aria-label={`Subir archivos para ${tipo}`}
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => !subiendo && inputRef.current?.click()}
-          className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-colors ${
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && !subiendo) {
+              e.preventDefault();
+              inputRef.current?.click();
+            }
+          }}
+          className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
             subiendo ? 'border-purple-300 bg-purple-50' : 'border-gray-300 hover:border-purple-400 hover:bg-purple-50'
           }`}
         >

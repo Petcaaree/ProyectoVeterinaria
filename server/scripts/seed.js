@@ -88,14 +88,18 @@ async function clearDatabase() {
 async function seedCiudadesYLocalidades() {
     const buenosAires = await CiudadModel.create({ nombre: 'Buenos Aires' });
     const cordoba = await CiudadModel.create({ nombre: 'Córdoba' });
+    const lomasDeZamora = await CiudadModel.create({ nombre: 'Lomas de Zamora' });
 
     const palermo = await LocalidadModel.create({ nombre: 'Palermo', ciudad: buenosAires._id });
     const belgrano = await LocalidadModel.create({ nombre: 'Belgrano', ciudad: buenosAires._id });
+    const almagro = await LocalidadModel.create({ nombre: 'Almagro', ciudad: buenosAires._id });
+    const recoleta = await LocalidadModel.create({ nombre: 'Recoleta', ciudad: buenosAires._id });
+    const lomas = await LocalidadModel.create({ nombre: 'Lomas Centro', ciudad: lomasDeZamora._id });
     const nuevaCordoba = await LocalidadModel.create({ nombre: 'Nueva Córdoba', ciudad: cordoba._id });
     const alberdi = await LocalidadModel.create({ nombre: 'Alberdi', ciudad: cordoba._id });
 
     logOk(`Ciudades y localidades creadas`);
-    return { buenosAires, cordoba, palermo, belgrano, nuevaCordoba, alberdi };
+    return { buenosAires, cordoba, lomasDeZamora, palermo, belgrano, almagro, recoleta, lomas, nuevaCordoba, alberdi };
 }
 
 // ─── Usuarios ─────────────────────────────────────────────────
@@ -230,7 +234,7 @@ async function seedVeterinarias(localidades, hash) {
             email: 'clinica.almagro@example.com',
             contrasenia: hash,
             telefono: '1144112299',
-            direccion: { calle: 'Rivadavia', altura: '4100', localidad: localidades.palermo._id },
+            direccion: { calle: 'Rivadavia', altura: '4100', localidad: localidades.almagro._id },
             notificaciones: [],
             verificacion: verificacionDummy({
                 tipo: 'CLINICA', razonSocial: 'Almagro Vet SRL', cuit: '30-22334455-6',
@@ -246,12 +250,12 @@ async function seedVeterinarias(localidades, hash) {
             email: 'vetsur.lomas@example.com',
             contrasenia: hash,
             telefono: '1122994455',
-            direccion: { calle: 'Hipólito Yrigoyen', altura: '8500', localidad: localidades.belgrano._id },
+            direccion: { calle: 'Hipólito Yrigoyen', altura: '8500', localidad: localidades.lomas._id },
             notificaciones: [],
             verificacion: verificacionDummy({
                 tipo: 'CLINICA', razonSocial: 'VetSur SRL', cuit: '30-99887766-1',
                 matricula: 'MP-7766', calle: 'Hipólito Yrigoyen', numero: '8500',
-                localidad: 'Lomas de Zamora', provincia: 'Buenos Aires', telefono: '1122994455',
+                localidad: 'Lomas Centro', provincia: 'Buenos Aires', telefono: '1122994455',
                 estado: 'RECHAZADO',
                 motivoRechazo: 'La foto del frente está borrosa y no se lee la numeración. Volvé a sacar la foto en horario diurno mostrando claramente el cartel y la altura de la calle.',
             }),
@@ -263,7 +267,7 @@ async function seedVeterinarias(localidades, hash) {
             email: 'recoleta.vet@example.com',
             contrasenia: hash,
             telefono: '1133887700',
-            direccion: { calle: 'Junín', altura: '1200', localidad: localidades.palermo._id },
+            direccion: { calle: 'Junín', altura: '1200', localidad: localidades.recoleta._id },
             notificaciones: [],
             // verificacion: null (default) → estado NO_INICIADA
         }),

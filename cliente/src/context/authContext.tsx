@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import {marcarTodasLeidasProveedor, marcarTodasLeidasCliente,marcarLeidaProveedor, marcarLeidaCliente,getTodasReservas, obtenerNotificacionesNoLeidas,obtenerNotificaciones, obtenerContadorNotificacionesNoLeidas, eliminarNotificacion as eliminarNotificacionApi, createReserva, obtenerServiciosCuidadores,obtenerServiciosPaseadores,obtenerServiciosVeterinarias,DatosMascota,DatosServicioVeterinario,DatosServicioPaseador,DatosServicioCuidador, loginUsuario, signinUsuario, registrarMascota, obtenerMascotas, eliminarMascota , crearServicioVeterinaria, crearServicioPaseador, crearServicioCuidador, getServiciosVeterinariaByUsuario, getServiciosPaseadorByUsuario, getServiciosCuidadorByUsuario, cambiarEstadoServicio} from '../api/api.js';
+import { consultarEstadoVerificacion, crearVerificacion, reenviarVerificacion } from '../api/verificacionApi.js';
 import type { AuthContextType, Usuario } from '../types/auth';
+import type { EstadoVerificacionResponse, PayloadVerificacion } from '../types/verificacion';
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -21,6 +23,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [tipoUsuario, setTipoUsuario] = useState<'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | 'admin' | null>(null);
   const [contadorNotificacionesNoLeidas, setContadorNotificacionesNoLeidas] = useState<number>(0);
+  const [estadoVerificacion, setEstadoVerificacion] = useState<EstadoVerificacionResponse | null>(null);
 
   const isValidUserType = (tipo: string): tipo is 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | 'admin' => {
     return ['cliente', 'veterinaria', 'paseador', 'cuidador', 'admin'].includes(tipo);
@@ -474,6 +477,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setContadorNotificacionesNoLeidas(prev => prev + 1);
   };
 
+  // ─── Verificación de veterinarias ──────────────────────────
+  const refrescarEstadoVerificacion = async () => {
+    if (!usuario || tipoUsuario !== 'veterinaria') {
+      setEstadoVerificacion(null);
+      return null;
+    }
+    try {
+      const estado = await consultarEstadoVerificacion();
+      setEstadoVerificacion(estado);
+      return estado;
+    } catch (error) {
+      console.error('Error al consultar estado de verificación:', error);
+      return null;
+    }
+  };
+
+  const enviarVerificacion = async (payload: PayloadVerificacion) => {
+    const resultado = await crearVerificacion(payload);
+    await refrescarEstadoVerificacion();
+    return resultado;
+  };
+
+  const reenviarDocsVerificacion = async (payload: Partial<PayloadVerificacion>) => {
+    const resultado = await reenviarVerificacion(payload);
+    await refrescarEstadoVerificacion();
+    return resultado;
+  };
+
+  // Cargar estado de verificación al cambiar de usuario/tipo.
+  useEffect(() => {
+    if (usuario && tipoUsuario === 'veterinaria') {
+      refrescarEstadoVerificacion();
+    } else {
+      setEstadoVerificacion(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario?.id, tipoUsuario]);
+
   const contextValue: AuthContextType = {
     usuario,
     login,
@@ -508,7 +549,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     cargarContadorNotificaciones,
     actualizarContadorNotificaciones,
     decrementarContadorNotificaciones,
-    incrementarContadorNotificaciones
+    incrementarContadorNotificaciones,
+    estadoVerificacion,
+    refrescarEstadoVerificacion,
+    enviarVerificacion,
+    reenviarDocsVerificacion,
   };
 
   return (

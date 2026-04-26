@@ -15,7 +15,8 @@ type ViewType =
   | 'register-pet'
   | 'my-walks'
   | 'my-vet-services'
-  | 'my-care-services';
+  | 'my-care-services'
+  | 'verification';
 
 interface CrearServicioProps {
   userType: string;
@@ -26,7 +27,7 @@ interface CrearServicioProps {
 const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurrentView }) => {
   const [showError, setShowError] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const { usuario, createServicioVeterinario, createServicioPaseador, createServicioCuidador } = useAuth();
+  const { usuario, estadoVerificacion, createServicioVeterinario, createServicioPaseador, createServicioCuidador } = useAuth();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -91,6 +92,51 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
       }
     },
   });
+
+  // Guard: vet no verificada no puede crear servicios (defensa en profundidad).
+  // Debe ejecutarse DESPUÉS de todos los hooks para respetar las Rules of Hooks.
+  if (userType === 'veterinaria' && estadoVerificacion && estadoVerificacion.estadoVerificacion !== 'VERIFICADO') {
+    const cfg = estadoVerificacion.estadoVerificacion === 'PENDIENTE'
+      ? { titulo: 'Tu verificación está en revisión', mensaje: 'Un administrador está revisando tu documentación. Apenas la apruebe vas a poder crear servicios.', cta: 'Ver estado' }
+      : estadoVerificacion.estadoVerificacion === 'RECHAZADO'
+        ? { titulo: 'Tu verificación fue rechazada', mensaje: 'Necesitás corregir y reenviar la documentación antes de poder crear servicios.', cta: 'Reenviar documentación' }
+        : { titulo: 'Verificá tu veterinaria', mensaje: 'Para publicar servicios primero tenés que completar el proceso de verificación de tu veterinaria.', cta: 'Iniciar verificación' };
+
+    return (
+      <div className="max-w-xl mx-auto my-16 bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-br from-purple-600 via-purple-700 to-blue-700 p-10 text-white text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 opacity-10">
+            <Shield className="h-40 w-40 -mt-4 -mr-4" />
+          </div>
+          <div className="relative z-10">
+            <div className="bg-white bg-opacity-20 backdrop-blur w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Shield className="h-12 w-12" />
+            </div>
+            <h2 className="text-3xl font-bold mb-2">{cfg.titulo}</h2>
+            <p className="text-purple-100 max-w-sm mx-auto leading-relaxed">
+              {cfg.mensaje}
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 flex justify-center space-x-3">
+          <button
+            onClick={onBack}
+            className="px-6 py-3 bg-gray-200 text-gray-800 rounded-xl hover:bg-gray-300 font-semibold transition-colors"
+          >
+            Volver
+          </button>
+          <button
+            onClick={() => setCurrentView('verification')}
+            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all flex items-center space-x-2"
+          >
+            <Shield className="h-5 w-5" />
+            <span>{cfg.cta}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

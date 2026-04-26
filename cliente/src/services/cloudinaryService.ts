@@ -1,6 +1,8 @@
 // Servicio para subir imágenes a Cloudinary
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+// Endpoint genérico (detecta si es imagen o raw/PDF)
+const CLOUDINARY_URL_AUTO = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Función para verificar configuración
@@ -91,4 +93,33 @@ export const uploadMultipleImages = async (
     console.error('Error uploading multiple images:', error);
     throw new Error('Failed to upload images');
   }
+};
+
+/**
+ * Sube un documento (imagen o PDF) a Cloudinary usando el endpoint auto/upload.
+ * Soporta cualquier tipo (image, raw) y devuelve la URL segura.
+ */
+export const uploadDocumentToCloudinary = async (
+  file: File,
+  folder: string = 'verificaciones'
+): Promise<CloudinaryResponse> => {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary no está configurado. Configurá VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET en el archivo .env');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('folder', folder);
+
+  const response = await fetch(CLOUDINARY_URL_AUTO, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Error al subir archivo: ${response.statusText}`);
+  }
+
+  return response.json();
 };

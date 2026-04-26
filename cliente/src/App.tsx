@@ -22,12 +22,14 @@ import MisServiciosVeterinarios from './components/veterinarios/MisServiciosVete
 import MisServiciosCuidadores from './components/cuidadores/MisServiciosCuidadores';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminLogin from './components/admin/AdminLogin';
+import PaginaVerificacion from './components/verificacion/PaginaVerificacion';
+import BannerVerificacion from './components/verificacion/BannerVerificacion';
 import { useAuth } from './context/authContext.tsx';
 
 type TipoUsuarioRegular = 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 
 function App() {
-  const { tipoUsuario } = useAuth();
+  const { tipoUsuario, estadoVerificacion } = useAuth();
 
   // Tipo sin admin para pasar a componentes que no lo soportan
   const tipoUsuarioRegular: TipoUsuarioRegular = tipoUsuario === 'admin' ? null : tipoUsuario;
@@ -46,6 +48,11 @@ function App() {
 
     const handleAddService = () => {
     if (tipoUsuario === 'veterinaria') {
+      // Guard de verificación: solo VERIFICADO puede crear servicios.
+      if (estadoVerificacion?.estadoVerificacion !== 'VERIFICADO') {
+        setCurrentView('verification');
+        return;
+      }
       setCurrentView('create-service');
     } else if (tipoUsuario === 'paseador') {
       setCurrentView('create-service');
@@ -81,7 +88,7 @@ function App() {
     setCurrentService(servicioEspanol);
   };
 
-  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services' | 'payment-success' | 'payment-failure' | 'payment-pending' | 'admin-dashboard'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'create-service' | 'appointments' | 'notifications' | 'my-pets' | 'register-pet' | 'my-walks' | 'my-vet-services' | 'my-care-services' | 'payment-success' | 'payment-failure' | 'payment-pending' | 'admin-dashboard' | 'verification'>('home');
   const [paymentReservaId, setPaymentReservaId] = useState<string | null>(null);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
@@ -181,7 +188,7 @@ function App() {
     // Definir qué vistas están permitidas para cada tipo de usuario
     const vistasPorTipo = {
       'cliente': ['home', 'create-service', 'appointments', 'notifications', 'my-pets', 'register-pet', 'payment-success', 'payment-failure', 'payment-pending'],
-      'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services', 'payment-success', 'payment-failure', 'payment-pending'],
+      'veterinaria': ['home', 'create-service', 'appointments', 'notifications', 'my-vet-services', 'payment-success', 'payment-failure', 'payment-pending', 'verification'],
       'paseador': ['home', 'create-service', 'appointments', 'notifications', 'my-walks', 'payment-success', 'payment-failure', 'payment-pending'],
       'cuidador': ['home', 'create-service', 'appointments', 'notifications', 'my-care-services', 'payment-success', 'payment-failure', 'payment-pending'],
       'admin': ['admin-dashboard']
@@ -391,7 +398,7 @@ function App() {
     }
 
     if (currentView === 'create-service') {
-      return <CrearServicio userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
+      return <CrearServicio userType={tipoUsuarioRegular ?? ''} onBack={() => setCurrentView('home')} setCurrentView={setCurrentView} />;
     }
     
     if (currentView === 'appointments') {
@@ -415,11 +422,15 @@ function App() {
     }
     
     if (currentView === 'my-vet-services') {
-      return <MisServiciosVeterinarios userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
+      return <MisServiciosVeterinarios userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={handleAddService} />;
     }
     
     if (currentView === 'my-care-services') {
       return <MisServiciosCuidadores userType={tipoUsuarioRegular} onBack={() => setCurrentView('home')} onCreateService={() => setCurrentView('create-service')} />;
+    }
+
+    if (currentView === 'verification') {
+      return <PaginaVerificacion onVolver={() => setCurrentView('home')} />;
     }
 
     switch (currentService) {
@@ -481,6 +492,11 @@ function App() {
           currentService={mapearServicio(currentService)}
           onServiceChange={handleServiceChange}
         />
+      )}
+      {currentView === 'home' && tipoUsuario === 'veterinaria' && (
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <BannerVerificacion onAccion={() => setCurrentView('verification')} />
+        </div>
       )}
       {renderContent()}
       <PiePagina />

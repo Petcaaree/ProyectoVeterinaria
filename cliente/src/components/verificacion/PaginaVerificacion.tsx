@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import EstadoVerificacion from './EstadoVerificacion';
 import FormularioVerificacion from './FormularioVerificacion';
@@ -24,11 +24,23 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
     return estadoVerificacion.estadoVerificacion === 'NO_INICIADA' ? 'form' : 'estado';
   });
 
+  // Track si ya sincronizamos el modo con un estado real cargado.
+  // Después de eso, respetamos cualquier cambio manual (ej. usuario clickea "Reenviar").
+  const modoSincronizado = useRef<boolean>(!!estadoVerificacion);
+
   useEffect(() => {
     // Refrescamos en background sin bloquear el render.
     refrescarEstadoVerificacion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Si arrancamos sin estado, ajustamos el modo cuando llegue el primer estado real.
+    if (modoSincronizado.current) return;
+    if (!estadoVerificacion) return;
+    modoSincronizado.current = true;
+    setModo(estadoVerificacion.estadoVerificacion === 'NO_INICIADA' ? 'form' : 'estado');
+  }, [estadoVerificacion]);
 
   if (modo === 'form') {
     const esReenvio = estadoVerificacion?.estadoVerificacion === 'RECHAZADO';

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, Image as ImageIcon, X, CheckCircle, Info } from 'lucide-react';
 import { uploadDocumentToCloudinary } from '../../services/cloudinaryService';
 import { TIPO_DOCUMENTO_LABEL, TIPO_DOCUMENTO_INFO, TipoDocumento } from '../../types/verificacion';
@@ -22,6 +22,13 @@ const SubidorDocumentos: React.FC<SubidorDocumentosProps> = ({ tipo, urlActual, 
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Sincroniza el estado local con la prop si el padre la cambia
+  // (ej. reset al cambiar tipo de establecimiento, prefill async en reenvío).
+  useEffect(() => {
+    setUrlLocal(urlActual ?? null);
+    if (!urlActual) setNombreArchivo(null);
+  }, [urlActual]);
+
   const handleFile = async (file: File) => {
     setError(null);
     if (file.size > MAX_MB * 1024 * 1024) {
@@ -38,6 +45,8 @@ const SubidorDocumentos: React.FC<SubidorDocumentosProps> = ({ tipo, urlActual, 
       setError(err instanceof Error ? err.message : 'Error al subir archivo');
     } finally {
       setSubiendo(false);
+      // Reseteamos el input para que onChange dispare aunque elijan el mismo archivo de nuevo.
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 

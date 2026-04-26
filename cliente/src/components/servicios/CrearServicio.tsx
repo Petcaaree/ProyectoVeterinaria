@@ -95,7 +95,17 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
 
   // Guard: vet no verificada no puede crear servicios (defensa en profundidad).
   // Debe ejecutarse DESPUÉS de todos los hooks para respetar las Rules of Hooks.
-  if (userType === 'veterinaria' && estadoVerificacion && estadoVerificacion.estadoVerificacion !== 'VERIFICADO') {
+  // IMPORTANTE: si estadoVerificacion es null (todavía cargando), bloqueamos por defecto.
+  // Solo dejamos pasar cuando confirmamos VERIFICADO explícitamente.
+  if (userType === 'veterinaria' && estadoVerificacion?.estadoVerificacion !== 'VERIFICADO') {
+    if (!estadoVerificacion) {
+      // Estado todavía cargando: render de loading (no muestra el form ni el guard final).
+      return (
+        <div className="max-w-xl mx-auto my-16 text-center text-gray-500">
+          Cargando estado de verificación…
+        </div>
+      );
+    }
     const cfg = estadoVerificacion.estadoVerificacion === 'PENDIENTE'
       ? { titulo: 'Tu verificación está en revisión', mensaje: 'Un administrador está revisando tu documentación. Apenas la apruebe vas a poder crear servicios.', cta: 'Ver estado' }
       : estadoVerificacion.estadoVerificacion === 'RECHAZADO'

@@ -93,8 +93,8 @@ const EstadoVerificacion: React.FC<EstadoVerificacionProps> = ({ estado, onReenv
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Documentos enviados</h3>
               <ul className="space-y-2">
-                {estado.documentos.map((d) => (
-                  <li key={d.tipo} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                {estado.documentos.map((d, idx) => (
+                  <li key={`${d.tipo}-${d.url ?? idx}`} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
                     <div className="flex items-center space-x-2 text-gray-700">
                       <FileText className="h-4 w-4 text-gray-400" />
                       <span>{TIPO_DOCUMENTO_LABEL[d.tipo]}</span>

@@ -144,7 +144,26 @@ async function seedClientes(localidades, hash) {
 }
 
 // Verificación dummy para que las veterinarias del seed estén habilitadas a crear servicios.
-function verificacionDummy({ tipo, razonSocial, cuit, matricula, calle, numero, localidad, provincia, telefono }) {
+// Documentos dummy según tipo de establecimiento.
+function docsDummy(tipo) {
+    if (tipo === 'CONSULTORIO_PRIVADO') {
+        return [
+            { tipo: 'FOTO_INTERIOR', url: 'https://placehold.co/400x300/8b5cf6/white?text=Consultorio' },
+            { tipo: 'COMPROBANTE_DOMICILIO', url: 'https://placehold.co/400x300/8b5cf6/white?text=Domicilio' },
+            { tipo: 'CONSTANCIA_FISCAL', url: 'https://placehold.co/400x300/8b5cf6/white?text=Fiscal' },
+        ];
+    }
+    return [
+        { tipo: 'HABILITACION_MUNICIPAL', url: 'https://placehold.co/400x300/8b5cf6/white?text=Habilitacion' },
+        { tipo: 'FOTO_FRENTE', url: 'https://placehold.co/400x300/8b5cf6/white?text=Frente' },
+        { tipo: 'FOTO_INTERIOR', url: 'https://placehold.co/400x300/8b5cf6/white?text=Interior' },
+    ];
+}
+
+function verificacionDummy({
+    tipo, razonSocial, cuit, matricula, calle, numero, localidad, provincia, telefono,
+    estado = 'VERIFICADO', motivoRechazo = null,
+}) {
     return {
         tipoEstablecimiento: tipo,
         razonSocial: razonSocial ?? null,
@@ -152,19 +171,16 @@ function verificacionDummy({ tipo, razonSocial, cuit, matricula, calle, numero, 
         matriculaProfesional: matricula,
         direccion: { calle, numero, piso: null, depto: null, localidad, provincia, codigoPostal: '1000' },
         telefono,
-        documentos: [
-            { tipo: 'HABILITACION_MUNICIPAL', url: 'https://via.placeholder.com/400?text=Habilitacion' },
-            { tipo: 'FOTO_FRENTE', url: 'https://via.placeholder.com/400?text=Frente' },
-            { tipo: 'FOTO_INTERIOR', url: 'https://via.placeholder.com/400?text=Interior' },
-        ],
-        estadoVerificacion: 'VERIFICADO',
-        motivoRechazo: null,
+        documentos: docsDummy(tipo),
+        estadoVerificacion: estado,
+        motivoRechazo,
         fechaActualizacion: new Date(),
     };
 }
 
 async function seedVeterinarias(localidades, hash) {
     const vets = await Promise.all([
+        // ── 3 VERIFICADAS (pueden crear servicios y aparecen en búsquedas) ─────
         VeterinariaModel.create({
             nombreUsuario: 'Dra. Ana Rodríguez',
             nombreClinica: 'Clínica Veterinaria Palermo',
@@ -207,8 +223,52 @@ async function seedVeterinarias(localidades, hash) {
                 localidad: 'Belgrano', provincia: 'CABA', telefono: '1155112233',
             }),
         }),
+        // ── 1 PENDIENTE (esperando aprobación admin) ──────────────────────────
+        VeterinariaModel.create({
+            nombreUsuario: 'Dr. Pablo Torres',
+            nombreClinica: 'Clínica Almagro',
+            email: 'clinica.almagro@example.com',
+            contrasenia: hash,
+            telefono: '1144112299',
+            direccion: { calle: 'Rivadavia', altura: '4100', localidad: localidades.palermo._id },
+            notificaciones: [],
+            verificacion: verificacionDummy({
+                tipo: 'CLINICA', razonSocial: 'Almagro Vet SRL', cuit: '30-22334455-6',
+                matricula: 'MP-3344', calle: 'Rivadavia', numero: '4100',
+                localidad: 'Almagro', provincia: 'CABA', telefono: '1144112299',
+                estado: 'PENDIENTE',
+            }),
+        }),
+        // ── 1 RECHAZADA (tiene motivo de rechazo, debe usar reenviar) ────────
+        VeterinariaModel.create({
+            nombreUsuario: 'Dra. Lucía Méndez',
+            nombreClinica: 'VetSur Lomas',
+            email: 'vetsur.lomas@example.com',
+            contrasenia: hash,
+            telefono: '1122994455',
+            direccion: { calle: 'Hipólito Yrigoyen', altura: '8500', localidad: localidades.belgrano._id },
+            notificaciones: [],
+            verificacion: verificacionDummy({
+                tipo: 'CLINICA', razonSocial: 'VetSur SRL', cuit: '30-99887766-1',
+                matricula: 'MP-7766', calle: 'Hipólito Yrigoyen', numero: '8500',
+                localidad: 'Lomas de Zamora', provincia: 'Buenos Aires', telefono: '1122994455',
+                estado: 'RECHAZADO',
+                motivoRechazo: 'La foto del frente está borrosa y no se lee la numeración. Volvé a sacar la foto en horario diurno mostrando claramente el cartel y la altura de la calle.',
+            }),
+        }),
+        // ── 1 NO_INICIADA (recién registrada, sin verificación) ──────────────
+        VeterinariaModel.create({
+            nombreUsuario: 'Dra. Sofía Romero',
+            nombreClinica: 'Clínica Recoleta',
+            email: 'recoleta.vet@example.com',
+            contrasenia: hash,
+            telefono: '1133887700',
+            direccion: { calle: 'Junín', altura: '1200', localidad: localidades.palermo._id },
+            notificaciones: [],
+            // verificacion: null (default) → estado NO_INICIADA
+        }),
     ]);
-    logOk(`Veterinarias: ${vets.length}`);
+    logOk(`Veterinarias: ${vets.length} (3 VERIFICADAS, 1 PENDIENTE, 1 RECHAZADA, 1 NO_INICIADA)`);
     return vets;
 }
 
@@ -861,10 +921,15 @@ async function main() {
      • juan@example.com    (Juan Pérez    — Belgrano)
      • laura@example.com   (Laura Gómez   — Nueva Córdoba)
 
-  🏥 Veterinarias:
+  🏥 Veterinarias VERIFICADAS (pueden crear servicios):
      • clinica.palermo@example.com   (Clínica Veterinaria Palermo)
      • vetcenter.cba@example.com     (VetCenter Córdoba)
      • belgrano.pet@example.com      (Belgrano Pet Hospital)
+
+  🟡 Veterinarias para testear flujo de verificación:
+     • clinica.almagro@example.com   (PENDIENTE — esperando aprobación)
+     • vetsur.lomas@example.com      (RECHAZADA — debe reenviar docs)
+     • recoleta.vet@example.com      (NO_INICIADA — recién registrada)
 
   🐕 Paseadores:
      • lucas.paseos@example.com   (Lucas Fernández  — Belgrano)

@@ -29,7 +29,7 @@ import { useAuth } from './context/authContext.tsx';
 type TipoUsuarioRegular = 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
 
 function App() {
-  const { tipoUsuario, estadoVerificacion } = useAuth();
+  const { tipoUsuario, estadoVerificacion, refrescarEstadoVerificacion } = useAuth();
 
   // Tipo sin admin para pasar a componentes que no lo soportan
   const tipoUsuarioRegular: TipoUsuarioRegular = tipoUsuario === 'admin' ? null : tipoUsuario;
@@ -48,9 +48,13 @@ function App() {
 
   const handleAddService = () => {
     if (tipoUsuario === 'veterinaria') {
-      // Si el estado todavía no cargó, evitamos redirigir por error.
-      // El usuario puede reintentar en un instante; mientras tanto, no hacemos nada.
-      if (!estadoVerificacion) return;
+      // Si el estado todavía no cargó, navegamos a la pantalla de verificación
+      // (que muestra su propio loading + reintento). Evita "click sin reacción".
+      if (!estadoVerificacion) {
+        refrescarEstadoVerificacion();
+        setCurrentView('verification');
+        return;
+      }
       // Guard de verificación: solo VERIFICADO puede crear servicios.
       if (estadoVerificacion.estadoVerificacion !== 'VERIFICADO') {
         setCurrentView('verification');
@@ -202,7 +206,7 @@ function App() {
       'appointments', 'notifications', 'my-pets', 'register-pet',
       'my-walks', 'my-vet-services', 'my-care-services',
       'payment-success', 'payment-failure', 'payment-pending',
-      'admin-dashboard'
+      'admin-dashboard', 'verification'
     ];
 
     // Si no hay usuario logueado y está en una vista que requiere autenticación

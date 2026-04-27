@@ -119,7 +119,16 @@ export const uploadDocumentToCloudinary = async (
   });
 
   if (!response.ok) {
-    throw new Error(`Error al subir archivo: ${response.statusText}`);
+    // Cloudinary devuelve { error: { message: "..." } } cuando falla.
+    // statusText suele venir vacío en HTTP/2, así que parseamos el body si podemos.
+    let detalle = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+    try {
+      const data = await response.json();
+      detalle = data?.error?.message || data?.message || detalle;
+    } catch {
+      // body no es JSON válido — mantenemos el fallback con status.
+    }
+    throw new Error(`Error al subir archivo: ${detalle}`);
   }
 
   return response.json();

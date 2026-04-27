@@ -99,20 +99,22 @@ const CrearServicio: React.FC<CrearServicioProps> = ({ userType, onBack, setCurr
   // Solo dejamos pasar cuando confirmamos VERIFICADO explícitamente.
   if (userType === 'veterinaria' && estadoVerificacion?.estadoVerificacion !== 'VERIFICADO') {
     if (!estadoVerificacion) {
-      // Estado todavía cargando o falló la consulta. Damos al usuario un escape.
+      // Estado todavía cargando. Mostramos loading sutil + escape por las dudas
+      // que la consulta haya fallado y se quede pegado.
       return (
         <div className="max-w-xl mx-auto my-16 bg-white rounded-3xl shadow-2xl overflow-hidden p-8 text-center">
-          <p className="text-gray-600 mb-4">No pudimos confirmar el estado de tu verificación.</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+          <p className="text-gray-600 mb-4">Verificando el estado de tu cuenta…</p>
           <div className="flex justify-center space-x-3">
             <button
               onClick={onBack}
-              className="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+              className="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold text-sm"
             >
               Volver
             </button>
             <button
               onClick={() => setCurrentView('verification')}
-              className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+              className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold text-sm"
             >
               Ir a verificación
             </button>

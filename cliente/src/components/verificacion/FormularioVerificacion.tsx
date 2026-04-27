@@ -75,18 +75,16 @@ const FormularioVerificacion: React.FC<FormularioVerificacionProps> = ({
   const handleCheckboxDireccionRegistro = (checked: boolean) => {
     setUsarDireccionRegistro(checked);
     if (checked && usuario?.direccion) {
-      const localidad = typeof usuario.direccion.localidad === 'string'
-        ? usuario.direccion.localidad
-        : usuario.direccion.localidad?.nombre ?? '';
-      setDireccion({
+      // localidad en Usuario es { nombre, ciudad } — accedemos a .nombre directo.
+      const localidadRegistro = usuario.direccion.localidad?.nombre ?? '';
+      // Solo prellenamos los campos que el registro provee (calle, número, localidad).
+      // Provincia, CP, piso y depto se preservan: el usuario los completa manualmente.
+      setDireccion((prev) => ({
+        ...prev,
         calle: usuario.direccion.calle ?? '',
         numero: String(usuario.direccion.altura ?? ''),
-        piso: '',
-        depto: '',
-        localidad: localidad as string,
-        provincia: '',
-        codigoPostal: '',
-      });
+        localidad: localidadRegistro,
+      }));
     } else {
       setDireccion(direccionVacia);
     }

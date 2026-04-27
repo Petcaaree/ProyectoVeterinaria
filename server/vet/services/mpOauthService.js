@@ -8,11 +8,34 @@ const MP_TOKEN_URL = "https://api.mercadopago.com/oauth/token";
 const STATE_EXPIRES_IN = "10m";
 const TIPOS_VALIDOS = ["veterinaria", "paseador", "cuidador"];
 
-// Misma fuente de verdad que jwtUtils.js para evitar fallas si JWT_SECRET no está seteado.
-const JWT_SECRET = process.env.JWT_SECRET || "petcare_dev_secret_cambiar_en_produccion";
+// Secret dedicado al state OAuth: si MP_OAUTH_STATE_SECRET está seteado lo usamos
+// (más seguro, aislado del secret de sesión). Si no, caemos a JWT_SECRET para compartir
+// la misma fuente que jwtUtils.js. En producción exigimos uno de los dos: un default
+// hardcodeado permitiría forjar state y asociar un code OAuth a otro proveedor.
+function getStateSecret() {
+    const secret = process.env.MP_OAUTH_STATE_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === "production") {
+            throw new Error("MP_OAUTH_STATE_SECRET (o JWT_SECRET) es obligatorio en producción");
+        }
+        return "petcare_dev_secret_cambiar_en_produccion";
+    }
+    return secret;
+}
 
 // Margen de seguridad para considerar el token "por expirar" y refrescarlo proactivamente.
 const REFRESH_LEEWAY_MS = 60 * 1000;
+
+function requireMpAppCredentials() {
+    const appId = process.env.MP_APP_ID;
+    const clientSecret = process.env.MP_CLIENT_SECRET;
+    if (!appId || !clientSecret) {
+        throw new Error(
+            "Configuración MP incompleta: MP_APP_ID y MP_CLIENT_SECRET son obligatorios"
+        );
+    }
+    return { appId, clientSecret };
+}
 
 export class MpOauthService {
     constructor({ veterinariaRepository, paseadorRepository, cuidadorRepository }) {
@@ -36,13 +59,12 @@ export class MpOauthService {
         if (!TIPOS_VALIDOS.includes(tipo)) {
             throw new ValidationError("tipo de proveedor inválido");
         }
-        const appId = process.env.MP_APP_ID;
+        // Falla rápido y con mensaje claro si la app de MP no está configurada,
+        // en vez de mandar un client_id vacío y dejar que MP responda con un error genérico.
+        const { appId } = requireMpAppCredentials();
         const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
-        if (!appId) {
-            throw new Error("MP_APP_ID no configurado");
-        }
 
-        const state = jwt.sign({ proveedorId, tipo }, JWT_SECRET, {
+        const state = jwt.sign({ proveedorId, tipo }, getStateSecret(), {
             expiresIn: STATE_EXPIRES_IN,
         });
 
@@ -64,7 +86,7 @@ export class MpOauthService {
 
         let payload;
         try {
-            payload = jwt.verify(state, JWT_SECRET);
+            payload = jwt.verify(state, getStateSecret());
         } catch {
             throw new ValidationError("state inválido o expirado");
         }
@@ -94,10 +116,14 @@ export class MpOauthService {
     }
 
     async _intercambiarCode(code) {
+        // Validar credenciales antes de llamar a MP: si falta config, fallar con un
+        // mensaje claro en vez de mandar strings vacíos y recibir un error de MP que
+        // parece relacionado al code cuando en realidad es config faltante.
+        const { appId, clientSecret } = requireMpAppCredentials();
         const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
         const body = new URLSearchParams({
-            client_id: process.env.MP_APP_ID || "",
-            client_secret: process.env.MP_CLIENT_SECRET || "",
+            client_id: appId,
+            client_secret: clientSecret,
             grant_type: "authorization_code",
             code,
             redirect_uri: `${backendUrl}/petcare/proveedor/callback-mp`,
@@ -170,7 +196,19 @@ export class MpOauthService {
         const expiresAt = proveedor.mpTokenExpiresAt ? new Date(proveedor.mpTokenExpiresAt).getTime() : null;
         const expirado = expiresAt !== null && (expiresAt - Date.now()) < REFRESH_LEEWAY_MS;
         if (!expirado) {
-            return decryptMP(proveedor.mpAccessToken);
+            // Si el decrypt falla acá (rotación de MP_TOKEN_ENCRYPTION_KEY o dato corrupto)
+            // forzamos reconexión en vez de devolver un 500 genérico.
+            try {
+                return decryptMP(proveedor.mpAccessToken);
+            } catch (err) {
+                logger.error("Falló decrypt de access token MP", {
+                    tipo, proveedorId, error: err.message,
+                });
+                await this._marcarDesconectado(proveedor);
+                const e = new ValidationError("MP_REAUTORIZACION_REQUERIDA");
+                e.code = "MP_REAUTORIZACION_REQUERIDA";
+                throw e;
+            }
         }
 
         if (!proveedor.mpRefreshToken) {
@@ -203,9 +241,10 @@ export class MpOauthService {
     }
 
     async _refrescarToken(refreshToken) {
+        const { appId, clientSecret } = requireMpAppCredentials();
         const body = new URLSearchParams({
-            client_id: process.env.MP_APP_ID || "",
-            client_secret: process.env.MP_CLIENT_SECRET || "",
+            client_id: appId,
+            client_secret: clientSecret,
             grant_type: "refresh_token",
             refresh_token: refreshToken,
         });

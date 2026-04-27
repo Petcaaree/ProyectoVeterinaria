@@ -8,6 +8,7 @@ import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
 import { enviarEmailReservaConfirmada, enviarEmailReservaCancelada } from "./emailService.js";
+import logger from "../utils/logger.js";
 
 
 dayjs.extend(customParseFormat)
@@ -411,18 +412,29 @@ export class ReservaService {
         if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
             repoServicio = this.servicioCuidadorRepository;
             servicio = await repoServicio.findById(servicioId);
-            if (!servicio) return;
-            servicio.eliminarFechasReserva(fechasReserva);
         } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
             repoServicio = this.servicioVeterinariaRepository;
             servicio = await repoServicio.findById(servicioId);
-            if (!servicio) return;
-            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
-            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
         } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
             repoServicio = this.servicioPaseadorRepository;
             servicio = await repoServicio.findById(servicioId);
-            if (!servicio) return;
+        }
+
+        if (!servicio) {
+            // El pendiente ya fue claimeado: si el servicio fue eliminado o no existe,
+            // no podemos liberar su cupo. Log explícito para que el job de limpieza
+            // o el operador puedan investigar (cupo huérfano).
+            logger.warn("revertirPendiente: servicio no encontrado, no se puede liberar cupo", {
+                pendienteId: idPendiente,
+                servicioId: servicioId?.toString?.() || servicioId,
+                serviciOfrecido: pendiente.serviciOfrecido,
+            });
+            return;
+        }
+
+        if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            servicio.eliminarFechasReserva(fechasReserva);
+        } else {
             const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
             servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
         }

@@ -1,6 +1,7 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError } from "../errors/AppError.js";
 import { enviarEmailPagoConfirmado } from "./emailService.js";
+import { ServicioOfrecido } from "../models/entidades/enums/ServiciOfrecido.js";
 import logger from "../utils/logger.js";
 
 export class PagoService {
@@ -203,10 +204,12 @@ export class PagoService {
   }
 
   _resolverTipoProveedor(serviciOfrecido) {
+    // Mapea los VALORES del enum ServicioOfrecido (no las keys) a los tipos
+    // que espera MpOauthService (clave del dict de repos).
     const map = {
-      SERVICIOVETERINARIA: "veterinaria",
-      SERVICIOPASEADOR: "paseador",
-      SERVICIOCUIDADOR: "cuidador",
+      [ServicioOfrecido.SERVICIOVETERINARIA]: "veterinaria",
+      [ServicioOfrecido.SERVICIOPASEADOR]: "paseador",
+      [ServicioOfrecido.SERVICIOCUIDADOR]: "cuidador",
     };
     return map[serviciOfrecido] || null;
   }

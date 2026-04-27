@@ -1,7 +1,9 @@
 import crypto from "crypto";
 
 // AES-256-GCM para credenciales MP (access/refresh token de cada proveedor).
-// La clave se carga una vez al startup; rotarla invalida todos los tokens almacenados.
+// La clave se lee de MP_TOKEN_ENCRYPTION_KEY en cada llamada a encryptMP/decryptMP
+// (no se cachea), para permitir rotación en runtime sin reiniciar el proceso.
+// Rotarla invalida todos los tokens almacenados.
 // Para generar una nueva: openssl rand -hex 32
 
 const ALGORITHM = "aes-256-gcm";

@@ -36,6 +36,9 @@ export interface VeterinaryClinic {
   services: VeterinaryService[];
   calificacionPromedio?: number;
   cantidadResenas?: number;
+  // Estado de verificación: viene del backend si está disponible.
+  // Si está ausente, asumimos que ya fue filtrada por el listado público.
+  estadoVerificacion?: 'PENDIENTE' | 'VERIFICADO' | 'RECHAZADO';
 }
 
 export interface WalkerService {

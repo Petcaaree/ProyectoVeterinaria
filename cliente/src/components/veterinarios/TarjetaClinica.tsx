@@ -17,7 +17,11 @@ const TarjetaClinica: React.FC<TarjetaClinicaProps> = ({ clinica, alReservar }) 
       <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white">
         <div className="flex items-start justify-between mb-2">
           <h3 className="text-xl font-bold">{clinica.name}</h3>
-          <BadgeVerificado />
+          {/* Solo mostramos el badge si está confirmado o si el backend no envía el campo
+              (caso actual: el listado público ya filtra a no verificadas). */}
+          {(clinica.estadoVerificacion === 'VERIFICADO' || clinica.estadoVerificacion === undefined) && (
+            <BadgeVerificado />
+          )}
         </div>
         <div className="flex items-center space-x-2 mb-3">
           <EstrellaCalificacion calificacion={clinica.calificacionPromedio ?? clinica.rating ?? 0} />

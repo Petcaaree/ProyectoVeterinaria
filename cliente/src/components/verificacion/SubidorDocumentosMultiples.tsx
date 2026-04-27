@@ -57,11 +57,13 @@ const SubidorDocumentosMultiples: React.FC<SubidorDocumentosMultiplesProps> = ({
   };
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (subiendo > 0 || lleno) return;
     if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if (subiendo > 0 || lleno) return;
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
   };
 

@@ -154,8 +154,10 @@ const veterinariaSchema = new mongoose.Schema({
 veterinariaSchema.index({ nombreUsuario: 1 });
 
 // Indice compuesto parcial para el panel admin: count + listado paginado de pendientes.
-// Se indexan solo veterinarias con verificación iniciada para evitar entradas nulas
-// (la mayoría de veterinarias arrancan con verificacion = null).
+// Se indexan SOLO las que están en PENDIENTE — las VERIFICADAS/RECHAZADAS no entran al
+// índice, manteniéndolo chico y específico al endpoint de revisión.
+// Nota: las queries deben incluir literalmente { estadoVerificacion: "PENDIENTE" } para
+// que el optimizador use este índice.
 veterinariaSchema.index(
     {
         "verificacion.estadoVerificacion": 1,
@@ -163,7 +165,7 @@ veterinariaSchema.index(
     },
     {
         partialFilterExpression: {
-            "verificacion.estadoVerificacion": { $exists: true },
+            "verificacion.estadoVerificacion": EstadoVerificacion.PENDIENTE,
         },
     }
 );

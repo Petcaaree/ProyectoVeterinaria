@@ -1,4 +1,5 @@
 import { VeterinariaModel } from "../schemas/veterinariaSchema.js"
+import { EstadoVerificacion } from "../entidades/enums/EstadoVerificacion.js"
 
 export class VeterinariaRepository {
     constructor() {
@@ -89,5 +90,19 @@ export class VeterinariaRepository {
 
     async countAll() {
         return await this.model.countDocuments()
+    }
+
+    async findPendientesVerificacion({ page = 1, limit = 20 } = {}) {
+        const skip = (page - 1) * limit
+        const filtro = { "verificacion.estadoVerificacion": EstadoVerificacion.PENDIENTE }
+        const [items, total] = await Promise.all([
+            this.model
+                .find(filtro)
+                .sort({ "verificacion.fechaActualizacion": -1 })
+                .skip(skip)
+                .limit(limit),
+            this.model.countDocuments(filtro),
+        ])
+        return { items, total }
     }
 }

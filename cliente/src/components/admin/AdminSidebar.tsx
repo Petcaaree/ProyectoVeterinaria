@@ -1,11 +1,12 @@
 import React from 'react';
 
-export type AdminView = 'dashboard' | 'usuarios' | 'servicios' | 'configuracion';
+export type AdminView = 'dashboard' | 'usuarios' | 'servicios' | 'verificaciones' | 'configuracion';
 
 interface AdminSidebarProps {
   currentView: AdminView;
   onViewChange: (view: AdminView) => void;
   onLogout: () => void;
+  pendientesVerificacion?: number;
 }
 
 const menuItems: { key: AdminView; label: string; icon: React.ReactNode }[] = [
@@ -37,6 +38,15 @@ const menuItems: { key: AdminView; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    key: 'verificaciones',
+    label: 'Verificaciones',
+    icon: (
+      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    ),
+  },
+  {
     key: 'configuracion',
     label: 'Configuracion',
     icon: (
@@ -48,7 +58,7 @@ const menuItems: { key: AdminView; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, onViewChange, onLogout }) => {
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, onViewChange, onLogout, pendientesVerificacion = 0 }) => {
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
       {/* Header */}
@@ -79,7 +89,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, onViewChange, 
             }`}
           >
             {item.icon}
-            <span>{item.label}</span>
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.key === 'verificaciones' && pendientesVerificacion > 0 && (
+              <span className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-[10px] font-bold">
+                {pendientesVerificacion}
+              </span>
+            )}
           </button>
         ))}
       </nav>

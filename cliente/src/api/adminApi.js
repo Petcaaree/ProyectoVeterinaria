@@ -40,6 +40,19 @@ export const moderarServicio = (tipo, id, accion) => {
     return axios.put(`${API_URL}/admin/servicios/${tipo}/${id}/moderar`, { accion });
 };
 
+// ─── Verificaciones de proveedores ───────────────────
+export const getProveedoresPendientes = (page = 1, limit = 20) => {
+    return axios.get(`${API_URL}/admin/veterinarias/verificacion/pendientes`, {
+        params: { page, limit },
+    });
+};
+
+export const resolverVerificacion = (veterinariaId, estado, motivoRechazo) => {
+    const body = { estado };
+    if (motivoRechazo) body.motivoRechazo = motivoRechazo;
+    return axios.patch(`${API_URL}/admin/veterinarias/${veterinariaId}/verificacion`, body);
+};
+
 // ─── Configuracion ───────────────────────────────────
 export const getConfiguracion = () => {
     return axios.get(`${API_URL}/admin/configuracion`);

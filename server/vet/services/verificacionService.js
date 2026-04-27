@@ -182,15 +182,26 @@ export class VerificacionService {
     }
 
     // Endpoint admin: lista veterinarias con verificación pendiente (incluye documentos).
-    async listarPendientes() {
-        const vets = await this.veterinariaRepository.findPendientesVerificacion();
-        return vets.map((vet) => ({
-            veterinariaId: vet._id?.toString() ?? vet.id,
-            nombre: vet.nombre,
-            email: vet.email,
-            nombreUsuario: vet.nombreUsuario,
-            verificacion: this._toDTO(vet.verificacion),
-        }));
+    // Ordenadas por fechaActualizacion descendente; paginadas para evitar respuestas grandes.
+    async listarPendientes({ page = 1, limit = 20 } = {}) {
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const { items, total } = await this.veterinariaRepository.findPendientesVerificacion({
+            page: pageNum,
+            limit: limitNum,
+        });
+        return {
+            items: items.map((vet) => ({
+                veterinariaId: vet._id?.toString() ?? vet.id,
+                nombre: vet.nombre,
+                email: vet.email,
+                nombreUsuario: vet.nombreUsuario,
+                verificacion: this._toDTO(vet.verificacion),
+            })),
+            page: pageNum,
+            limit: limitNum,
+            total,
+        };
     }
 
     // Endpoint admin: aprobar o rechazar.

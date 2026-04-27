@@ -8,6 +8,7 @@ function crearRepo() {
     return {
         findById: jest.fn(),
         findPendientesVerificacion: jest.fn(),
+        countPendientesVerificacion: jest.fn(),
     };
 }
 
@@ -404,6 +405,21 @@ describe('VerificacionService', () => {
             const r = await service.listarPendientes();
             expect(r.items).toEqual([]);
             expect(r.total).toBe(0);
+        });
+    });
+
+    describe('contarPendientes (admin)', () => {
+        it('llama al repo y devuelve { total }', async () => {
+            repo.countPendientesVerificacion.mockResolvedValue(7);
+            const r = await service.contarPendientes();
+            expect(repo.countPendientesVerificacion).toHaveBeenCalled();
+            expect(r).toEqual({ total: 7 });
+        });
+
+        it('devuelve total 0 si no hay pendientes', async () => {
+            repo.countPendientesVerificacion.mockResolvedValue(0);
+            const r = await service.contarPendientes();
+            expect(r).toEqual({ total: 0 });
         });
     });
 });

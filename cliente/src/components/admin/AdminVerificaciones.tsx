@@ -71,14 +71,25 @@ const AdminVerificaciones: React.FC<AdminVerificacionesProps> = ({ onResolved })
     setLoading(true);
     try {
       const res = await getProveedoresPendientes(page, limit);
-      setItems(res.data.items || []);
-      setTotal(res.data.total || 0);
+      const nextItems = res.data.items || [];
+      const nextTotal = res.data.total || 0;
+      const nextTotalPages = Math.max(1, Math.ceil(nextTotal / limit));
+      // Si la página actual quedó fuera de rango (p.ej. resolvimos el último ítem
+      // de la última página), saltamos a la última válida y dejamos que el
+      // próximo render dispare el re-fetch.
+      if (page > nextTotalPages) {
+        setTotal(nextTotal);
+        setPage(nextTotalPages);
+        return;
+      }
+      setItems(nextItems);
+      setTotal(nextTotal);
     } catch (err) {
       console.error('Error al cargar verificaciones pendientes:', err);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => { fetchPendientes(); }, [fetchPendientes]);
 
@@ -137,7 +148,7 @@ const AdminVerificaciones: React.FC<AdminVerificacionesProps> = ({ onResolved })
                 <th className="px-4 py-3">Nombre</th>
                 <th className="px-4 py-3">CUIT</th>
                 <th className="px-4 py-3">Tipo</th>
-                <th className="px-4 py-3">Fecha solicitud</th>
+                <th className="px-4 py-3">Última actualización</th>
                 <th className="px-4 py-3 text-right">Acción</th>
               </tr>
             </thead>

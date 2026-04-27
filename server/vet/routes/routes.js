@@ -12,7 +12,8 @@ import pagoRoutes from "./pagoRoutes.js"
 import adminRoutes from "./adminRoutes.js"
 import resenaRoutes from "./resenaRoutes.js"
 import verificacionRoutes from "./verificacionRoutes.js"
+import mpOauthRoutes from "./mpOauthRoutes.js"
 
-const routes = [clienteRoutes, cuidadorRoutes, paseadorRoutes, veterinariaRoutes, servicioVeterinariaRoutes, servicioCuidadorRoutes, servicioPaseadorRoutes, reservaRoutes, localidadRoutes, pagoRoutes, adminRoutes, resenaRoutes, verificacionRoutes]
+const routes = [clienteRoutes, cuidadorRoutes, paseadorRoutes, veterinariaRoutes, servicioVeterinariaRoutes, servicioCuidadorRoutes, servicioPaseadorRoutes, reservaRoutes, localidadRoutes, pagoRoutes, adminRoutes, resenaRoutes, verificacionRoutes, mpOauthRoutes]
 
 export default routes

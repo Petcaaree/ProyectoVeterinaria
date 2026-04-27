@@ -90,6 +90,13 @@ const cuidadorSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    // ── MercadoPago Marketplace (OAuth proveedor) ─────────────────
+    mpConectado: { type: Boolean, default: false },
+    mpUserId: { type: String, default: null },
+    mpAccessToken: { type: String, default: null }, // AES-256-GCM
+    mpRefreshToken: { type: String, default: null }, // AES-256-GCM
+    mpTokenExpiresAt: { type: Date, default: null },
+    mpConectadoAt: { type: Date, default: null },
 });
 
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)

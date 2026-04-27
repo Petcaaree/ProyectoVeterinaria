@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {useAuth} from '../../context/authContext.tsx';
 import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
+import MpConexionBanner from '../comun/MpConexionBanner.tsx';
 
 interface MisPaseosProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
@@ -200,6 +201,9 @@ const MisPaseos: React.FC<MisPaseosProps> = ({ userType, onBack, onCreateService
             </div>
           </div>
         </div>
+
+        {/* Estado conexión Mercado Pago */}
+        <MpConexionBanner />
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">

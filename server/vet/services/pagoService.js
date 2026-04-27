@@ -1,6 +1,7 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError } from "../errors/AppError.js";
 import { enviarEmailPagoConfirmado } from "./emailService.js";
+import { MpOauthService } from "./mpOauthService.js";
 import logger from "../utils/logger.js";
 
 export class PagoService {
@@ -8,6 +9,8 @@ export class PagoService {
     this.reservaService = reservaService;
     this.pagoRepository = pagoRepository;
     this.configuracionRepo = configuracionRepo;
+    // Cliente "plataforma" — solo se usa para el webhook (consultar pagos por id) y
+    // como fallback. Las preferencias de pago se crean con el token del proveedor.
     this.client = new MercadoPagoConfig({
       accessToken: process.env.MP_ACCESS_TOKEN || "",
     });
@@ -37,6 +40,20 @@ export class PagoService {
     const comision = Math.round(((precioBase * porcentaje) / 100 + fija) * 100) / 100;
     const montoTotal = precioBase + comision;
 
+    // Resolver el proveedor de la reserva pendiente: el cobro lo hace su cuenta MP
+    // (split payment), y la plataforma retiene marketplace_fee = comisión.
+    const proveedor = pendienteDTO.servicioReservado?.usuarioProveedor;
+    const proveedorAccessToken = MpOauthService.getAccessTokenDecrypted(proveedor);
+    if (!proveedorAccessToken) {
+      // Bloqueo duro (alineado con requireMpConectado): no se puede crear preferencia
+      // si el proveedor no vinculó MP. requireMpConectado debería haber prevenido la
+      // publicación del servicio, pero validamos defensivamente.
+      throw new ValidationError(
+        "El proveedor no tiene su cuenta de MercadoPago vinculada. No se puede procesar el pago."
+      );
+    }
+    const proveedorClient = new MercadoPagoConfig({ accessToken: proveedorAccessToken });
+
     const preferenceBody = {
       items: [
         {
@@ -47,6 +64,9 @@ export class PagoService {
           currency_id: "ARS",
         },
       ],
+      // Marketplace: el cliente paga montoTotal (precioBase + comisión) al proveedor;
+      // MP retiene `marketplace_fee` para la plataforma de forma automática.
+      marketplace_fee: comision,
       back_urls: {
         success: `${frontendUrl}?payment_status=approved&pendiente_id=${pendienteId}`,
         failure: `${frontendUrl}?payment_status=failure&pendiente_id=${pendienteId}`,
@@ -57,7 +77,7 @@ export class PagoService {
       statement_descriptor: "PetConnect",
     };
 
-    const preference = new Preference(this.client);
+    const preference = new Preference(proveedorClient);
     const result = await preference.create({ body: preferenceBody });
 
     const nuevoPago = {
@@ -67,6 +87,8 @@ export class PagoService {
       montoProveedor: precioBase,
       comisionPorcentajeAplicado: porcentaje,
       comisionFijaAplicada: fija,
+      marketplaceFee: comision,
+      mpCollectorId: proveedor.mpUserId || null,
       estado: "PENDIENTE",
       mercadoPagoPreferenceId: result.id,
     };

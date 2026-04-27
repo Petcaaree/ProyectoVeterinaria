@@ -401,21 +401,30 @@ export class ReservaService {
         const pendiente = await this.reservaPendienteRepository.claimById(idPendiente);
         if (!pendiente) return;
 
-        const servicio = pendiente.servicioReservado;
         const fechasReserva = pendiente.rangoFechas;
+        const servicioId = pendiente.servicioReservado?._id || pendiente.servicioReservado?.id || pendiente.servicioReservado;
 
+        // Recargar el servicio desde su repo: el populated del pendiente puede venir
+        // como plain object (toObject) y haber perdido los métodos de la entidad.
+        let servicio;
         let repoServicio;
         if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            servicio.eliminarFechasReserva(fechasReserva);
             repoServicio = this.servicioCuidadorRepository;
+            servicio = await repoServicio.findById(servicioId);
+            if (!servicio) return;
+            servicio.eliminarFechasReserva(fechasReserva);
         } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
-            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
             repoServicio = this.servicioVeterinariaRepository;
-        } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            servicio = await repoServicio.findById(servicioId);
+            if (!servicio) return;
             const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
             servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
+        } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
             repoServicio = this.servicioPaseadorRepository;
+            servicio = await repoServicio.findById(servicioId);
+            if (!servicio) return;
+            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
+            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
         }
         servicio.decrementarReservas();
         await repoServicio.actualizarDisponibilidad(

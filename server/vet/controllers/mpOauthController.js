@@ -24,6 +24,11 @@ export class MpOauthController {
         const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
         try {
             const { code, state } = req.query;
+            // Express puede entregar arrays si el query param viene repetido (?code=a&code=b).
+            // Sin esto, llegan a jwt.verify y fallan con un mensaje genérico de "state inválido".
+            if (typeof code !== "string" || typeof state !== "string") {
+                throw new Error("Parámetros OAuth inválidos");
+            }
             await this.mpOauthService.procesarCallback({ code, state });
             return res.redirect(`${frontendUrl}/?mp_connected=true`);
         } catch (error) {

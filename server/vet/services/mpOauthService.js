@@ -52,6 +52,21 @@ export class MpOauthService {
         return repo;
     }
 
+    // Lookup liviano para flujos MP: evita el populate de dirección/ciudad que hacen
+    // los repos en findById(). Trae solo los campos MP necesarios y mantiene el doc
+    // hidratado (no .lean()) porque luego mutamos campos y llamamos save().
+    async _findProveedorParaMp({ proveedorId, tipo }) {
+        const repo = this._getRepo(tipo);
+        const Model = repo.model;
+        if (!Model?.findById) {
+            // Fallback defensivo: si algún repo no expone .model, usamos findById regular.
+            return repo.findById(proveedorId);
+        }
+        return Model.findById(proveedorId).select(
+            "_id mpConectado mpUserId mpAccessToken mpRefreshToken mpTokenExpiresAt mpConectadoAt"
+        );
+    }
+
     // Genera la URL de autorización OAuth de MP. El state es un JWT firmado con el
     // proveedorId+tipo para que el callback pueda asociar el code al proveedor sin
     // confiar en sesión ni cookies (MP redirige sin contexto).
@@ -158,8 +173,7 @@ export class MpOauthService {
     }
 
     async obtenerEstado({ proveedorId, tipo }) {
-        const repo = this._getRepo(tipo);
-        const proveedor = await repo.findById(proveedorId);
+        const proveedor = await this._findProveedorParaMp({ proveedorId, tipo });
         if (!proveedor) throw new NotFoundError("Proveedor no encontrado");
         return {
             mpConectado: !!proveedor.mpConectado,
@@ -184,8 +198,7 @@ export class MpOauthService {
     // refresh_token, intercambia con MP y persiste los nuevos tokens. Si no se puede
     // refrescar, lanza un error específico para forzar reconexión por parte del proveedor.
     async getAccessTokenValido({ proveedorId, tipo }) {
-        const repo = this._getRepo(tipo);
-        const proveedor = await repo.findById(proveedorId);
+        const proveedor = await this._findProveedorParaMp({ proveedorId, tipo });
         if (!proveedor) throw new NotFoundError("Proveedor no encontrado");
         if (!proveedor.mpConectado || !proveedor.mpAccessToken) {
             const err = new ValidationError("MP_NO_CONECTADO");

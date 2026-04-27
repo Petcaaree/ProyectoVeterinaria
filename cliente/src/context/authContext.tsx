@@ -478,6 +478,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // ─── Verificación de veterinarias ──────────────────────────
+  // Contrato del retorno (y del estado en contexto):
+  //   - object → estado real cargado (puede ser NO_INICIADA / PENDIENTE / VERIFICADO / RECHAZADO).
+  //   - null   → no aplica (usuario no es vet) O falló la consulta.
+  // Los consumidores que necesiten distinguir loading/error deberían trackear localmente
+  // con el valor de retorno de refrescar (null = error si tipoUsuario === 'veterinaria').
   const refrescarEstadoVerificacion = async () => {
     if (!usuario || tipoUsuario !== 'veterinaria') {
       setEstadoVerificacion(null);

@@ -41,19 +41,28 @@ const SubidorDocumentosMultiples: React.FC<SubidorDocumentosMultiplesProps> = ({
     }
 
     setSubiendo(arr.length);
-    try {
-      const subidas: string[] = [];
-      for (const file of arr) {
-        const r = await uploadDocumentToCloudinary(file, `verificaciones/${tipo.toLowerCase()}`);
-        subidas.push(r.secure_url);
+    // Subimos en paralelo; si alguno falla, preservamos los exitosos.
+    const resultados = await Promise.allSettled(
+      arr.map((file) => uploadDocumentToCloudinary(file, `verificaciones/${tipo.toLowerCase()}`))
+    );
+
+    const exitosas: string[] = [];
+    const fallidas: string[] = [];
+    resultados.forEach((r, i) => {
+      if (r.status === 'fulfilled') {
+        exitosas.push(r.value.secure_url);
+      } else {
+        const reason = r.reason instanceof Error ? r.reason.message : 'error';
+        fallidas.push(`"${arr[i].name}" (${reason})`);
       }
-      onChange([...urls, ...subidas]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al subir archivos');
-    } finally {
-      setSubiendo(0);
-      if (inputRef.current) inputRef.current.value = '';
+    });
+
+    if (exitosas.length > 0) onChange([...urls, ...exitosas]);
+    if (fallidas.length > 0) {
+      setError(`No se pudo subir: ${fallidas.join(', ')}`);
     }
+    setSubiendo(0);
+    if (inputRef.current) inputRef.current.value = '';
   };
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

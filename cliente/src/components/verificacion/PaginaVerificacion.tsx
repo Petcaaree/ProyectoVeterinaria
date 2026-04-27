@@ -21,7 +21,7 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
   // Si todavía no hay estado, default 'form' para evitar flash de "cargando".
   // 'loading' mientras esperamos el primer GET de estado. Evita renderizar el form
   // por defecto y permitir un submit antes de saber si la vet ya tiene verificación.
-  const [modo, setModo] = useState<'form' | 'estado' | 'loading'>(() => {
+  const [modo, setModo] = useState<'form' | 'estado' | 'loading' | 'error'>(() => {
     if (!estadoVerificacion) return 'loading';
     return estadoVerificacion.estadoVerificacion === 'NO_INICIADA' ? 'form' : 'estado';
   });
@@ -30,9 +30,17 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
   // Después de eso, respetamos cualquier cambio manual (ej. usuario clickea "Reenviar").
   const modoSincronizado = useRef<boolean>(!!estadoVerificacion);
 
+  const fetchEstado = async () => {
+    setModo((m) => (m === 'error' ? 'loading' : m));
+    const r = await refrescarEstadoVerificacion();
+    if (!r && !modoSincronizado.current) {
+      // Llegamos a refrescar y seguimos sin estado → la consulta falló.
+      setModo('error');
+    }
+  };
+
   useEffect(() => {
-    // Refrescamos en background sin bloquear el render.
-    refrescarEstadoVerificacion();
+    fetchEstado();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -49,6 +57,29 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
       <div className="max-w-xl mx-auto my-16 text-center">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
         <p className="text-gray-500">Cargando estado de verificación…</p>
+      </div>
+    );
+  }
+
+  if (modo === 'error') {
+    return (
+      <div className="max-w-xl mx-auto my-16 bg-white rounded-3xl shadow-2xl p-8 text-center">
+        <p className="text-gray-700 mb-2 font-semibold">No pudimos cargar tu estado de verificación.</p>
+        <p className="text-sm text-gray-500 mb-6">Verificá tu conexión e intentá de nuevo.</p>
+        <div className="flex justify-center space-x-3">
+          <button
+            onClick={onVolver}
+            className="px-5 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold"
+          >
+            Volver
+          </button>
+          <button
+            onClick={fetchEstado}
+            className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }

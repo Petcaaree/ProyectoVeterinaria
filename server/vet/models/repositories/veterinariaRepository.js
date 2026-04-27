@@ -90,4 +90,13 @@ export class VeterinariaRepository {
     async countAll() {
         return await this.model.countDocuments()
     }
+
+    async findPendientesVerificacion() {
+        return await this.model
+            .find({ "verificacion.estadoVerificacion": "PENDIENTE" })
+            .populate({
+                path: 'direccion.localidad',
+                populate: { path: 'ciudad' }
+            })
+    }
 }

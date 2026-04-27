@@ -34,6 +34,15 @@ export class VerificacionController {
     }
 
     // Admin
+    async listarPendientes(req, res, next) {
+        try {
+            const resultado = await this.verificacionService.listarPendientes();
+            res.status(200).json(resultado);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async resolver(req, res, next) {
         try {
             const resultado = await this.verificacionService.resolver(req.params.veterinariaId, req.body);

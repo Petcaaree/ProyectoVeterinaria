@@ -27,6 +27,14 @@ export default function verificacionRoutes(getController) {
         (req, res, next) => getController(VerificacionController).reenviar(req, res, next)
     );
 
+    // Admin: listar veterinarias pendientes de verificación.
+    router.get(
+        "/petcare/admin/veterinarias/verificacion/pendientes",
+        authMiddleware,
+        authorizationMiddleware("admin"),
+        (req, res, next) => getController(VerificacionController).listarPendientes(req, res, next)
+    );
+
     // Admin: aprobar/rechazar. La verificación es sub-recurso de una veterinaria.
     router.patch(
         "/petcare/admin/veterinarias/:veterinariaId/verificacion",

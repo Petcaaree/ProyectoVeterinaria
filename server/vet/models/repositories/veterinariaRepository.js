@@ -92,6 +92,12 @@ export class VeterinariaRepository {
         return await this.model.countDocuments()
     }
 
+    async countPendientesVerificacion() {
+        return await this.model.countDocuments({
+            "verificacion.estadoVerificacion": EstadoVerificacion.PENDIENTE,
+        })
+    }
+
     async findPendientesVerificacion({ page = 1, limit = 20 } = {}) {
         const skip = (page - 1) * limit
         const filtro = { "verificacion.estadoVerificacion": EstadoVerificacion.PENDIENTE }

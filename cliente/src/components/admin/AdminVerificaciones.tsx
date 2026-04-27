@@ -100,6 +100,7 @@ const AdminVerificaciones: React.FC<AdminVerificacionesProps> = ({ onResolved })
     setAccion(null);
     setMotivo('');
     setError('');
+    setPreviewUrl(null);
   };
 
   const handleResolver = async () => {

@@ -181,6 +181,12 @@ export class VerificacionService {
         return this._toDTO(vet.verificacion);
     }
 
+    // Endpoint admin liviano: solo conteo (para badge en sidebar).
+    async contarPendientes() {
+        const total = await this.veterinariaRepository.countPendientesVerificacion();
+        return { total };
+    }
+
     // Endpoint admin: lista veterinarias con verificación pendiente (incluye documentos).
     // Ordenadas por fechaActualizacion descendente; paginadas para evitar respuestas grandes.
     async listarPendientes({ page = 1, limit = 20 } = {}) {

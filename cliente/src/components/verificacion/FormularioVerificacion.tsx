@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { AlertCircle, Building2, Stethoscope, Home, Check, ShieldCheck, FileText, MapPin, Phone, Briefcase } from 'lucide-react';
+import { AlertCircle, Building2, Stethoscope, Home, Check, ShieldCheck, FileText, MapPin, Briefcase } from 'lucide-react';
 import { useAuth } from '../../context/authContext';
 import CuitInput from './CuitInput';
 import SubidorDocumentos from './SubidorDocumentos';

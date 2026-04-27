@@ -489,6 +489,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return estado;
     } catch (error) {
       console.error('Error al consultar estado de verificación:', error);
+      setEstadoVerificacion(null);
       return null;
     }
   };

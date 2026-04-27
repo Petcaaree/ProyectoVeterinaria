@@ -3,7 +3,7 @@ import { MapPin, Phone, Calendar, Clock } from 'lucide-react';
 import EstrellaCalificacion from '../comun/EstrellaCalificacion';
 import Boton from '../comun/Boton';
 import { BadgeVerificado } from '../verificacion/BannerVerificacion';
-import { VeterinaryClinic, VeterinaryService } from '../../types';
+import { VeterinaryClinic } from '../../types';
 
 interface TarjetaClinicaProps {
   clinica: VeterinaryClinic;

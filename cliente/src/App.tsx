@@ -46,7 +46,7 @@ function App() {
     return mapeo[tipo];
   };
 
-    const handleAddService = () => {
+  const handleAddService = () => {
     if (tipoUsuario === 'veterinaria') {
       // Si el estado todavía no cargó, evitamos redirigir por error.
       // El usuario puede reintentar en un instante; mientras tanto, no hacemos nada.

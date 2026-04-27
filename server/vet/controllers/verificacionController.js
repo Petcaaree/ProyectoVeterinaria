@@ -44,6 +44,15 @@ export class VerificacionController {
         }
     }
 
+    async contarPendientes(req, res, next) {
+        try {
+            const resultado = await this.verificacionService.contarPendientes();
+            res.status(200).json(resultado);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     async resolver(req, res, next) {
         try {
             const resultado = await this.verificacionService.resolver(req.params.veterinariaId, req.body);

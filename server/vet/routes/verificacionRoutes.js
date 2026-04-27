@@ -35,6 +35,14 @@ export default function verificacionRoutes(getController) {
         (req, res, next) => getController(VerificacionController).listarPendientes(req, res, next)
     );
 
+    // Admin: solo conteo de pendientes (liviano, para badge).
+    router.get(
+        "/petcare/admin/veterinarias/verificacion/pendientes/count",
+        authMiddleware,
+        authorizationMiddleware("admin"),
+        (req, res, next) => getController(VerificacionController).contarPendientes(req, res, next)
+    );
+
     // Admin: aprobar/rechazar. La verificación es sub-recurso de una veterinaria.
     router.patch(
         "/petcare/admin/veterinarias/:veterinariaId/verificacion",

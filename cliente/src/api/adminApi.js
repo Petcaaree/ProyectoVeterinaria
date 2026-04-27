@@ -47,6 +47,10 @@ export const getProveedoresPendientes = (page = 1, limit = 20) => {
     });
 };
 
+export const getProveedoresPendientesCount = () => {
+    return axios.get(`${API_URL}/admin/veterinarias/verificacion/pendientes/count`);
+};
+
 export const resolverVerificacion = (veterinariaId, estado, motivoRechazo) => {
     const body = { estado };
     if (motivoRechazo) body.motivoRechazo = motivoRechazo;

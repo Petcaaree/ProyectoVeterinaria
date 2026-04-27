@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getMetricas, getProveedoresPendientes } from '../../api/adminApi';
+import { getMetricas, getProveedoresPendientesCount } from '../../api/adminApi';
 import { useAuth } from '../../context/authContext';
 import AdminSidebar, { type AdminView } from './AdminSidebar';
 import MetricCard from './MetricCard';
@@ -56,7 +56,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   const fetchPendientesCount = useCallback(async () => {
     try {
-      const res = await getProveedoresPendientes(1, 1);
+      const res = await getProveedoresPendientesCount();
       setPendientesVerificacion(res.data.total || 0);
     } catch (err) {
       console.error('Error al cargar conteo de verificaciones pendientes:', err);

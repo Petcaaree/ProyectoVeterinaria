@@ -19,8 +19,10 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
   // Inicializamos sincrónicamente con el estado ya cargado del contexto:
   // si NO_INICIADA → form directo, si otro → pantalla de estado.
   // Si todavía no hay estado, default 'form' para evitar flash de "cargando".
-  const [modo, setModo] = useState<'form' | 'estado'>(() => {
-    if (!estadoVerificacion) return 'form';
+  // 'loading' mientras esperamos el primer GET de estado. Evita renderizar el form
+  // por defecto y permitir un submit antes de saber si la vet ya tiene verificación.
+  const [modo, setModo] = useState<'form' | 'estado' | 'loading'>(() => {
+    if (!estadoVerificacion) return 'loading';
     return estadoVerificacion.estadoVerificacion === 'NO_INICIADA' ? 'form' : 'estado';
   });
 
@@ -41,6 +43,15 @@ const PaginaVerificacion: React.FC<PaginaVerificacionProps> = ({ onVolver }) => 
     modoSincronizado.current = true;
     setModo(estadoVerificacion.estadoVerificacion === 'NO_INICIADA' ? 'form' : 'estado');
   }, [estadoVerificacion]);
+
+  if (modo === 'loading') {
+    return (
+      <div className="max-w-xl mx-auto my-16 text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600 mb-4"></div>
+        <p className="text-gray-500">Cargando estado de verificación…</p>
+      </div>
+    );
+  }
 
   if (modo === 'form') {
     const esReenvio = estadoVerificacion?.estadoVerificacion === 'RECHAZADO';

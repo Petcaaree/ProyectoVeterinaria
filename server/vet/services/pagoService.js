@@ -86,6 +86,17 @@ export class PagoService {
       throw new ValidationError("ID de pago requerido");
     }
 
+    // Idempotencia: si este paymentId ya fue procesado y aprobado, salir sin side effects.
+    // MP reintenta webhooks ante errores de red; sin esta guarda se aplicaría comisión 2 veces.
+    const pagoExistente = await this.pagoRepository.findByPaymentId(paymentId.toString());
+    if (pagoExistente && pagoExistente.estado === "APROBADO") {
+      logger.info("Webhook duplicado ignorado", {
+        paymentId: paymentId.toString(),
+        pagoId: (pagoExistente._id || pagoExistente.id)?.toString(),
+      });
+      return { status: "approved", deduplicated: true };
+    }
+
     const paymentClient = new Payment(this.client);
     const paymentData = await paymentClient.get({ id: paymentId });
 

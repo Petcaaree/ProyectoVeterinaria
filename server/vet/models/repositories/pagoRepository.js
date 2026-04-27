@@ -51,4 +51,8 @@ export class PagoRepository {
   async findByPreferenceId(preferenceId) {
     return PagoModel.findOne({ mercadoPagoPreferenceId: preferenceId });
   }
+
+  async findByPaymentId(paymentId) {
+    return PagoModel.findOne({ mercadoPagoPaymentId: paymentId });
+  }
 }

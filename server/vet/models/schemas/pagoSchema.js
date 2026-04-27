@@ -75,6 +75,9 @@ const pagoSchema = new mongoose.Schema(
 pagoSchema.index({ reservaId: 1 });
 pagoSchema.index({ reservaPendienteId: 1 });
 pagoSchema.index({ mercadoPagoPreferenceId: 1 });
-pagoSchema.index({ mercadoPagoPaymentId: 1 });
+pagoSchema.index(
+  { mercadoPagoPaymentId: 1 },
+  { unique: true, partialFilterExpression: { mercadoPagoPaymentId: { $type: "string" } } }
+);
 
 export const PagoModel = mongoose.model("Pago", pagoSchema);

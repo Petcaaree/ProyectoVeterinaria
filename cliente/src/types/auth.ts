@@ -1,4 +1,5 @@
 import type { DatosMascota, DatosServicioVeterinario, DatosServicioPaseador, DatosServicioCuidador } from '../api/api';
+import type { EstadoVerificacionResponse, PayloadVerificacion, VerificacionResponse } from './verificacion';
 
 interface Localidad {
   nombre: string;
@@ -99,4 +100,9 @@ export interface AuthContextType {
   marcarNotificacionLeida: (notificacionId: string) => Promise<void>; */
   logout: () => void;
   cambiarTipoUsuario: (tipo: string) => void;
+  // Verificación de veterinarias
+  estadoVerificacion: EstadoVerificacionResponse | null;
+  refrescarEstadoVerificacion: () => Promise<EstadoVerificacionResponse | null>;
+  enviarVerificacion: (payload: PayloadVerificacion) => Promise<VerificacionResponse>;
+  reenviarDocsVerificacion: (payload: Partial<PayloadVerificacion>) => Promise<VerificacionResponse>;
 }

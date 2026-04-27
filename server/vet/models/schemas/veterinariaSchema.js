@@ -153,6 +153,13 @@ const veterinariaSchema = new mongoose.Schema({
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 veterinariaSchema.index({ nombreUsuario: 1 });
 
+// Indice compuesto para el panel admin: count + listado paginado de pendientes
+// (filtrado por estadoVerificacion y ordenado por fechaActualizacion desc).
+veterinariaSchema.index({
+    "verificacion.estadoVerificacion": 1,
+    "verificacion.fechaActualizacion": -1,
+});
+
 veterinariaSchema.loadClass(Veterinaria);
 
 export const VeterinariaModel = mongoose.model("Veterinaria", veterinariaSchema);

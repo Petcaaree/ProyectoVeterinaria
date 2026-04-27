@@ -7,6 +7,7 @@ const VET_ID = '507f1f77bcf86cd799439011';
 function crearRepo() {
     return {
         findById: jest.fn(),
+        findPendientesVerificacion: jest.fn(),
     };
 }
 
@@ -346,6 +347,63 @@ describe('VerificacionService', () => {
         it('rechaza estado inválido', async () => {
             repo.findById.mockResolvedValue(crearVetFake({ estadoVerificacion: 'PENDIENTE' }));
             await expect(service.resolver(VET_ID, { estado: 'PENDIENTE' })).rejects.toThrow(ValidationError);
+        });
+    });
+
+    describe('listarPendientes (admin)', () => {
+        const verificacionPendiente = {
+            tipoEstablecimiento: 'CLINICA',
+            razonSocial: 'Clínica X SRL',
+            cuit: '30-12345678-9',
+            matriculaProfesional: 'MP-1',
+            direccion: { calle: 'c', numero: '1', localidad: 'L', provincia: 'P', codigoPostal: '1' },
+            telefono: '123',
+            documentos: [{ tipo: 'HABILITACION_MUNICIPAL', url: 'https://x/1.jpg', fechaSubida: new Date() }],
+            estadoVerificacion: 'PENDIENTE',
+            motivoRechazo: null,
+            fechaActualizacion: new Date(),
+        };
+
+        it('llama al repo con paginación por defecto y mapea el DTO con documentos', async () => {
+            const vetDoc = {
+                _id: VET_ID,
+                nombre: 'Clínica X',
+                email: 'x@x.com',
+                nombreUsuario: 'clinicax',
+                verificacion: verificacionPendiente,
+            };
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [vetDoc], total: 1 });
+
+            const r = await service.listarPendientes();
+
+            expect(repo.findPendientesVerificacion).toHaveBeenCalledWith({ page: 1, limit: 20 });
+            expect(r.total).toBe(1);
+            expect(r.page).toBe(1);
+            expect(r.limit).toBe(20);
+            expect(r.items).toHaveLength(1);
+            expect(r.items[0].veterinariaId).toBe(VET_ID);
+            expect(r.items[0].nombre).toBe('Clínica X');
+            expect(r.items[0].verificacion.estadoVerificacion).toBe('PENDIENTE');
+            expect(r.items[0].verificacion.documentos).toEqual([
+                expect.objectContaining({ tipo: 'HABILITACION_MUNICIPAL', url: 'https://x/1.jpg' }),
+            ]);
+        });
+
+        it('clampa page/limit y los pasa parseados al repo', async () => {
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [], total: 0 });
+
+            await service.listarPendientes({ page: '3', limit: '500' });
+            expect(repo.findPendientesVerificacion).toHaveBeenCalledWith({ page: 3, limit: 100 });
+
+            await service.listarPendientes({ page: '0', limit: '-5' });
+            expect(repo.findPendientesVerificacion).toHaveBeenLastCalledWith({ page: 1, limit: 1 });
+        });
+
+        it('devuelve lista vacía sin romper si no hay pendientes', async () => {
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [], total: 0 });
+            const r = await service.listarPendientes();
+            expect(r.items).toEqual([]);
+            expect(r.total).toBe(0);
         });
     });
 });

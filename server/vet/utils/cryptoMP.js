@@ -54,6 +54,11 @@ export function decryptMP(payload) {
     ) {
         throw new Error("decryptMP: formato inválido (partes no hex)");
     }
+    // Hex válido por bytes: longitud par. Sin esto, Buffer.from(hex, "hex") puede
+    // normalizar silenciosamente y el error final llega más adelante con mensaje confuso.
+    if (ivHex.length % 2 !== 0 || authTagHex.length % 2 !== 0 || dataHex.length % 2 !== 0) {
+        throw new Error("decryptMP: formato inválido (longitud hex impar)");
+    }
     if (ivHex.length !== IV_LENGTH * 2) {
         throw new Error(`decryptMP: IV debe ser ${IV_LENGTH} bytes (${IV_LENGTH * 2} chars hex)`);
     }

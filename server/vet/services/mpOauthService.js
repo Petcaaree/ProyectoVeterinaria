@@ -10,15 +10,18 @@ const TIPOS_VALIDOS = ["veterinaria", "paseador", "cuidador"];
 
 // Secret dedicado al state OAuth: si MP_OAUTH_STATE_SECRET está seteado lo usamos
 // (más seguro, aislado del secret de sesión). Si no, caemos a JWT_SECRET para compartir
-// la misma fuente que jwtUtils.js. En producción exigimos uno de los dos: un default
-// hardcodeado permitiría forjar state y asociar un code OAuth a otro proveedor.
+// la misma fuente que jwtUtils.js. Nunca usamos un default hardcodeado —en ningún
+// entorno— porque un valor predecible permitiría forjar state y asociar un code OAuth
+// a otro proveedor.
 function getStateSecret() {
     const secret = process.env.MP_OAUTH_STATE_SECRET || process.env.JWT_SECRET;
     if (!secret) {
-        if (process.env.NODE_ENV === "production") {
-            throw new Error("MP_OAUTH_STATE_SECRET (o JWT_SECRET) es obligatorio en producción");
-        }
-        return "petcare_dev_secret_cambiar_en_produccion";
+        logger.error(
+            "Configuración insegura de OAuth: falta MP_OAUTH_STATE_SECRET o JWT_SECRET para firmar el state"
+        );
+        throw new Error(
+            "MP_OAUTH_STATE_SECRET (o JWT_SECRET) es obligatorio para firmar el state OAuth"
+        );
     }
     return secret;
 }
@@ -275,10 +278,15 @@ export class MpOauthService {
     }
 
     async _marcarDesconectado(proveedor) {
+        // Mantener consistencia con desconectar(): el frontend usa mpConectadoAt para
+        // mostrar "conectado desde X", así que dejarlo intacto cuando ya estamos
+        // desconectados induce a error.
         proveedor.mpConectado = false;
+        proveedor.mpUserId = null;
         proveedor.mpAccessToken = null;
         proveedor.mpRefreshToken = null;
         proveedor.mpTokenExpiresAt = null;
+        proveedor.mpConectadoAt = null;
         await proveedor.save();
     }
 }

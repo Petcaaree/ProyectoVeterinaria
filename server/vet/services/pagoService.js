@@ -10,8 +10,9 @@ export class PagoService {
     this.pagoRepository = pagoRepository;
     this.configuracionRepo = configuracionRepo;
     this.mpOauthService = mpOauthService;
-    // Cliente "plataforma" — solo se usa para el webhook (consultar pagos por id) y
-    // como fallback. Las preferencias de pago se crean con el token del proveedor.
+    // Cliente "plataforma" — se usa exclusivamente para el webhook (consultar pagos por id).
+    // Las preferencias de pago se crean siempre con el token del proveedor; no hay
+    // fallback automático a este cliente si la resolución del token del proveedor falla.
     this.client = new MercadoPagoConfig({
       accessToken: process.env.MP_ACCESS_TOKEN || "",
     });

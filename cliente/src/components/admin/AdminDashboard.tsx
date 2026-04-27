@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { getMetricas } from '../../api/adminApi';
+import { getMetricas, getProveedoresPendientes } from '../../api/adminApi';
 import { useAuth } from '../../context/authContext';
 import AdminSidebar, { type AdminView } from './AdminSidebar';
 import MetricCard from './MetricCard';
 import AdminUsuarios from './AdminUsuarios';
 import AdminServicios from './AdminServicios';
 import AdminConfiguracion from './AdminConfiguracion';
+import AdminVerificaciones from './AdminVerificaciones';
 
 interface Metricas {
   usuarios: {
@@ -51,6 +52,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
   const [metricas, setMetricas] = useState<Metricas | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendientesVerificacion, setPendientesVerificacion] = useState(0);
+
+  const fetchPendientesCount = async () => {
+    try {
+      const res = await getProveedoresPendientes(1, 1);
+      setPendientesVerificacion(res.data.total || 0);
+    } catch (err) {
+      console.error('Error al cargar conteo de verificaciones pendientes:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPendientesCount();
+  }, []);
 
   useEffect(() => {
     if (currentView === 'dashboard') {
@@ -206,6 +221,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         return <AdminUsuarios />;
       case 'servicios':
         return <AdminServicios />;
+      case 'verificaciones':
+        return <AdminVerificaciones onResolved={fetchPendientesCount} />;
       case 'configuracion':
         return <AdminConfiguracion />;
       default:
@@ -219,6 +236,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
         currentView={currentView}
         onViewChange={setCurrentView}
         onLogout={handleLogout}
+        pendientesVerificacion={pendientesVerificacion}
       />
       <main className="flex-1 p-8 overflow-auto">
         {renderContent()}

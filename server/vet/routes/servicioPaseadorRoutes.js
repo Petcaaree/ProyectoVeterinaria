@@ -1,6 +1,7 @@
 import express from "express"
 import { ServicioPaseadorController } from "../controllers/servicioPaseadorController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { requireVerificacionPaseadorAprobada } from "../middlewares/requireVerificacionPaseadorAprobada.js"
 import { validate } from "../middlewares/validateMiddleware.js"
 import { servicioPaseadorSchema, paginationSchema } from "../validators/schemas.js"
 
@@ -25,7 +26,7 @@ export default function servicioPaseadorRoutes(getController) {
     })
 
     // --- Rutas protegidas (solo paseador) ---
-    router.post("/petcare/servicioPaseadores", authMiddleware, authorizationMiddleware('paseador'), validate(servicioPaseadorSchema), (req, res, next) => {
+    router.post("/petcare/servicioPaseadores", authMiddleware, authorizationMiddleware('paseador'), requireVerificacionPaseadorAprobada, validate(servicioPaseadorSchema), (req, res, next) => {
         getController(ServicioPaseadorController).create(req, res, next)
     })
 
@@ -33,7 +34,7 @@ export default function servicioPaseadorRoutes(getController) {
         getController(ServicioPaseadorController).delete(req, res, next)
     })
 
-    router.post("/petcare/serviciosPaseadores/array", authMiddleware, authorizationMiddleware('paseador'), (req, res, next) => {
+    router.post("/petcare/serviciosPaseadores/array", authMiddleware, authorizationMiddleware('paseador'), requireVerificacionPaseadorAprobada, (req, res, next) => {
         getController(ServicioPaseadorController).importArray(req, res, next)
     })
 

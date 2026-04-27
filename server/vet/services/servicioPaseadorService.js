@@ -7,6 +7,7 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 import {ServicioPaseador} from "../models/entidades/ServicioPaseador.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
+import { EstadoVerificacion } from "../models/entidades/enums/EstadoVerificacion.js"
 import mongoose from "mongoose"
 
 export class ServicioPaseadorService {
@@ -17,6 +18,13 @@ export class ServicioPaseadorService {
         this.ciudadRepository = ciudadRepository;
         this.localidadRepository = localidadRepository;
         this.reservaRepository = reservaRepository;
+    }
+
+    // Filtra servicios cuyo proveedor (paseador) no esté verificado (listados públicos).
+    _soloDePaseadoresVerificados(servicios) {
+        return servicios.filter(
+            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === EstadoVerificacion.VERIFICADO
+        )
     }
 
     async findAll({page = 1, limit = 6}) {
@@ -54,8 +62,12 @@ export class ServicioPaseadorService {
         const todosLosServicios = serviciosValidos
  */
 
-        const todosLosServiciosPorPagina = await this.servicioPaseadorRepository.findByPage(pageNum, limitNum)
-        const todosLosServicios = await this.servicioPaseadorRepository.findAll()
+        const todosLosServiciosPorPagina = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByPage(pageNum, limitNum)
+        )
+        const todosLosServicios = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findAll()
+        )
 
         // Obtener paseadores distintos de todos los servicios
         const paseadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
@@ -84,7 +96,9 @@ export class ServicioPaseadorService {
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Obtener todos los servicios que cumplen con los filtros
-        let serviciosPaseadores = await this.servicioPaseadorRepository.findByFilters(filtro);
+        let serviciosPaseadores = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByFilters(filtro)
+        );
 
         // Calcular totales basándose en los servicios encontrados
         const totalServicios = serviciosPaseadores.length;
@@ -121,14 +135,21 @@ export class ServicioPaseadorService {
         if(!servicioPaseador) {
             throw new NotFoundError(`Servicio Paseador con id ${id} no encontrado`)
         }
+        // Servicios de paseadores no verificados no son públicos: se tratan como 404.
+        if (servicioPaseador?.usuarioProveedor?.verificacion?.estadoVerificacion !== EstadoVerificacion.VERIFICADO) {
+            throw new NotFoundError(`Servicio Paseador con id ${id} no encontrado`)
+        }
         return this.toDTO(servicioPaseador)
     }
 
     async findByPaseador(id, {page = 1, limit = 10}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        // Filtramos por verificación al final del fetch para evitar exponer no-verificados.
 
-        let serviciosPaseadores = await this.servicioPaseadorRepository.findByPaseadorId(id);
+        let serviciosPaseadores = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByPaseadorId(id)
+        );
 
         const total = serviciosPaseadores.length;
         const startIndex = (pageNum - 1) * limitNum;
@@ -273,7 +294,9 @@ async delete(id) {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId);
+        const servicios = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId)
+        );
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

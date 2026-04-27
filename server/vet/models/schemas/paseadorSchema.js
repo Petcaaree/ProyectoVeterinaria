@@ -1,5 +1,54 @@
 import mongoose, { Schema } from "mongoose"
 import { Paseador } from "../entidades/Paseador.js";
+import { EstadoVerificacion } from "../entidades/enums/EstadoVerificacion.js";
+import { TipoDocumentoPaseador } from "../entidades/enums/TipoDocumentoPaseador.js";
+
+const documentoPaseadorSchema = new mongoose.Schema({
+    tipo: {
+        type: String,
+        enum: Object.values(TipoDocumentoPaseador),
+        required: true,
+    },
+    url: { type: String, required: true, trim: true },
+    fechaSubida: { type: Date, default: Date.now },
+}, { _id: false });
+
+const verificacionPaseadorSchema = new mongoose.Schema({
+    nombreCompleto: { type: String, required: true, trim: true, maxlength: 200 },
+    fechaNacimiento: { type: Date, required: true },
+    cuil: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^\d{2}-\d{8}-\d{1}$/, "CUIL debe tener formato XX-XXXXXXXX-X"],
+    },
+    direccion: {
+        calle: { type: String, required: true, trim: true },
+        numero: { type: String, required: true, trim: true },
+        piso: { type: String, trim: true, default: null },
+        depto: { type: String, trim: true, default: null },
+        localidad: { type: String, required: true, trim: true },
+        provincia: { type: String, required: true, trim: true },
+        codigoPostal: { type: String, required: true, trim: true },
+    },
+    zonaCobertura: {
+        type: [String],
+        required: true,
+        validate: {
+            validator: (v) => Array.isArray(v) && v.length > 0,
+            message: "zonaCobertura debe tener al menos un barrio",
+        },
+    },
+    telefono: { type: String, required: true, trim: true, minlength: 7, maxlength: 20 },
+    documentos: { type: [documentoPaseadorSchema], default: [] },
+    estadoVerificacion: {
+        type: String,
+        enum: Object.values(EstadoVerificacion),
+        default: EstadoVerificacion.PENDIENTE,
+    },
+    motivoRechazo: { type: String, trim: true, default: null },
+    fechaActualizacion: { type: Date, default: Date.now },
+}, { _id: false });
 
 const paseadorSchema = new mongoose.Schema({
   nombreUsuario: {
@@ -90,7 +139,24 @@ const paseadorSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    verificacion: {
+        type: verificacionPaseadorSchema,
+        default: null,
+    },
 });
+
+// Indice parcial para el panel admin: count + listado paginado de pendientes.
+paseadorSchema.index(
+    {
+        "verificacion.estadoVerificacion": 1,
+        "verificacion.fechaActualizacion": -1,
+    },
+    {
+        partialFilterExpression: {
+            "verificacion.estadoVerificacion": EstadoVerificacion.PENDIENTE,
+        },
+    }
+);
 
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 paseadorSchema.index({ nombreUsuario: 1 });

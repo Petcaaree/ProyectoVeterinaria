@@ -276,8 +276,38 @@ async function seedVeterinarias(localidades, hash) {
     return vets;
 }
 
+// Documentos dummy para verificación de paseador.
+function docsPaseadorDummy() {
+    return [
+        { tipo: 'DNI_FRENTE', url: 'https://placehold.co/400x300/8b5cf6/white?text=DNI+Frente.jpg' },
+        { tipo: 'DNI_DORSO', url: 'https://placehold.co/400x300/8b5cf6/white?text=DNI+Dorso.jpg' },
+        { tipo: 'ANTECEDENTES_PENALES', url: 'https://placehold.co/400x300/8b5cf6/white?text=Antecedentes' },
+        { tipo: 'FOTO_PERFIL', url: 'https://placehold.co/400x400/8b5cf6/white?text=Perfil.jpg' },
+        { tipo: 'CONSTANCIA_FISCAL', url: 'https://placehold.co/400x300/8b5cf6/white?text=Fiscal' },
+    ];
+}
+
+function verificacionPaseadorDummy({
+    nombreCompleto, fechaNacimiento, cuil, calle, numero, localidad, provincia, telefono,
+    zonaCobertura, estado = 'VERIFICADO', motivoRechazo = null,
+}) {
+    return {
+        nombreCompleto,
+        fechaNacimiento: new Date(fechaNacimiento),
+        cuil,
+        direccion: { calle, numero, piso: null, depto: null, localidad, provincia, codigoPostal: '1000' },
+        zonaCobertura,
+        telefono,
+        documentos: docsPaseadorDummy(),
+        estadoVerificacion: estado,
+        motivoRechazo,
+        fechaActualizacion: new Date(),
+    };
+}
+
 async function seedPaseadores(localidades, hash) {
     const paseadores = await Promise.all([
+        // ── 3 VERIFICADOS (pueden crear servicios y aparecen en búsquedas) ─────
         PaseadorModel.create({
             nombreUsuario: 'Lucas Fernández',
             email: 'lucas.paseos@example.com',
@@ -285,6 +315,12 @@ async function seedPaseadores(localidades, hash) {
             telefono: '1122334455',
             direccion: { calle: 'Av. del Libertador', altura: '5500', localidad: localidades.belgrano._id },
             notificaciones: [],
+            verificacion: verificacionPaseadorDummy({
+                nombreCompleto: 'Lucas Fernández', fechaNacimiento: '1995-03-12',
+                cuil: '20-38123456-7', calle: 'Av. del Libertador', numero: '5500',
+                localidad: 'Belgrano', provincia: 'CABA', telefono: '1122334455',
+                zonaCobertura: ['Belgrano', 'Palermo', 'Núñez'],
+            }),
         }),
         PaseadorModel.create({
             nombreUsuario: 'Sofía Martínez',
@@ -293,6 +329,12 @@ async function seedPaseadores(localidades, hash) {
             telefono: '3519887766',
             direccion: { calle: 'Bv. San Juan', altura: '900', localidad: localidades.alberdi._id },
             notificaciones: [],
+            verificacion: verificacionPaseadorDummy({
+                nombreCompleto: 'Sofía Martínez', fechaNacimiento: '1992-07-20',
+                cuil: '27-37654321-3', calle: 'Bv. San Juan', numero: '900',
+                localidad: 'Alberdi', provincia: 'Córdoba', telefono: '3519887766',
+                zonaCobertura: ['Alberdi', 'Nueva Córdoba'],
+            }),
         }),
         PaseadorModel.create({
             nombreUsuario: 'Tomás Herrera',
@@ -301,9 +343,58 @@ async function seedPaseadores(localidades, hash) {
             telefono: '1177889900',
             direccion: { calle: 'Gorriti', altura: '4200', localidad: localidades.palermo._id },
             notificaciones: [],
+            verificacion: verificacionPaseadorDummy({
+                nombreCompleto: 'Tomás Herrera', fechaNacimiento: '1998-11-05',
+                cuil: '20-40234567-8', calle: 'Gorriti', numero: '4200',
+                localidad: 'Palermo', provincia: 'CABA', telefono: '1177889900',
+                zonaCobertura: ['Palermo', 'Recoleta', 'Belgrano'],
+            }),
+        }),
+        // ── 1 PENDIENTE ───────────────────────────────────────────────────────
+        PaseadorModel.create({
+            nombreUsuario: 'Camila Ríos',
+            email: 'camila.paseos@example.com',
+            contrasenia: hash,
+            telefono: '1133778899',
+            direccion: { calle: 'Av. Cabildo', altura: '2400', localidad: localidades.belgrano._id },
+            notificaciones: [],
+            verificacion: verificacionPaseadorDummy({
+                nombreCompleto: 'Camila Ríos', fechaNacimiento: '2000-04-15',
+                cuil: '27-43123456-2', calle: 'Av. Cabildo', numero: '2400',
+                localidad: 'Belgrano', provincia: 'CABA', telefono: '1133778899',
+                zonaCobertura: ['Belgrano', 'Núñez'],
+                estado: 'PENDIENTE',
+            }),
+        }),
+        // ── 1 RECHAZADO ───────────────────────────────────────────────────────
+        PaseadorModel.create({
+            nombreUsuario: 'Marcelo Díaz',
+            email: 'marcelo.paseos@example.com',
+            contrasenia: hash,
+            telefono: '1144990022',
+            direccion: { calle: 'Charcas', altura: '3300', localidad: localidades.almagro._id },
+            notificaciones: [],
+            verificacion: verificacionPaseadorDummy({
+                nombreCompleto: 'Marcelo Díaz', fechaNacimiento: '1985-09-30',
+                cuil: '20-31234567-4', calle: 'Charcas', numero: '3300',
+                localidad: 'Almagro', provincia: 'CABA', telefono: '1144990022',
+                zonaCobertura: ['Almagro', 'Caballito'],
+                estado: 'RECHAZADO',
+                motivoRechazo: 'La foto del DNI dorso no se lee. Volvé a sacarla con buena luz y enfocada.',
+            }),
+        }),
+        // ── 1 NO_INICIADA ─────────────────────────────────────────────────────
+        PaseadorModel.create({
+            nombreUsuario: 'Julieta Páez',
+            email: 'julieta.paseos@example.com',
+            contrasenia: hash,
+            telefono: '1155001188',
+            direccion: { calle: 'Honduras', altura: '5100', localidad: localidades.palermo._id },
+            notificaciones: [],
+            // verificacion: null (default) → NO_INICIADA
         }),
     ]);
-    logOk(`Paseadores: ${paseadores.length}`);
+    logOk(`Paseadores: ${paseadores.length} (3 VERIFICADOS, 1 PENDIENTE, 1 RECHAZADO, 1 NO_INICIADA)`);
     return paseadores;
 }
 
@@ -935,10 +1026,15 @@ async function main() {
      • vetsur.lomas@example.com      (RECHAZADA — debe reenviar docs)
      • recoleta.vet@example.com      (NO_INICIADA — recién registrada)
 
-  🐕 Paseadores:
+  🐕 Paseadores VERIFICADOS (pueden crear servicios):
      • lucas.paseos@example.com   (Lucas Fernández  — Belgrano)
      • sofia.paseos@example.com   (Sofía Martínez   — Alberdi)
      • tomas.paseos@example.com   (Tomás Herrera    — Palermo)
+
+  🟡 Paseadores para testear flujo de verificación:
+     • camila.paseos@example.com    (PENDIENTE — esperando aprobación)
+     • marcelo.paseos@example.com   (RECHAZADO — debe reenviar docs)
+     • julieta.paseos@example.com   (NO_INICIADA — recién registrada)
 
   🏠 Cuidadores:
      • valentina.cuida@example.com   (Valentina Romero — Palermo)

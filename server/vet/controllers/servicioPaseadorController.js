@@ -58,7 +58,8 @@ export class ServicioPaseadorController {
     // Endpoint para crear un nuevo servicioPaseador
     async create (req, res,next) {
         try {
-            const servicioPaseador = req.body;
+            // idPaseador siempre del JWT — nunca del body, evita escalación.
+            const servicioPaseador = { ...req.body, idPaseador: req.usuario.id };
             const nuevo = await this.servicioPaseadorService.create(servicioPaseador);
 
             res.status(201).json(nuevo);
@@ -102,8 +103,9 @@ export class ServicioPaseadorController {
             }
         }
 
+            // idPaseador siempre del JWT, ignorando el body.
             for(const a of array) {
-                await this.servicioPaseadorService.create(a)
+                await this.servicioPaseadorService.create({ ...a, idPaseador: req.usuario.id })
             }
 
             res.status(200).send({message: `Importación completa. ${array.length} documentos insertados.`})

@@ -78,4 +78,22 @@ export class PaseadorRepository {
     async countAll() {
         return await this.model.countDocuments()
     }
+
+    async findPendientesVerificacion({ page = 1, limit = 10 } = {}) {
+        const filter = { 'verificacion.estadoVerificacion': 'PENDIENTE' }
+        const skip = (page - 1) * limit
+        const [data, total] = await Promise.all([
+            this.model.find(filter)
+                .sort({ 'verificacion.fechaActualizacion': -1 })
+                .skip(skip)
+                .limit(limit)
+                .populate({ path: 'direccion.localidad', populate: { path: 'ciudad' } }),
+            this.model.countDocuments(filter),
+        ])
+        return { data, total }
+    }
+
+    async countPendientesVerificacion() {
+        return await this.model.countDocuments({ 'verificacion.estadoVerificacion': 'PENDIENTE' })
+    }
 }

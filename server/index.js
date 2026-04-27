@@ -48,6 +48,7 @@ import { ReservaService } from "./vet/services/reservaService.js";
 import { PagoService } from "./vet/services/pagoService.js";
 import { ResenaService } from "./vet/services/resenaService.js";
 import { VerificacionService } from "./vet/services/verificacionService.js";
+import { VerificacionPaseadorService } from "./vet/services/verificacionPaseadorService.js";
 import { CiudadService } from "./vet/services/ciudadService.js";
 import { RecordatorioService } from "./vet/services/recordatorioService.js";
 
@@ -64,6 +65,7 @@ import { ReservaController } from "./vet/controllers/reservaController.js";
 import { PagoController } from "./vet/controllers/pagoController.js";
 import { ResenaController } from "./vet/controllers/resenaController.js";
 import { VerificacionController } from "./vet/controllers/verificacionController.js";
+import { VerificacionPaseadorController } from "./vet/controllers/verificacionPaseadorController.js";
 
 import { AdminRepository } from "./vet/models/repositories/adminRepository.js";
 import { ConfiguracionRepository } from "./vet/models/repositories/configuracionRepository.js";
@@ -101,6 +103,7 @@ const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo)
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
 const resenaService = new ResenaService(resenaRepo, reservaRepo, servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo);
 const verificacionService = new VerificacionService(veterinariaRepo);
+const verificacionPaseadorService = new VerificacionPaseadorService(paseadorRepo);
 
 // Inicializar servicio de recordatorios
 const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);
@@ -130,6 +133,7 @@ const ciudadController = new CiudadController(ciudadService);
 const adminController = new AdminController(adminService, adminDashboardService);
 const resenaController = new ResenaController(resenaService);
 const verificacionController = new VerificacionController(verificacionService);
+const verificacionPaseadorController = new VerificacionPaseadorController(verificacionPaseadorService);
 
 const app = express();
 
@@ -220,6 +224,7 @@ server.setController(CiudadController, ciudadController);
 server.setController(AdminController, adminController);
 server.setController(ResenaController, resenaController);
 server.setController(VerificacionController, verificacionController);
+server.setController(VerificacionPaseadorController, verificacionPaseadorController);
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

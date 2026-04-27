@@ -151,9 +151,12 @@ const veterinariaSchema = new mongoose.Schema({
     // ── MercadoPago Marketplace (OAuth proveedor) ─────────────────
     mpConectado: { type: Boolean, default: false },
     mpUserId: { type: String, default: null },
-    mpAccessToken: { type: String, default: null }, // AES-256-GCM
-    mpRefreshToken: { type: String, default: null }, // AES-256-GCM
-    mpTokenExpiresAt: { type: Date, default: null },
+    // select:false para minimizar riesgo de exposición accidental al serializar el doc.
+    // Las lecturas internas (MpOauthService._findProveedorParaMp, requireMpConectado)
+    // los incluyen explícitamente en .select(...).
+    mpAccessToken: { type: String, default: null, select: false }, // AES-256-GCM
+    mpRefreshToken: { type: String, default: null, select: false }, // AES-256-GCM
+    mpTokenExpiresAt: { type: Date, default: null, select: false },
     mpConectadoAt: { type: Date, default: null },
 });
 

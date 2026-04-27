@@ -36,6 +36,9 @@ export interface VeterinaryClinic {
   services: VeterinaryService[];
   calificacionPromedio?: number;
   cantidadResenas?: number;
+  // En listados públicos el backend ya filtra a vets verificadas. Si llega informado,
+  // solo puede ser 'VERIFICADO'. Si está ausente, también asumimos verificada.
+  estadoVerificacion?: 'VERIFICADO';
 }
 
 export interface WalkerService {

@@ -99,15 +99,15 @@ const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeteri
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, reservaPendienteRepo);
-const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo);
-const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
-const resenaService = new ResenaService(resenaRepo, reservaRepo, servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo);
-const verificacionService = new VerificacionService(veterinariaRepo);
 const mpOauthService = new MpOauthService({
     veterinariaRepository: veterinariaRepo,
     paseadorRepository: paseadorRepo,
     cuidadorRepository: cuidadorRepo,
 });
+const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo, mpOauthService);
+const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
+const resenaService = new ResenaService(resenaRepo, reservaRepo, servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo);
+const verificacionService = new VerificacionService(veterinariaRepo);
 
 // Inicializar servicio de recordatorios
 const recordatorioService = new RecordatorioService(reservaRepo, clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo);

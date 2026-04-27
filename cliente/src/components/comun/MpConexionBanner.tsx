@@ -17,14 +17,22 @@ const MpConexionBanner: React.FC<Props> = ({ onChange }) => {
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   const fetchStatus = async () => {
     try {
       const res = await getMpStatus();
       setStatus(res.data);
+      setStatusError('');
       onChange?.(!!res.data.mpConectado);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error consultando estado MP', err);
+      const e = err as { response?: { data?: { message?: string } } };
+      setStatus(null);
+      setStatusError(
+        e.response?.data?.message ||
+        'No se pudo verificar el estado de la conexión con Mercado Pago'
+      );
     } finally {
       setLoading(false);
     }
@@ -61,6 +69,24 @@ const MpConexionBanner: React.FC<Props> = ({ onChange }) => {
   };
 
   if (loading) return null;
+
+  if (statusError) {
+    return (
+      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+        <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-orange-900">No se pudo verificar Mercado Pago</p>
+          <p className="text-xs text-orange-800 mt-0.5">{statusError}</p>
+          <button
+            onClick={fetchStatus}
+            className="mt-2 text-xs font-medium text-orange-900 hover:text-orange-950 underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (status?.mpConectado) {
     return (

@@ -8,6 +8,12 @@ const MP_TOKEN_URL = "https://api.mercadopago.com/oauth/token";
 const STATE_EXPIRES_IN = "10m";
 const TIPOS_VALIDOS = ["veterinaria", "paseador", "cuidador"];
 
+// Misma fuente de verdad que jwtUtils.js para evitar fallas si JWT_SECRET no está seteado.
+const JWT_SECRET = process.env.JWT_SECRET || "petcare_dev_secret_cambiar_en_produccion";
+
+// Margen de seguridad para considerar el token "por expirar" y refrescarlo proactivamente.
+const REFRESH_LEEWAY_MS = 60 * 1000;
+
 export class MpOauthService {
     constructor({ veterinariaRepository, paseadorRepository, cuidadorRepository }) {
         this.repos = {
@@ -36,7 +42,7 @@ export class MpOauthService {
             throw new Error("MP_APP_ID no configurado");
         }
 
-        const state = jwt.sign({ proveedorId, tipo }, process.env.JWT_SECRET, {
+        const state = jwt.sign({ proveedorId, tipo }, JWT_SECRET, {
             expiresIn: STATE_EXPIRES_IN,
         });
 
@@ -58,7 +64,7 @@ export class MpOauthService {
 
         let payload;
         try {
-            payload = jwt.verify(state, process.env.JWT_SECRET);
+            payload = jwt.verify(state, JWT_SECRET);
         } catch {
             throw new ValidationError("state inválido o expirado");
         }
@@ -137,6 +143,7 @@ export class MpOauthService {
     }
 
     // Devuelve el access token desencriptado de un proveedor ya cargado (no DB hit).
+    // No considera expiración: usar getAccessTokenValido() si se necesita refresh automático.
     static getAccessTokenDecrypted(proveedorDoc) {
         if (!proveedorDoc?.mpConectado || !proveedorDoc?.mpAccessToken) return null;
         try {
@@ -145,5 +152,81 @@ export class MpOauthService {
             logger.error("No se pudo desencriptar mpAccessToken", { error: err.message });
             return null;
         }
+    }
+
+    // Garantiza un access token vigente para el proveedor: si está por expirar y hay
+    // refresh_token, intercambia con MP y persiste los nuevos tokens. Si no se puede
+    // refrescar, lanza un error específico para forzar reconexión por parte del proveedor.
+    async getAccessTokenValido({ proveedorId, tipo }) {
+        const repo = this._getRepo(tipo);
+        const proveedor = await repo.findById(proveedorId);
+        if (!proveedor) throw new NotFoundError("Proveedor no encontrado");
+        if (!proveedor.mpConectado || !proveedor.mpAccessToken) {
+            const err = new ValidationError("MP_NO_CONECTADO");
+            err.code = "MP_NO_CONECTADO";
+            throw err;
+        }
+
+        const expiresAt = proveedor.mpTokenExpiresAt ? new Date(proveedor.mpTokenExpiresAt).getTime() : null;
+        const expirado = expiresAt !== null && (expiresAt - Date.now()) < REFRESH_LEEWAY_MS;
+        if (!expirado) {
+            return decryptMP(proveedor.mpAccessToken);
+        }
+
+        if (!proveedor.mpRefreshToken) {
+            // Sin refresh_token no podemos renovar: marcamos como desconectado.
+            await this._marcarDesconectado(proveedor);
+            const err = new ValidationError("MP_REAUTORIZACION_REQUERIDA");
+            err.code = "MP_REAUTORIZACION_REQUERIDA";
+            throw err;
+        }
+
+        try {
+            const refreshTokenPlano = decryptMP(proveedor.mpRefreshToken);
+            const tokenData = await this._refrescarToken(refreshTokenPlano);
+            proveedor.mpAccessToken = encryptMP(tokenData.access_token);
+            if (tokenData.refresh_token) {
+                proveedor.mpRefreshToken = encryptMP(tokenData.refresh_token);
+            }
+            proveedor.mpTokenExpiresAt = tokenData.expires_in
+                ? new Date(Date.now() + tokenData.expires_in * 1000)
+                : null;
+            await proveedor.save();
+            return tokenData.access_token;
+        } catch (err) {
+            logger.error("Falló refresh de token MP", { tipo, proveedorId, error: err.message });
+            await this._marcarDesconectado(proveedor);
+            const e = new ValidationError("MP_REAUTORIZACION_REQUERIDA");
+            e.code = "MP_REAUTORIZACION_REQUERIDA";
+            throw e;
+        }
+    }
+
+    async _refrescarToken(refreshToken) {
+        const body = new URLSearchParams({
+            client_id: process.env.MP_APP_ID || "",
+            client_secret: process.env.MP_CLIENT_SECRET || "",
+            grant_type: "refresh_token",
+            refresh_token: refreshToken,
+        });
+        const res = await fetch(MP_TOKEN_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString(),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.access_token) {
+            logger.error("MP rechazó el refresh token", { status: res.status, data });
+            throw new Error("MP rechazó el refresh token");
+        }
+        return data;
+    }
+
+    async _marcarDesconectado(proveedor) {
+        proveedor.mpConectado = false;
+        proveedor.mpAccessToken = null;
+        proveedor.mpRefreshToken = null;
+        proveedor.mpTokenExpiresAt = null;
+        await proveedor.save();
     }
 }

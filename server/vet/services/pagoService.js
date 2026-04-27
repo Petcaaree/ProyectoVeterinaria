@@ -1,14 +1,14 @@
 import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import { ValidationError } from "../errors/AppError.js";
 import { enviarEmailPagoConfirmado } from "./emailService.js";
-import { MpOauthService } from "./mpOauthService.js";
 import logger from "../utils/logger.js";
 
 export class PagoService {
-  constructor(reservaService, pagoRepository, configuracionRepo) {
+  constructor(reservaService, pagoRepository, configuracionRepo, mpOauthService) {
     this.reservaService = reservaService;
     this.pagoRepository = pagoRepository;
     this.configuracionRepo = configuracionRepo;
+    this.mpOauthService = mpOauthService;
     // Cliente "plataforma" — solo se usa para el webhook (consultar pagos por id) y
     // como fallback. Las preferencias de pago se crean con el token del proveedor.
     this.client = new MercadoPagoConfig({
@@ -43,14 +43,27 @@ export class PagoService {
     // Resolver el proveedor de la reserva pendiente: el cobro lo hace su cuenta MP
     // (split payment), y la plataforma retiene marketplace_fee = comisión.
     const proveedor = pendienteDTO.servicioReservado?.usuarioProveedor;
-    const proveedorAccessToken = MpOauthService.getAccessTokenDecrypted(proveedor);
-    if (!proveedorAccessToken) {
-      // Bloqueo duro (alineado con requireMpConectado): no se puede crear preferencia
-      // si el proveedor no vinculó MP. requireMpConectado debería haber prevenido la
-      // publicación del servicio, pero validamos defensivamente.
-      throw new ValidationError(
-        "El proveedor no tiene su cuenta de MercadoPago vinculada. No se puede procesar el pago."
-      );
+    const proveedorId = (proveedor?._id || proveedor?.id)?.toString();
+    const tipo = this._resolverTipoProveedor(pendienteDTO.serviciOfrecido);
+    if (!proveedorId || !tipo) {
+      throw new ValidationError("No se pudo resolver el proveedor del servicio");
+    }
+
+    // getAccessTokenValido refresca el token si está por expirar; si no se puede
+    // refrescar (sin refresh_token o MP rechaza), marca al proveedor como desconectado
+    // y lanza MP_REAUTORIZACION_REQUERIDA para forzar nueva vinculación.
+    let proveedorAccessToken;
+    try {
+      proveedorAccessToken = await this.mpOauthService.getAccessTokenValido({ proveedorId, tipo });
+    } catch (err) {
+      if (err.code === "MP_NO_CONECTADO" || err.code === "MP_REAUTORIZACION_REQUERIDA") {
+        throw new ValidationError(
+          err.code === "MP_REAUTORIZACION_REQUERIDA"
+            ? "El proveedor debe re-vincular su cuenta de MercadoPago. No se puede procesar el pago."
+            : "El proveedor no tiene su cuenta de MercadoPago vinculada. No se puede procesar el pago."
+        );
+      }
+      throw err;
     }
     const proveedorClient = new MercadoPagoConfig({ accessToken: proveedorAccessToken });
 
@@ -187,6 +200,15 @@ export class PagoService {
     }
 
     return { status: paymentData.status, externalReference };
+  }
+
+  _resolverTipoProveedor(serviciOfrecido) {
+    const map = {
+      SERVICIOVETERINARIA: "veterinaria",
+      SERVICIOPASEADOR: "paseador",
+      SERVICIOCUIDADOR: "cuidador",
+    };
+    return map[serviciOfrecido] || null;
   }
 
   _mapearEstadoMP(mpStatus) {

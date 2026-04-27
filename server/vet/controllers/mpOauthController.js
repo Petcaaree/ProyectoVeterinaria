@@ -1,3 +1,5 @@
+import logger from "../utils/logger.js";
+
 export class MpOauthController {
     constructor(mpOauthService) {
         this.mpOauthService = mpOauthService;
@@ -25,11 +27,14 @@ export class MpOauthController {
             await this.mpOauthService.procesarCallback({ code, state });
             return res.redirect(`${frontendUrl}/?mp_connected=true`);
         } catch (error) {
-            // Loguear pero no exponer detalles a MP/usuario; redirigir con flag de error.
-            req.log?.error?.("Error en callback OAuth MP", { message: error.message });
-            // Intentamos también con next por si hay errorHandler global, pero priorizamos UX.
+            // Loguear el detalle sólo server-side; al usuario sólo un código genérico
+            // para no filtrar información interna en el querystring (queda en historial/analytics).
+            logger.error("Error en callback OAuth MP", {
+                message: error?.message,
+                stack: error?.stack,
+            });
             if (res.headersSent) return next(error);
-            return res.redirect(`${frontendUrl}/?mp_connected=false&error=${encodeURIComponent(error.message)}`);
+            return res.redirect(`${frontendUrl}/?mp_connected=false&error=OAUTH_FAILED`);
         }
     }
 

@@ -1,6 +1,8 @@
 // Servicio para subir imágenes a Cloudinary
 const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+// Endpoint genérico (detecta si es imagen o raw/PDF)
+const CLOUDINARY_URL_AUTO = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 // Función para verificar configuración
@@ -25,12 +27,13 @@ if (!isCloudinaryConfigured()) {
 export interface CloudinaryResponse {
   secure_url: string;
   public_id: string;
-  format: string;
   resource_type: string;
   created_at: string;
   bytes: number;
-  width: number;
-  height: number;
+  // Estos solo vienen para imágenes (resource_type === "image"); en raw/PDF Cloudinary los omite.
+  format?: string;
+  width?: number;
+  height?: number;
   folder?: string;
   original_filename: string;
 }
@@ -91,4 +94,42 @@ export const uploadMultipleImages = async (
     console.error('Error uploading multiple images:', error);
     throw new Error('Failed to upload images');
   }
+};
+
+/**
+ * Sube un documento (imagen o PDF) a Cloudinary usando el endpoint auto/upload.
+ * Soporta cualquier tipo (image, raw) y devuelve la URL segura.
+ */
+export const uploadDocumentToCloudinary = async (
+  file: File,
+  folder: string = 'verificaciones'
+): Promise<CloudinaryResponse> => {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary no está configurado. Configurá VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET en el archivo .env');
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', UPLOAD_PRESET);
+  formData.append('folder', folder);
+
+  const response = await fetch(CLOUDINARY_URL_AUTO, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    // Cloudinary devuelve { error: { message: "..." } } cuando falla.
+    // statusText suele venir vacío en HTTP/2, así que parseamos el body si podemos.
+    let detalle = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
+    try {
+      const data = await response.json();
+      detalle = data?.error?.message || data?.message || detalle;
+    } catch {
+      // body no es JSON válido — mantenemos el fallback con status.
+    }
+    throw new Error(`Error al subir archivo: ${detalle}`);
+  }
+
+  return response.json();
 };

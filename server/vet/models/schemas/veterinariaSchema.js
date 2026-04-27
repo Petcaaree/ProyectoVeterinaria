@@ -156,8 +156,8 @@ veterinariaSchema.index({ nombreUsuario: 1 });
 // Indice compuesto parcial para el panel admin: count + listado paginado de pendientes.
 // Se indexan SOLO las que están en PENDIENTE — las VERIFICADAS/RECHAZADAS no entran al
 // índice, manteniéndolo chico y específico al endpoint de revisión.
-// Nota: las queries deben incluir literalmente { estadoVerificacion: "PENDIENTE" } para
-// que el optimizador use este índice.
+// Nota: las queries deben incluir el filtro { "verificacion.estadoVerificacion": "PENDIENTE" }
+// para que el optimizador use este índice.
 veterinariaSchema.index(
     {
         "verificacion.estadoVerificacion": 1,

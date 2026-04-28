@@ -26,9 +26,17 @@ function calcularEdad(fechaNacimiento) {
     return edad;
 }
 
+// Solo aceptamos extensiones reales en el pathname (no en query/dominio).
+// Esto evita bypass tipo "https://x.com/file.pdf?fake=.jpg".
 function esImagenPorUrl(url) {
-    const lower = url.toLowerCase();
-    return EXTENSIONES_IMAGEN.some((ext) => lower.includes(ext));
+    if (typeof url !== "string" || !url.trim()) return false;
+    try {
+        const { pathname } = new URL(url);
+        const lower = pathname.toLowerCase();
+        return EXTENSIONES_IMAGEN.some((ext) => lower.endsWith(ext));
+    } catch {
+        return false;
+    }
 }
 
 export class VerificacionPaseadorService {
@@ -96,7 +104,7 @@ export class VerificacionPaseadorService {
             const urlTrimmed = d.url.trim();
             // FOTO_PERFIL debe ser imagen, no PDF/raw.
             if (TIPOS_DOCUMENTO_PASEADOR_SOLO_IMAGEN.includes(d.tipo) && !esImagenPorUrl(urlTrimmed)) {
-                throw new ValidationError(`Documento ${d.tipo} debe ser una imagen (JPG/PNG/WEBP)`);
+                throw new ValidationError(`Documento ${d.tipo} debe ser una imagen (JPG/JPEG/PNG/WEBP/GIF/BMP)`);
             }
             tiposSubidos.add(d.tipo);
             documentosNormalizados.push({ tipo: d.tipo, url: urlTrimmed });
@@ -111,7 +119,14 @@ export class VerificacionPaseadorService {
             nombreCompleto: nombreCompleto.trim(),
             fechaNacimiento: new Date(fechaNacimiento),
             cuil,
-            direccion: { ...direccion },
+            // Solo persistimos los 5 campos del schema (sin piso/depto).
+            direccion: {
+                calle: direccion.calle,
+                numero: direccion.numero,
+                localidad: direccion.localidad,
+                provincia: direccion.provincia,
+                codigoPostal: direccion.codigoPostal,
+            },
             zonaCobertura: zonaCobertura.map((z) => z.trim()),
             telefono: telefono.trim(),
             documentos: documentosNormalizados,
@@ -216,21 +231,23 @@ export class VerificacionPaseadorService {
         return this._toDTO(paseador.verificacion);
     }
 
-    async listarPendientes({ page = 1, limit = 10 } = {}) {
-        const pageNum = Math.max(Number(page) || 1, 1);
-        const limitNum = Math.min(Math.max(Number(limit) || 10, 1), 100);
-        const { data, total } = await this.paseadorRepository.findPendientesVerificacion({ page: pageNum, limit: limitNum });
-        return {
+    async listarPendientes({ page = 1, limit = 20 } = {}) {
+        const pageNum = Math.max(1, parseInt(page, 10) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const { items, total } = await this.paseadorRepository.findPendientesVerificacion({
             page: pageNum,
-            per_page: limitNum,
-            total,
-            total_pages: Math.ceil(total / limitNum),
-            data: data.map((p) => ({
-                id: p._id,
+            limit: limitNum,
+        });
+        return {
+            items: items.map((p) => ({
+                paseadorId: p._id?.toString() ?? p.id,
                 email: p.email,
                 nombreUsuario: p.nombreUsuario,
                 verificacion: this._toDTO(p.verificacion),
             })),
+            page: pageNum,
+            limit: limitNum,
+            total,
         };
     }
 

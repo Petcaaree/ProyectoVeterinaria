@@ -62,12 +62,17 @@ export class ServicioPaseadorService {
         const todosLosServicios = serviciosValidos
  */
 
-        const todosLosServiciosPorPagina = this._soloDePaseadoresVerificados(
-            await this.servicioPaseadorRepository.findByPage(pageNum, limitNum)
-        )
+        // Filtramos por verificación ANTES de paginar para que el conteo y la cantidad
+        // de páginas coincidan con lo que efectivamente se devuelve. Si paginás antes,
+        // las páginas pueden quedar incompletas y total_pages mentir.
         const todosLosServicios = this._soloDePaseadoresVerificados(
             await this.servicioPaseadorRepository.findAll()
         )
+
+        const total = todosLosServicios.length
+        const startIndex = (pageNum - 1) * limitNum
+        const endIndex = startIndex + limitNum
+        const todosLosServiciosPorPagina = todosLosServicios.slice(startIndex, endIndex)
 
         // Obtener paseadores distintos de todos los servicios
         const paseadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
@@ -76,14 +81,13 @@ export class ServicioPaseadorService {
         // Obtener paseadores distintos de los servicios de esta página
         const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
 
-        const total = await this.servicioPaseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: todosLosServicios.length,
+            totalServicios: total,
             totalPaseadores: totalPaseadoresDistintos,
             paseadoresPagina: paseadoresDistintosPagina.size,
             total_pages: total_pages,

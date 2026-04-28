@@ -295,7 +295,7 @@ function verificacionPaseadorDummy({
         nombreCompleto,
         fechaNacimiento: new Date(fechaNacimiento),
         cuil,
-        direccion: { calle, numero, piso: null, depto: null, localidad, provincia, codigoPostal: '1000' },
+        direccion: { calle, numero, localidad, provincia, codigoPostal: '1000' },
         zonaCobertura,
         telefono,
         documentos: docsPaseadorDummy(),

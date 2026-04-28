@@ -1,4 +1,5 @@
 import { PaseadorModel } from "../schemas/paseadorSchema.js"
+import { EstadoVerificacion } from "../entidades/enums/EstadoVerificacion.js"
 
 export class PaseadorRepository {
     constructor() {
@@ -79,21 +80,22 @@ export class PaseadorRepository {
         return await this.model.countDocuments()
     }
 
-    async findPendientesVerificacion({ page = 1, limit = 10 } = {}) {
-        const filter = { 'verificacion.estadoVerificacion': 'PENDIENTE' }
+    async findPendientesVerificacion({ page = 1, limit = 20 } = {}) {
+        const filter = { 'verificacion.estadoVerificacion': EstadoVerificacion.PENDIENTE }
         const skip = (page - 1) * limit
-        const [data, total] = await Promise.all([
+        const [items, total] = await Promise.all([
             this.model.find(filter)
                 .sort({ 'verificacion.fechaActualizacion': -1 })
                 .skip(skip)
-                .limit(limit)
-                .populate({ path: 'direccion.localidad', populate: { path: 'ciudad' } }),
+                .limit(limit),
             this.model.countDocuments(filter),
         ])
-        return { data, total }
+        return { items, total }
     }
 
     async countPendientesVerificacion() {
-        return await this.model.countDocuments({ 'verificacion.estadoVerificacion': 'PENDIENTE' })
+        return await this.model.countDocuments({
+            'verificacion.estadoVerificacion': EstadoVerificacion.PENDIENTE,
+        })
     }
 }

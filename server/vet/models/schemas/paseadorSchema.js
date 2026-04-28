@@ -25,8 +25,6 @@ const verificacionPaseadorSchema = new mongoose.Schema({
     direccion: {
         calle: { type: String, required: true, trim: true },
         numero: { type: String, required: true, trim: true },
-        piso: { type: String, trim: true, default: null },
-        depto: { type: String, trim: true, default: null },
         localidad: { type: String, required: true, trim: true },
         provincia: { type: String, required: true, trim: true },
         codigoPostal: { type: String, required: true, trim: true },

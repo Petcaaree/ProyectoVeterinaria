@@ -220,23 +220,17 @@ export class PagoService {
     return { status: paymentData.status, externalReference };
   }
 
-  // Resuelve el proveedor por mpUserId (== mpCollectorId en MP) y consulta Payment.get
-  // con su token. Busca en los 3 modelos porque mpUserId es único por proveedor pero
-  // no sabemos a priori el tipo. El primer match gana.
+  // Consulta Payment.get usando el token del proveedor cuyo mpUserId == collectorId.
+  // Delega la resolución a MpOauthService para mantener encapsulada la estructura repos.
   async _getPaymentConTokenProveedor(paymentId, mpUserId) {
-    const tipos = ["veterinaria", "paseador", "cuidador"];
-    for (const tipo of tipos) {
-      const repo = this.mpOauthService._getRepo(tipo);
-      const Model = repo.model;
-      const proveedor = await Model.findOne({ mpUserId }).select("_id").lean();
-      if (!proveedor) continue;
-      const accessToken = await this.mpOauthService.getAccessTokenValido({
-        proveedorId: proveedor._id.toString(), tipo,
-      });
-      const proveedorClient = new MercadoPagoConfig({ accessToken });
-      return new Payment(proveedorClient).get({ id: paymentId });
+    const accessToken = await this.mpOauthService.getAccessTokenValidoPorMpUserId(mpUserId);
+    if (!accessToken) {
+      throw new ValidationError(
+        `No se encontró proveedor con mpUserId=${mpUserId} para resolver token`
+      );
     }
-    throw new ValidationError(`No se encontró proveedor con mpUserId=${mpUserId} para resolver token`);
+    const proveedorClient = new MercadoPagoConfig({ accessToken });
+    return new Payment(proveedorClient).get({ id: paymentId });
   }
 
   _resolverTipoProveedor(serviciOfrecido) {

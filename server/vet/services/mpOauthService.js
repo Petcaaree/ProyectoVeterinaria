@@ -29,6 +29,22 @@ function getStateSecret() {
 // Margen de seguridad para considerar el token "por expirar" y refrescarlo proactivamente.
 const REFRESH_LEEWAY_MS = 60 * 1000;
 
+// Quita campos sensibles antes de loguear payloads de error de MP. La respuesta puede
+// incluir access_token/refresh_token aún en errores parciales, y los logs son persistidos.
+function sanitizarErrorMP(data) {
+    if (!data || typeof data !== "object") return undefined;
+    return {
+        error: data.error,
+        error_description: data.error_description,
+        message: data.message,
+        cause: Array.isArray(data.cause)
+            ? data.cause.map((c) =>
+                  c && typeof c === "object" ? { code: c.code, description: c.description } : c
+              )
+            : undefined,
+    };
+}
+
 function requireMpAppCredentials() {
     const appId = process.env.MP_APP_ID;
     const clientSecret = process.env.MP_CLIENT_SECRET;
@@ -157,7 +173,10 @@ export class MpOauthService {
         });
         const data = await res.json();
         if (!res.ok || !data.access_token) {
-            logger.error("MP rechazó el intercambio OAuth", { status: res.status, data });
+            logger.error("MP rechazó el intercambio OAuth", {
+                status: res.status,
+                error: sanitizarErrorMP(data),
+            });
             throw new ValidationError("MercadoPago rechazó el código de autorización");
         }
         return data;
@@ -198,6 +217,26 @@ export class MpOauthService {
             logger.error("No se pudo desencriptar mpAccessToken", { error: err.message });
             return null;
         }
+    }
+
+    // Resuelve un access token vigente buscando al proveedor por mpUserId (== collector_id
+    // en MP). Pensado para el fallback del webhook donde sólo se conoce el collector.
+    // Devuelve null si ningún proveedor matchea, lanza si encuentra pero no se puede resolver token.
+    async getAccessTokenValidoPorMpUserId(mpUserId) {
+        if (!mpUserId) return null;
+        const tipos = ["veterinaria", "paseador", "cuidador"];
+        for (const tipo of tipos) {
+            const repo = this.repos[tipo];
+            const Model = repo?.model;
+            if (!Model?.findOne) continue;
+            const proveedor = await Model.findOne({ mpUserId }).select("_id").lean();
+            if (!proveedor) continue;
+            return this.getAccessTokenValido({
+                proveedorId: proveedor._id.toString(),
+                tipo,
+            });
+        }
+        return null;
     }
 
     // Garantiza un access token vigente para el proveedor: si está por expirar y hay
@@ -282,7 +321,10 @@ export class MpOauthService {
         });
         const data = await res.json();
         if (!res.ok || !data.access_token) {
-            logger.error("MP rechazó el refresh token", { status: res.status, data });
+            logger.error("MP rechazó el refresh token", {
+                status: res.status,
+                error: sanitizarErrorMP(data),
+            });
             throw new Error("MP rechazó el refresh token");
         }
         return data;

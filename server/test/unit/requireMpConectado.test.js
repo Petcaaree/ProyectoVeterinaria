@@ -30,7 +30,7 @@ function buildRes() {
     return res;
 }
 
-// Cadena real: Model.findById(id).select("mpConectado mpAccessToken")
+// Cadena real: Model.findById(id).select("mpConectado +mpAccessToken")
 function mockProveedor(findByIdFn, proveedor) {
     findByIdFn.mockReturnValue({ select: jest.fn().mockResolvedValue(proveedor) });
 }

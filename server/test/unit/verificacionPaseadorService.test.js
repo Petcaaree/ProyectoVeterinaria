@@ -217,4 +217,70 @@ describe('VerificacionPaseadorService', () => {
             await expect(service.resolver(PASEADOR_ID, { estado: 'PENDIENTE' })).rejects.toThrow(ValidationError);
         });
     });
+
+    describe('listarPendientes', () => {
+        it('aplica defaults (page=1, limit=20)', async () => {
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [], total: 0 });
+
+            await service.listarPendientes();
+
+            expect(repo.findPendientesVerificacion).toHaveBeenCalledWith({ page: 1, limit: 20 });
+        });
+
+        it('clampa page a mínimo 1 y limit a máximo 100', async () => {
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [], total: 0 });
+
+            await service.listarPendientes({ page: 0, limit: 999 });
+
+            expect(repo.findPendientesVerificacion).toHaveBeenCalledWith({ page: 1, limit: 100 });
+        });
+
+        it('parsea valores fraccionales con parseInt (evita skip no entero)', async () => {
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [], total: 0 });
+
+            await service.listarPendientes({ page: 2.7, limit: 10.9 });
+
+            expect(repo.findPendientesVerificacion).toHaveBeenCalledWith({ page: 2, limit: 10 });
+        });
+
+        it('mapea items a { paseadorId, email, nombreUsuario, verificacion }', async () => {
+            const verif = {
+                ...payloadValido(),
+                estadoVerificacion: 'PENDIENTE',
+                motivoRechazo: null,
+                fechaActualizacion: new Date(),
+            };
+            const paseadorDoc = {
+                _id: { toString: () => 'p123' },
+                email: 'p@test.com',
+                nombreUsuario: 'p_user',
+                verificacion: verif,
+            };
+            repo.findPendientesVerificacion.mockResolvedValue({ items: [paseadorDoc], total: 1 });
+
+            const r = await service.listarPendientes({ page: 1, limit: 5 });
+
+            expect(r.items).toHaveLength(1);
+            expect(r.items[0]).toMatchObject({
+                paseadorId: 'p123',
+                email: 'p@test.com',
+                nombreUsuario: 'p_user',
+            });
+            expect(r.items[0].verificacion.cuil).toBe(verif.cuil);
+            expect(r.page).toBe(1);
+            expect(r.limit).toBe(5);
+            expect(r.total).toBe(1);
+        });
+    });
+
+    describe('contarPendientes', () => {
+        it('devuelve { total } usando el repo', async () => {
+            repo.countPendientesVerificacion.mockResolvedValue(7);
+
+            const r = await service.contarPendientes();
+
+            expect(repo.countPendientesVerificacion).toHaveBeenCalled();
+            expect(r).toEqual({ total: 7 });
+        });
+    });
 });

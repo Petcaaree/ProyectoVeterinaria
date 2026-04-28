@@ -64,6 +64,9 @@ export class ServicioPaseadorService {
 
         // Filtro de verificación a nivel DB: traemos los IDs de paseadores VERIFICADOS
         // y delegamos paginación + count al repo. Evita cargar todos los servicios en memoria.
+        // TRADE-OFF: para volúmenes muy grandes (decenas de miles de paseadores) este array $in
+        // puede crecer; en ese caso conviene migrar a aggregation con $lookup contra Paseador
+        // o denormalizar `proveedorVerificado` en el servicio. Hoy es aceptable.
         const idsVerificados = await this.paseadorRepository.findVerificadosIds()
         if (idsVerificados.length === 0) {
             return {
@@ -300,6 +303,18 @@ async delete(id) {
     async findByEstado(estado, paseadorId, { page = 1, limit = 4 }) {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
+
+        // Endpoint público: solo exponemos servicios "Activada". Estados privados
+        // (Desactivada, etc.) deben consultarse desde rutas autenticadas del proveedor.
+        if (estado !== EstadoServicio.ACTIVO) {
+            return {
+                page: pageNum,
+                per_page: limitNum,
+                total: 0,
+                total_pages: 0,
+                data: [],
+            };
+        }
 
         const servicios = this._soloDePaseadoresVerificados(
             await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId)

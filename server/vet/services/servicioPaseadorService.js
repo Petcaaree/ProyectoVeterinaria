@@ -62,25 +62,28 @@ export class ServicioPaseadorService {
         const todosLosServicios = serviciosValidos
  */
 
-        // Filtramos por verificación ANTES de paginar para que el conteo y la cantidad
-        // de páginas coincidan con lo que efectivamente se devuelve. Si paginás antes,
-        // las páginas pueden quedar incompletas y total_pages mentir.
-        const todosLosServicios = this._soloDePaseadoresVerificados(
-            await this.servicioPaseadorRepository.findAll()
-        )
+        // Filtro de verificación a nivel DB: traemos los IDs de paseadores VERIFICADOS
+        // y delegamos paginación + count al repo. Evita cargar todos los servicios en memoria.
+        const idsVerificados = await this.paseadorRepository.findVerificadosIds()
+        if (idsVerificados.length === 0) {
+            return {
+                page: pageNum,
+                per_page: limitNum,
+                totalServicios: 0,
+                totalPaseadores: 0,
+                paseadoresPagina: 0,
+                total_pages: 0,
+                data: [],
+            }
+        }
 
-        const total = todosLosServicios.length
-        const startIndex = (pageNum - 1) * limitNum
-        const endIndex = startIndex + limitNum
-        const todosLosServiciosPorPagina = todosLosServicios.slice(startIndex, endIndex)
+        const [todosLosServiciosPorPagina, total] = await Promise.all([
+            this.servicioPaseadorRepository.findActivasByProveedoresIds(idsVerificados, pageNum, limitNum),
+            this.servicioPaseadorRepository.countActivasByProveedoresIds(idsVerificados),
+        ])
 
-        // Obtener paseadores distintos de todos los servicios
-        const paseadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
-        const totalPaseadoresDistintos = paseadoresDistintosIds.size
-
-        // Obtener paseadores distintos de los servicios de esta página
+        const totalPaseadoresDistintos = idsVerificados.length
         const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
-
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
 

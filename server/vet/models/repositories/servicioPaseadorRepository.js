@@ -89,6 +89,20 @@ export class ServicioPaseadorRepository {
         return alojamientos
     }
 
+    // Variante paginada que filtra por usuarioProveedor IN una lista de IDs (verificados).
+    async findActivasByProveedoresIds(ids, pageNum, limitNum) {
+        const skip = (pageNum - 1) * limitNum
+        return await this.model.find({ estado: "Activada", usuarioProveedor: { $in: ids } })
+            .skip(skip)
+            .limit(limitNum)
+            .populate('usuarioProveedor')
+            .populate({ path: 'direccion.localidad', populate: { path: 'ciudad' } })
+    }
+
+    async countActivasByProveedoresIds(ids) {
+        return await this.model.countDocuments({ estado: "Activada", usuarioProveedor: { $in: ids } })
+    }
+
    async findByFilters(filtro) {
             // console.log("Filtro recibido:", filtro);
 

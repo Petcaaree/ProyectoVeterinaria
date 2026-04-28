@@ -279,11 +279,11 @@ async function seedVeterinarias(localidades, hash) {
 // Documentos dummy para verificación de paseador.
 function docsPaseadorDummy() {
     return [
-        { tipo: 'DNI_FRENTE', url: 'https://placehold.co/400x300/8b5cf6/white?text=DNI+Frente.jpg' },
-        { tipo: 'DNI_DORSO', url: 'https://placehold.co/400x300/8b5cf6/white?text=DNI+Dorso.jpg' },
-        { tipo: 'ANTECEDENTES_PENALES', url: 'https://placehold.co/400x300/8b5cf6/white?text=Antecedentes' },
-        { tipo: 'FOTO_PERFIL', url: 'https://placehold.co/400x400/8b5cf6/white?text=Perfil.jpg' },
-        { tipo: 'CONSTANCIA_FISCAL', url: 'https://placehold.co/400x300/8b5cf6/white?text=Fiscal' },
+        { tipo: 'DNI_FRENTE', url: 'https://placehold.co/400x300.jpg?bg=8b5cf6&fg=white&text=DNI+Frente' },
+        { tipo: 'DNI_DORSO', url: 'https://placehold.co/400x300.jpg?bg=8b5cf6&fg=white&text=DNI+Dorso' },
+        { tipo: 'ANTECEDENTES_PENALES', url: 'https://placehold.co/400x300.pdf?bg=8b5cf6&fg=white&text=Antecedentes' },
+        { tipo: 'FOTO_PERFIL', url: 'https://placehold.co/400x400.jpg?bg=8b5cf6&fg=white&text=Perfil' },
+        { tipo: 'CONSTANCIA_FISCAL', url: 'https://placehold.co/400x300.pdf?bg=8b5cf6&fg=white&text=Fiscal' },
     ];
 }
 

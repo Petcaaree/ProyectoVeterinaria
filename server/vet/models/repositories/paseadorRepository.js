@@ -98,4 +98,12 @@ export class PaseadorRepository {
             'verificacion.estadoVerificacion': EstadoVerificacion.PENDIENTE,
         })
     }
+
+    // Devuelve solo los _id de paseadores VERIFICADOS. Útil para filtrar servicios
+    // públicos a nivel DB sin traer todos los servicios a memoria.
+    async findVerificadosIds() {
+        const filter = { 'verificacion.estadoVerificacion': EstadoVerificacion.VERIFICADO }
+        const docs = await this.model.find(filter).select('_id').lean()
+        return docs.map((d) => d._id)
+    }
 }

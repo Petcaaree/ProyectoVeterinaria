@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { ValidationError, NotFoundError } from "../errors/AppError.js";
-import { encryptMP, decryptMP } from "../utils/cryptoMP.js";
+import { encryptMP, decryptMP, CryptoConfigError } from "../utils/cryptoMP.js";
 import logger from "../utils/logger.js";
 
 const MP_AUTH_URL = "https://auth.mercadopago.com.ar/authorization";
@@ -215,11 +215,15 @@ export class MpOauthService {
         const expiresAt = proveedor.mpTokenExpiresAt ? new Date(proveedor.mpTokenExpiresAt).getTime() : null;
         const expirado = expiresAt !== null && (expiresAt - Date.now()) < REFRESH_LEEWAY_MS;
         if (!expirado) {
-            // Si el decrypt falla acá (rotación de MP_TOKEN_ENCRYPTION_KEY o dato corrupto)
-            // forzamos reconexión en vez de devolver un 500 genérico.
+            // Si el decrypt falla por payload corrupto o rotación de MP_TOKEN_ENCRYPTION_KEY,
+            // forzamos reconexión. Si falla por misconfiguración del servidor (key faltante/inválida),
+            // re-lanzamos el error sin tocar al proveedor: re-vincular no solucionaría nada.
             try {
                 return decryptMP(proveedor.mpAccessToken);
             } catch (err) {
+                if (err instanceof CryptoConfigError) {
+                    throw err;
+                }
                 logger.error("Falló decrypt de access token MP", {
                     tipo, proveedorId, error: err.message,
                 });
@@ -251,6 +255,10 @@ export class MpOauthService {
             await proveedor.save();
             return tokenData.access_token;
         } catch (err) {
+            if (err instanceof CryptoConfigError) {
+                // Misconfiguración del servidor: no desconectar al proveedor.
+                throw err;
+            }
             logger.error("Falló refresh de token MP", { tipo, proveedorId, error: err.message });
             await this._marcarDesconectado(proveedor);
             const e = new ValidationError("MP_REAUTORIZACION_REQUERIDA");

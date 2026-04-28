@@ -1,7 +1,7 @@
 import { VeterinariaModel } from "../models/schemas/veterinariaSchema.js";
 import { PaseadorModel } from "../models/schemas/paseadorSchema.js";
 import { CuidadorModel } from "../models/schemas/cuidadorSchema.js";
-import { decryptMP } from "../utils/cryptoMP.js";
+import { decryptMP, CryptoConfigError } from "../utils/cryptoMP.js";
 import logger from "../utils/logger.js";
 
 const MODELS = {
@@ -40,6 +40,11 @@ export async function requireMpConectado(req, res, next) {
         try {
             decryptMP(proveedor.mpAccessToken);
         } catch (err) {
+            // Error de configuración (key faltante/inválida): no es responsabilidad del
+            // proveedor; delegar al errorHandler para devolver 500. Re-vincular no soluciona.
+            if (err instanceof CryptoConfigError) {
+                return next(err);
+            }
             logger.warn("requireMpConectado: token MP no desencriptable, requiere re-vincular", {
                 proveedorId, tipo, error: err.message,
             });

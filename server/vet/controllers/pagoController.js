@@ -7,11 +7,14 @@ export class PagoController {
   // POST /petcare/pagos/webhook — llamado por MercadoPago, sin auth
   async webhook(req, res, next) {
     try {
-      const { type, action, data } = req.body;
+      const { type, action, data, user_id } = req.body;
 
-      // Webhooks v2 (nuevo): { action: "payment.updated", data: { id: "123" } }
+      // Webhooks v2 (nuevo): { action: "payment.updated", data: { id: "123" }, user_id: "..." }
       // IPN (legacy):         query params ?topic=payment&id=123
       let paymentId = data?.id || req.query.id;
+      // user_id es el dueño del pago (proveedor en marketplace) — útil como fallback
+      // si el token de plataforma no puede consultar el pago.
+      const collectorId = user_id ? String(user_id) : null;
 
       const esEventoPago =
         type === "payment" ||
@@ -23,7 +26,7 @@ export class PagoController {
         return res.sendStatus(200);
       }
 
-      await this.pagoService.procesarWebhook(paymentId);
+      await this.pagoService.procesarWebhook(paymentId, { collectorId });
       res.sendStatus(200);
     } catch (error) {
       // Responder 200 igual para que MP no reintente indefinidamente

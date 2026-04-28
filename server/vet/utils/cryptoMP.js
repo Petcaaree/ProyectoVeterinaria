@@ -13,13 +13,23 @@ const AUTH_TAG_LENGTH = 16; // GCM auth tag: 128 bits
 const KEY_HEX_LENGTH = KEY_LENGTH * 2;
 const HEX_REGEX = /^[0-9a-fA-F]+$/;
 
+// Subclase para que los callers puedan distinguir misconfiguración del servidor
+// (donde re-vincular la cuenta MP no soluciona nada) de errores de payload
+// (token corrupto / rotación de key — sí requiere re-vincular).
+export class CryptoConfigError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "CryptoConfigError";
+    }
+}
+
 function getKey() {
     const hex = process.env.MP_TOKEN_ENCRYPTION_KEY;
     if (!hex || typeof hex !== "string") {
-        throw new Error("MP_TOKEN_ENCRYPTION_KEY no está definida (debe ser hex de 32 bytes)");
+        throw new CryptoConfigError("MP_TOKEN_ENCRYPTION_KEY no está definida (debe ser hex de 32 bytes)");
     }
     if (hex.length !== KEY_HEX_LENGTH || !HEX_REGEX.test(hex)) {
-        throw new Error(
+        throw new CryptoConfigError(
             `MP_TOKEN_ENCRYPTION_KEY debe ser un string hexadecimal de ${KEY_HEX_LENGTH} caracteres (${KEY_LENGTH} bytes)`
         );
     }

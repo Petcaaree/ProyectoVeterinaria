@@ -1,5 +1,9 @@
 import { jest } from "@jest/globals";
 
+// Necesario para decryptMP() que ahora valida el middleware.
+process.env.MP_TOKEN_ENCRYPTION_KEY =
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
 const vetFindById = jest.fn();
 const paseFindById = jest.fn();
 const cuidFindById = jest.fn();
@@ -14,6 +18,7 @@ jest.unstable_mockModule("../../vet/models/schemas/cuidadorSchema.js", () => ({
     CuidadorModel: { findById: cuidFindById },
 }));
 
+const { encryptMP } = await import("../../vet/utils/cryptoMP.js");
 const { requireMpConectado } = await import(
     "../../vet/middlewares/requireMpConectado.js"
 );
@@ -101,8 +106,11 @@ describe("requireMpConectado", () => {
         expect(next).not.toHaveBeenCalled();
     });
 
-    it("llama a next() si mpConectado=true y hay mpAccessToken", async () => {
-        mockProveedor(cuidFindById, { mpConectado: true, mpAccessToken: "iv:tag:cipher" });
+    it("llama a next() si mpConectado=true y mpAccessToken es desencriptable", async () => {
+        mockProveedor(cuidFindById, {
+            mpConectado: true,
+            mpAccessToken: encryptMP("APP_USR-valido"),
+        });
         const req = { usuario: { id: "c1", tipoUsuario: "cuidador" } };
         const res = buildRes();
         const next = jest.fn();
@@ -111,6 +119,24 @@ describe("requireMpConectado", () => {
 
         expect(next).toHaveBeenCalled();
         expect(res.status).not.toHaveBeenCalled();
+    });
+
+    it("responde 403 MP_REAUTORIZACION_REQUERIDA si mpAccessToken no es desencriptable", async () => {
+        mockProveedor(vetFindById, {
+            mpConectado: true,
+            mpAccessToken: "no-es-un-cipher-valido",
+        });
+        const req = { usuario: { id: "v1", tipoUsuario: "veterinaria" } };
+        const res = buildRes();
+        const next = jest.fn();
+
+        await requireMpConectado(req, res, next);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(res.json).toHaveBeenCalledWith(
+            expect.objectContaining({ error: "MP_REAUTORIZACION_REQUERIDA" })
+        );
+        expect(next).not.toHaveBeenCalled();
     });
 
     it("delega al errorHandler si findById lanza", async () => {

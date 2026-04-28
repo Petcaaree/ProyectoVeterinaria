@@ -8,7 +8,7 @@ process.env.MP_CLIENT_SECRET = process.env.MP_CLIENT_SECRET || "test-client-secr
 process.env.MP_TOKEN_ENCRYPTION_KEY =
     "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
-const { encryptMP } = await import("../../vet/utils/cryptoMP.js");
+const { encryptMP, decryptMP } = await import("../../vet/utils/cryptoMP.js");
 const { MpOauthService } = await import("../../vet/services/mpOauthService.js");
 
 // Helper: arma un mock del repo con un Model.findById().select() que resuelve a `proveedor`.
@@ -73,9 +73,10 @@ describe("MpOauthService.getAccessTokenValido", () => {
         const tokenViejo = "APP_USR-viejo";
         const tokenNuevo = "APP_USR-nuevo";
         const refreshTokenPlano = "TG-refresh-1";
+        const cipherViejo = encryptMP(tokenViejo);
         const proveedor = {
             mpConectado: true,
-            mpAccessToken: encryptMP(tokenViejo),
+            mpAccessToken: cipherViejo,
             mpRefreshToken: encryptMP(refreshTokenPlano),
             mpTokenExpiresAt: new Date(Date.now() + 1000), // expira ya
             save: jest.fn().mockResolvedValue(undefined),
@@ -94,8 +95,11 @@ describe("MpOauthService.getAccessTokenValido", () => {
         const token = await svc.getAccessTokenValido({ proveedorId: "p1", tipo: "paseador" });
         expect(token).toBe(tokenNuevo);
         expect(proveedor.save).toHaveBeenCalled();
-        // Persiste tokens nuevos encriptados (round-trip implícito: distintos del viejo).
-        expect(proveedor.mpAccessToken).not.toBe(encryptMP(tokenViejo));
+        // El ciphertext persistido no es el original (rotó). Comparamos contra el valor
+        // capturado antes del refresh para evitar el falso positivo de comparar contra
+        // un encryptMP() nuevo (IV random hace que cada cifrado dé un string distinto).
+        expect(proveedor.mpAccessToken).not.toBe(cipherViejo);
+        expect(decryptMP(proveedor.mpAccessToken)).toBe(tokenNuevo);
     });
 
     it("lanza MP_REAUTORIZACION_REQUERIDA y desconecta si está expirado y no hay refresh_token", async () => {

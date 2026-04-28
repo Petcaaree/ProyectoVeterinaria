@@ -1,6 +1,8 @@
 import { VeterinariaModel } from "../models/schemas/veterinariaSchema.js";
 import { PaseadorModel } from "../models/schemas/paseadorSchema.js";
 import { CuidadorModel } from "../models/schemas/cuidadorSchema.js";
+import { decryptMP } from "../utils/cryptoMP.js";
+import logger from "../utils/logger.js";
 
 const MODELS = {
     veterinaria: VeterinariaModel,
@@ -29,6 +31,21 @@ export async function requireMpConectado(req, res, next) {
             return res.status(403).json({
                 error: "MP_NO_CONECTADO",
                 message: "Necesitás vincular tu cuenta de MercadoPago antes de publicar servicios.",
+            });
+        }
+
+        // El token está marcado como conectado, pero verificamos que sea desencriptable.
+        // Si MP_TOKEN_ENCRYPTION_KEY rotó o el cifrado se corrompió, evitamos que el
+        // proveedor publique servicios que después fallarían en el checkout.
+        try {
+            decryptMP(proveedor.mpAccessToken);
+        } catch (err) {
+            logger.warn("requireMpConectado: token MP no desencriptable, requiere re-vincular", {
+                proveedorId, tipo, error: err.message,
+            });
+            return res.status(403).json({
+                error: "MP_REAUTORIZACION_REQUERIDA",
+                message: "Tu vinculación con MercadoPago dejó de ser válida. Volvé a conectar la cuenta.",
             });
         }
 

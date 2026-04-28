@@ -163,6 +163,13 @@ const veterinariaSchema = new mongoose.Schema({
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 veterinariaSchema.index({ nombreUsuario: 1 });
 
+// Lookup por mpUserId desde el fallback del webhook (PagoService._getPaymentConTokenProveedor).
+// unique+partial: 1:1 con cuenta MP cuando está conectada; permite múltiples nulls.
+veterinariaSchema.index(
+    { mpUserId: 1 },
+    { unique: true, partialFilterExpression: { mpUserId: { $type: "string" } } }
+);
+
 // Indice compuesto parcial para el panel admin: count + listado paginado de pendientes.
 // Se indexan SOLO las que están en PENDIENTE — las VERIFICADAS/RECHAZADAS no entran al
 // índice, manteniéndolo chico y específico al endpoint de revisión.

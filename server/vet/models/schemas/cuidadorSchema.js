@@ -105,6 +105,13 @@ const cuidadorSchema = new mongoose.Schema({
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 cuidadorSchema.index({ nombreUsuario: 1 });
 
+// Lookup por mpUserId desde el fallback del webhook (PagoService._getPaymentConTokenProveedor).
+// unique+partial: 1:1 con cuenta MP cuando está conectada; permite múltiples nulls.
+cuidadorSchema.index(
+    { mpUserId: 1 },
+    { unique: true, partialFilterExpression: { mpUserId: { $type: "string" } } }
+);
+
 cuidadorSchema.loadClass(Cuidador);
 
 export const CuidadorModel = mongoose.model("Cuidador", cuidadorSchema);

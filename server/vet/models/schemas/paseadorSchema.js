@@ -105,6 +105,13 @@ const paseadorSchema = new mongoose.Schema({
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 paseadorSchema.index({ nombreUsuario: 1 });
 
+// Lookup por mpUserId desde el fallback del webhook (PagoService._getPaymentConTokenProveedor).
+// unique+partial: 1:1 con cuenta MP cuando está conectada; permite múltiples nulls.
+paseadorSchema.index(
+    { mpUserId: 1 },
+    { unique: true, partialFilterExpression: { mpUserId: { $type: "string" } } }
+);
+
 paseadorSchema.loadClass(Paseador);
 
 export const PaseadorModel = mongoose.model("Paseador", paseadorSchema);

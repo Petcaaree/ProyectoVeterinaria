@@ -77,12 +77,12 @@ export class ServicioPaseadorService {
             }
         }
 
-        const [todosLosServiciosPorPagina, total] = await Promise.all([
+        const [todosLosServiciosPorPagina, total, totalPaseadoresDistintos] = await Promise.all([
             this.servicioPaseadorRepository.findActivasByProveedoresIds(idsVerificados, pageNum, limitNum),
             this.servicioPaseadorRepository.countActivasByProveedoresIds(idsVerificados),
+            this.servicioPaseadorRepository.countProveedoresConServiciosActivos(idsVerificados),
         ])
 
-        const totalPaseadoresDistintos = idsVerificados.length
         const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))

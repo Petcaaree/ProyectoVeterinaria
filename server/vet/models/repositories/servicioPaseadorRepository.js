@@ -103,6 +103,16 @@ export class ServicioPaseadorRepository {
         return await this.model.countDocuments({ estado: "Activada", usuarioProveedor: { $in: ids } })
     }
 
+    // Cantidad de paseadores ÚNICOS que tienen al menos un servicio Activada
+    // dentro del subconjunto de IDs (verificados).
+    async countProveedoresConServiciosActivos(ids) {
+        const distintos = await this.model.distinct('usuarioProveedor', {
+            estado: 'Activada',
+            usuarioProveedor: { $in: ids },
+        })
+        return distintos.length
+    }
+
    async findByFilters(filtro) {
             // console.log("Filtro recibido:", filtro);
 

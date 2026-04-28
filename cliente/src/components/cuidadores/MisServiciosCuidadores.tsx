@@ -3,6 +3,7 @@ import { ArrowLeft, Shield,ArrowRight, Calendar, Clock, User, MapPin, Phone, Sta
 import {useAuth} from '../../context/authContext.tsx';
 import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
+import MpConexionBanner from '../comun/MpConexionBanner.tsx';
 
 interface MisServiciosCuidadoresProps {
   userType: 'cliente' | 'veterinaria' | 'paseador' | 'cuidador' | null;
@@ -233,6 +234,8 @@ const MisServiciosCuidadores: React.FC<MisServiciosCuidadoresProps> = ({ userTyp
           </div>
         </div>
 
+        {/* Estado conexión Mercado Pago */}
+        <MpConexionBanner />
 
         {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-lg mb-8">

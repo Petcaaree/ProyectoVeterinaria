@@ -8,6 +8,7 @@ import {ServicioOfrecido} from "../models/entidades/enums/ServiciOfrecido.js"
 import { FechaHorarioTurno } from "../models/entidades/FechaHorarioTurno.js";
 import { FactoryNotificacion } from "../models/entidades/FactorYNotificacion.js";
 import { enviarEmailReservaConfirmada, enviarEmailReservaCancelada } from "./emailService.js";
+import logger from "../utils/logger.js";
 
 
 dayjs.extend(customParseFormat)
@@ -401,21 +402,41 @@ export class ReservaService {
         const pendiente = await this.reservaPendienteRepository.claimById(idPendiente);
         if (!pendiente) return;
 
-        const servicio = pendiente.servicioReservado;
         const fechasReserva = pendiente.rangoFechas;
+        const servicioId = pendiente.servicioReservado?._id || pendiente.servicioReservado?.id || pendiente.servicioReservado;
 
+        // Recargar el servicio desde su repo: el populated del pendiente puede venir
+        // como plain object (toObject) y haber perdido los métodos de la entidad.
+        let servicio;
         let repoServicio;
         if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
-            servicio.eliminarFechasReserva(fechasReserva);
             repoServicio = this.servicioCuidadorRepository;
+            servicio = await repoServicio.findById(servicioId);
         } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOVETERINARIA) {
-            const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
-            servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
             repoServicio = this.servicioVeterinariaRepository;
+            servicio = await repoServicio.findById(servicioId);
         } else if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOPASEADOR) {
+            repoServicio = this.servicioPaseadorRepository;
+            servicio = await repoServicio.findById(servicioId);
+        }
+
+        if (!servicio) {
+            // El pendiente ya fue claimeado: si el servicio fue eliminado o no existe,
+            // no podemos liberar su cupo. Log explícito para que el job de limpieza
+            // o el operador puedan investigar (cupo huérfano).
+            logger.warn("revertirPendiente: servicio no encontrado, no se puede liberar cupo", {
+                pendienteId: idPendiente,
+                servicioId: servicioId?.toString?.() || servicioId,
+                serviciOfrecido: pendiente.serviciOfrecido,
+            });
+            return;
+        }
+
+        if (pendiente.serviciOfrecido === ServicioOfrecido.SERVICIOCUIDADOR) {
+            servicio.eliminarFechasReserva(fechasReserva);
+        } else {
             const objectFechaHorarioTurno = new FechaHorarioTurno(fechasReserva.fechaInicio, pendiente.horario);
             servicio.cancelarHorarioReserva(objectFechaHorarioTurno);
-            repoServicio = this.servicioPaseadorRepository;
         }
         servicio.decrementarReservas();
         await repoServicio.actualizarDisponibilidad(

@@ -49,6 +49,7 @@ import { PagoService } from "./vet/services/pagoService.js";
 import { ResenaService } from "./vet/services/resenaService.js";
 import { VerificacionService } from "./vet/services/verificacionService.js";
 import { VerificacionPaseadorService } from "./vet/services/verificacionPaseadorService.js";
+import { MpOauthService } from "./vet/services/mpOauthService.js";
 import { CiudadService } from "./vet/services/ciudadService.js";
 import { RecordatorioService } from "./vet/services/recordatorioService.js";
 
@@ -66,6 +67,7 @@ import { PagoController } from "./vet/controllers/pagoController.js";
 import { ResenaController } from "./vet/controllers/resenaController.js";
 import { VerificacionController } from "./vet/controllers/verificacionController.js";
 import { VerificacionPaseadorController } from "./vet/controllers/verificacionPaseadorController.js";
+import { MpOauthController } from "./vet/controllers/mpOauthController.js";
 
 import { AdminRepository } from "./vet/models/repositories/adminRepository.js";
 import { ConfiguracionRepository } from "./vet/models/repositories/configuracionRepository.js";
@@ -99,7 +101,12 @@ const servicioVeterinariaService = new ServicioVeterinariaService(servicioVeteri
 const servicioCuidadorService = new ServicioCuidadorService(servicioCuidadorRepo, cuidadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const servicioPaseadorService = new ServicioPaseadorService(servicioPaseadorRepo, paseadorRepo, ciudadRepo, localidadRepo, reservaRepo);
 const reservaService = new ReservaService(reservaRepo, servicioVeterinariaRepo, servicioCuidadorRepo, servicioPaseadorRepo,clienteRepo, cuidadorRepo, paseadorRepo, veterinariaRepo, reservaPendienteRepo);
-const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo);
+const mpOauthService = new MpOauthService({
+    veterinariaRepository: veterinariaRepo,
+    paseadorRepository: paseadorRepo,
+    cuidadorRepository: cuidadorRepo,
+});
+const pagoService = new PagoService(reservaService, pagoRepo, configuracionRepo, mpOauthService);
 const ciudadService = new CiudadService(ciudadRepo, localidadRepo);
 const resenaService = new ResenaService(resenaRepo, reservaRepo, servicioVeterinariaRepo, servicioPaseadorRepo, servicioCuidadorRepo);
 const verificacionService = new VerificacionService(veterinariaRepo);
@@ -134,6 +141,7 @@ const adminController = new AdminController(adminService, adminDashboardService)
 const resenaController = new ResenaController(resenaService);
 const verificacionController = new VerificacionController(verificacionService);
 const verificacionPaseadorController = new VerificacionPaseadorController(verificacionPaseadorService);
+const mpOauthController = new MpOauthController(mpOauthService);
 
 const app = express();
 
@@ -225,6 +233,7 @@ server.setController(AdminController, adminController);
 server.setController(ResenaController, resenaController);
 server.setController(VerificacionController, verificacionController);
 server.setController(VerificacionPaseadorController, verificacionPaseadorController);
+server.setController(MpOauthController, mpOauthController);
 
 // Configuración de rutas y lanzamiento
 routes.forEach(r => {

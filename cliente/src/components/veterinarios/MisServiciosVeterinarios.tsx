@@ -3,6 +3,7 @@ import { ArrowLeft, Stethoscope, User, MapPin, Phone, Star, Plus, Edit, Trash2, 
 import {useAuth} from '../../context/authContext.tsx';
 import Toast from '../comun/Toast.tsx';
 import { useToast } from '../../hooks/useToast.ts';
+import MpConexionBanner from '../comun/MpConexionBanner.tsx';
 
 interface ClinicInfo {
   name: string;
@@ -232,6 +233,9 @@ const MisServiciosVeterinarios: React.FC<MisServiciosVeterinariosProps> = ({ use
             </div>
           </div>
         </div>
+
+        {/* Estado conexión Mercado Pago */}
+        <MpConexionBanner />
 
         {/* Clinic Info */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">

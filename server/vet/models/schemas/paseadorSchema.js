@@ -141,6 +141,16 @@ const paseadorSchema = new mongoose.Schema({
         type: verificacionPaseadorSchema,
         default: null,
     },
+    // ── MercadoPago Marketplace (OAuth proveedor) ─────────────────
+    mpConectado: { type: Boolean, default: false },
+    mpUserId: { type: String, default: null },
+    // select:false para minimizar riesgo de exposición accidental al serializar el doc.
+    // Las lecturas internas (MpOauthService._findProveedorParaMp, requireMpConectado)
+    // los incluyen explícitamente en .select(...).
+    mpAccessToken: { type: String, default: null, select: false }, // AES-256-GCM
+    mpRefreshToken: { type: String, default: null, select: false }, // AES-256-GCM
+    mpTokenExpiresAt: { type: Date, default: null, select: false },
+    mpConectadoAt: { type: Date, default: null },
 });
 
 // Indice parcial para el panel admin: count + listado paginado de pendientes.
@@ -158,6 +168,13 @@ paseadorSchema.index(
 
 // Indice para busqueda por nombreUsuario (findByNombreUsuario)
 paseadorSchema.index({ nombreUsuario: 1 });
+
+// Lookup por mpUserId desde el fallback del webhook (PagoService._getPaymentConTokenProveedor).
+// unique+partial: 1:1 con cuenta MP cuando está conectada; permite múltiples nulls.
+paseadorSchema.index(
+    { mpUserId: 1 },
+    { unique: true, partialFilterExpression: { mpUserId: { $type: "string" } } }
+);
 
 paseadorSchema.loadClass(Paseador);
 

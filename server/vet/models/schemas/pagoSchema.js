@@ -68,6 +68,17 @@ const pagoSchema = new mongoose.Schema(
       default: null,
       min: 0,
     },
+    // Marketplace MP: comisión retenida automáticamente por la plataforma.
+    marketplaceFee: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    // ID del usuario MP que cobró (proveedor cuando hay split, plataforma si no).
+    mpCollectorId: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

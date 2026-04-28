@@ -65,8 +65,11 @@ export class MpOauthService {
             // Fallback defensivo: si algún repo no expone .model, usamos findById regular.
             return repo.findById(proveedorId);
         }
+        // mpAccessToken/mpRefreshToken/mpTokenExpiresAt tienen select:false; requieren
+        // prefijo "+" para incluirlos. Sin el prefijo, getAccessTokenValido vería mpAccessToken
+        // como undefined y lanzaría MP_NO_CONECTADO incorrectamente.
         return Model.findById(proveedorId).select(
-            "_id mpConectado mpUserId mpAccessToken mpRefreshToken mpTokenExpiresAt mpConectadoAt"
+            "_id mpConectado mpUserId +mpAccessToken +mpRefreshToken +mpTokenExpiresAt mpConectadoAt"
         );
     }
 

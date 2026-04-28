@@ -19,7 +19,8 @@ export async function requireMpConectado(req, res, next) {
             return res.status(401).json({ message: "No autenticado" });
         }
 
-        const proveedor = await Model.findById(proveedorId).select("mpConectado mpAccessToken");
+        // mpAccessToken tiene select:false en el schema, requiere prefijo "+" para incluirlo.
+        const proveedor = await Model.findById(proveedorId).select("mpConectado +mpAccessToken");
         if (!proveedor) {
             return res.status(404).json({ message: "Proveedor no encontrado" });
         }

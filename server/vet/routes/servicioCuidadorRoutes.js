@@ -1,6 +1,7 @@
 import express from "express"
 import { ServicioCuidadorController } from "../controllers/servicioCuidadorController.js"
 import { authMiddleware, authorizationMiddleware } from "../middlewares/authMiddleware.js"
+import { requireMpConectado } from "../middlewares/requireMpConectado.js"
 import { validate } from "../middlewares/validateMiddleware.js"
 import { servicioCuidadorSchema, paginationSchema } from "../validators/schemas.js"
 
@@ -25,7 +26,7 @@ export default function servicioCuidadorRoutes(getController) {
     })
 
     // --- Rutas protegidas (solo cuidador) ---
-    router.post("/petcare/servicioCuidador", authMiddleware, authorizationMiddleware('cuidador'), validate(servicioCuidadorSchema), (req, res, next) => {
+    router.post("/petcare/servicioCuidador", authMiddleware, authorizationMiddleware('cuidador'), requireMpConectado, validate(servicioCuidadorSchema), (req, res, next) => {
         getController(ServicioCuidadorController).create(req, res, next)
     })
 
@@ -33,7 +34,7 @@ export default function servicioCuidadorRoutes(getController) {
         getController(ServicioCuidadorController).delete(req, res, next)
     })
 
-    router.post("/petcare/serviciosCuidadores/array", authMiddleware, authorizationMiddleware('cuidador'), (req, res, next) => {
+    router.post("/petcare/serviciosCuidadores/array", authMiddleware, authorizationMiddleware('cuidador'), requireMpConectado, (req, res, next) => {
         getController(ServicioCuidadorController).importArray(req, res, next)
     })
 

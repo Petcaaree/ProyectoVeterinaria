@@ -187,6 +187,20 @@ function App() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Detectar retorno de OAuth Mercado Pago (vinculación de cuenta del proveedor).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mpConnected = params.get('mp_connected');
+    if (mpConnected === 'true') {
+      alert('¡Tu cuenta de Mercado Pago se vinculó correctamente! Ya podés publicar servicios.');
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (mpConnected === 'false') {
+      const err = params.get('error');
+      alert(`No se pudo vincular Mercado Pago${err ? `: ${err}` : ''}. Volvé a intentarlo desde "Mis Servicios".`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
   const [errorMessage, setErrorMessage] = useState('');
   const [showRedirectMessage, setShowRedirectMessage] = useState(false);
 

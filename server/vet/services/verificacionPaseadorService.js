@@ -17,22 +17,23 @@ const DOCS_REQUERIDOS = [
 ];
 
 // Calcula años cumplidos a la fecha actual.
-// Usa getters UTC para que strings tipo "YYYY-MM-DD" (parseadas como UTC midnight)
-// no se corran 1 día en zonas con offset negativo y produzcan edad incorrecta.
+// Para strings "YYYY-MM-DD" parseamos como midnight LOCAL (no UTC) para que
+// el cumpleaños caiga el día correcto en zonas con offset negativo (ej. AR UTC-3).
+// Comparamos `hoy` y `nac` ambos en calendario local: misma referencia, sin drift.
 function calcularEdad(fechaNacimiento) {
     const hoy = new Date();
     let nac;
     if (typeof fechaNacimiento === "string") {
         const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaNacimiento);
         nac = m
-            ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+            ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]))
             : new Date(fechaNacimiento);
     } else {
         nac = new Date(fechaNacimiento);
     }
-    let edad = hoy.getUTCFullYear() - nac.getUTCFullYear();
-    const mDiff = hoy.getUTCMonth() - nac.getUTCMonth();
-    if (mDiff < 0 || (mDiff === 0 && hoy.getUTCDate() < nac.getUTCDate())) edad--;
+    let edad = hoy.getFullYear() - nac.getFullYear();
+    const mDiff = hoy.getMonth() - nac.getMonth();
+    if (mDiff < 0 || (mDiff === 0 && hoy.getDate() < nac.getDate())) edad--;
     return edad;
 }
 

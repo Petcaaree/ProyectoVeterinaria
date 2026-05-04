@@ -17,12 +17,22 @@ const DOCS_REQUERIDOS = [
 ];
 
 // Calcula años cumplidos a la fecha actual.
+// Usa getters UTC para que strings tipo "YYYY-MM-DD" (parseadas como UTC midnight)
+// no se corran 1 día en zonas con offset negativo y produzcan edad incorrecta.
 function calcularEdad(fechaNacimiento) {
     const hoy = new Date();
-    const nac = new Date(fechaNacimiento);
-    let edad = hoy.getFullYear() - nac.getFullYear();
-    const mDiff = hoy.getMonth() - nac.getMonth();
-    if (mDiff < 0 || (mDiff === 0 && hoy.getDate() < nac.getDate())) edad--;
+    let nac;
+    if (typeof fechaNacimiento === "string") {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaNacimiento);
+        nac = m
+            ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+            : new Date(fechaNacimiento);
+    } else {
+        nac = new Date(fechaNacimiento);
+    }
+    let edad = hoy.getUTCFullYear() - nac.getUTCFullYear();
+    const mDiff = hoy.getUTCMonth() - nac.getUTCMonth();
+    if (mDiff < 0 || (mDiff === 0 && hoy.getUTCDate() < nac.getUTCDate())) edad--;
     return edad;
 }
 
@@ -63,7 +73,11 @@ export class VerificacionPaseadorService {
         if (edad < 18) {
             throw new ValidationError("El paseador debe ser mayor de 18 años");
         }
-        if (typeof cuil !== "string" || !CUIL_REGEX.test(cuil)) {
+        if (typeof cuil !== "string") {
+            throw new ValidationError("CUIL debe tener formato XX-XXXXXXXX-X");
+        }
+        const cuilNormalizado = cuil.trim();
+        if (!CUIL_REGEX.test(cuilNormalizado)) {
             throw new ValidationError("CUIL debe tener formato XX-XXXXXXXX-X");
         }
         if (typeof telefono !== "string" || !telefono.trim()) {
@@ -118,7 +132,7 @@ export class VerificacionPaseadorService {
         return {
             nombreCompleto: nombreCompleto.trim(),
             fechaNacimiento: new Date(fechaNacimiento),
-            cuil,
+            cuil: cuilNormalizado,
             // Solo persistimos los 5 campos del schema (sin piso/depto).
             direccion: {
                 calle: direccion.calle,

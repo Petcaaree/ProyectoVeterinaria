@@ -105,12 +105,15 @@ export class ServicioPaseadorRepository {
 
     // Cantidad de paseadores ÚNICOS que tienen al menos un servicio Activada
     // dentro del subconjunto de IDs (verificados).
+    // Usa aggregation con $group + $count en vez de distinct() para no materializar
+    // todos los IDs distintos en memoria — más escalable con cardinalidades grandes.
     async countProveedoresConServiciosActivos(ids) {
-        const distintos = await this.model.distinct('usuarioProveedor', {
-            estado: 'Activada',
-            usuarioProveedor: { $in: ids },
-        })
-        return distintos.length
+        const resultado = await this.model.aggregate([
+            { $match: { estado: 'Activada', usuarioProveedor: { $in: ids } } },
+            { $group: { _id: '$usuarioProveedor' } },
+            { $count: 'total' },
+        ])
+        return resultado[0]?.total ?? 0
     }
 
    async findByFilters(filtro) {

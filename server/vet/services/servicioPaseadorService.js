@@ -7,6 +7,7 @@ import { ValidationError, ConflictError, NotFoundError } from "../errors/AppErro
 import {ServicioPaseador} from "../models/entidades/ServicioPaseador.js"
 import { EstadoServicio } from "../models/entidades/enums/enumEstadoServicio.js"
 import { EstadoReserva } from "../models/entidades/enums/EstadoReserva.js"
+import { EstadoVerificacion } from "../models/entidades/enums/EstadoVerificacion.js"
 import mongoose from "mongoose"
 
 export class ServicioPaseadorService {
@@ -17,6 +18,13 @@ export class ServicioPaseadorService {
         this.ciudadRepository = ciudadRepository;
         this.localidadRepository = localidadRepository;
         this.reservaRepository = reservaRepository;
+    }
+
+    // Filtra servicios cuyo proveedor (paseador) no esté verificado (listados públicos).
+    _soloDePaseadoresVerificados(servicios) {
+        return servicios.filter(
+            (s) => s?.usuarioProveedor?.verificacion?.estadoVerificacion === EstadoVerificacion.VERIFICADO
+        )
     }
 
     async findAll({page = 1, limit = 6}) {
@@ -54,24 +62,38 @@ export class ServicioPaseadorService {
         const todosLosServicios = serviciosValidos
  */
 
-        const todosLosServiciosPorPagina = await this.servicioPaseadorRepository.findByPage(pageNum, limitNum)
-        const todosLosServicios = await this.servicioPaseadorRepository.findAll()
+        // Filtro de verificación a nivel DB: traemos los IDs de paseadores VERIFICADOS
+        // y delegamos paginación + count al repo. Evita cargar todos los servicios en memoria.
+        // TRADE-OFF: para volúmenes muy grandes (decenas de miles de paseadores) este array $in
+        // puede crecer; en ese caso conviene migrar a aggregation con $lookup contra Paseador
+        // o denormalizar `proveedorVerificado` en el servicio. Hoy es aceptable.
+        const idsVerificados = await this.paseadorRepository.findVerificadosIds()
+        if (idsVerificados.length === 0) {
+            return {
+                page: pageNum,
+                per_page: limitNum,
+                totalServicios: 0,
+                totalPaseadores: 0,
+                paseadoresPagina: 0,
+                total_pages: 0,
+                data: [],
+            }
+        }
 
-        // Obtener paseadores distintos de todos los servicios
-        const paseadoresDistintosIds = new Set(todosLosServicios.map(s => s.usuarioProveedor.id))
-        const totalPaseadoresDistintos = paseadoresDistintosIds.size
+        const [todosLosServiciosPorPagina, total, totalPaseadoresDistintos] = await Promise.all([
+            this.servicioPaseadorRepository.findActivasByProveedoresIds(idsVerificados, pageNum, limitNum),
+            this.servicioPaseadorRepository.countActivasByProveedoresIds(idsVerificados),
+            this.servicioPaseadorRepository.countProveedoresConServiciosActivos(idsVerificados),
+        ])
 
-        // Obtener paseadores distintos de los servicios de esta página
         const paseadoresDistintosPagina = new Set(todosLosServiciosPorPagina.map(s => s.usuarioProveedor.id))
-
-        const total = await this.servicioPaseadorRepository.countAll()
         const total_pages = Math.ceil(total / limitNum)
         const data = todosLosServiciosPorPagina.map(s => this.toDTO(s))
 
         return {
             page: pageNum,
             per_page: limitNum,
-            totalServicios: todosLosServicios.length,
+            totalServicios: total,
             totalPaseadores: totalPaseadoresDistintos,
             paseadoresPagina: paseadoresDistintosPagina.size,
             total_pages: total_pages,
@@ -84,7 +106,9 @@ export class ServicioPaseadorService {
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
 
         // Obtener todos los servicios que cumplen con los filtros
-        let serviciosPaseadores = await this.servicioPaseadorRepository.findByFilters(filtro);
+        let serviciosPaseadores = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByFilters(filtro)
+        );
 
         // Calcular totales basándose en los servicios encontrados
         const totalServicios = serviciosPaseadores.length;
@@ -121,14 +145,21 @@ export class ServicioPaseadorService {
         if(!servicioPaseador) {
             throw new NotFoundError(`Servicio Paseador con id ${id} no encontrado`)
         }
+        // Servicios de paseadores no verificados no son públicos: se tratan como 404.
+        if (servicioPaseador?.usuarioProveedor?.verificacion?.estadoVerificacion !== EstadoVerificacion.VERIFICADO) {
+            throw new NotFoundError(`Servicio Paseador con id ${id} no encontrado`)
+        }
         return this.toDTO(servicioPaseador)
     }
 
     async findByPaseador(id, {page = 1, limit = 10}) {
         const pageNum = Math.max(Number(page), 1)
         const limitNum = Math.min(Math.max(Number(limit), 1), 100)
+        // Filtramos por verificación al final del fetch para evitar exponer no-verificados.
 
-        let serviciosPaseadores = await this.servicioPaseadorRepository.findByPaseadorId(id);
+        let serviciosPaseadores = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByPaseadorId(id)
+        );
 
         const total = serviciosPaseadores.length;
         const startIndex = (pageNum - 1) * limitNum;
@@ -273,7 +304,21 @@ async delete(id) {
         const pageNum = Math.max(Number(page), 1);
         const limitNum = Math.min(Math.max(Number(limit), 1), 100);
 
-        const servicios = await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId);
+        // Endpoint público: solo exponemos servicios "Activada". Estados privados
+        // (Desactivada, etc.) deben consultarse desde rutas autenticadas del proveedor.
+        if (estado !== EstadoServicio.ACTIVO) {
+            return {
+                page: pageNum,
+                per_page: limitNum,
+                total: 0,
+                total_pages: 0,
+                data: [],
+            };
+        }
+
+        const servicios = this._soloDePaseadoresVerificados(
+            await this.servicioPaseadorRepository.findByEstadoByPaseador(estado, paseadorId)
+        );
 
         const total = servicios.length;
         const startIndex = (pageNum - 1) * limitNum;

@@ -1,4 +1,5 @@
 import { PaseadorModel } from "../schemas/paseadorSchema.js"
+import { EstadoVerificacion } from "../entidades/enums/EstadoVerificacion.js"
 
 export class PaseadorRepository {
     constructor() {
@@ -77,5 +78,32 @@ export class PaseadorRepository {
 
     async countAll() {
         return await this.model.countDocuments()
+    }
+
+    async findPendientesVerificacion({ page = 1, limit = 20 } = {}) {
+        const filter = { 'verificacion.estadoVerificacion': EstadoVerificacion.PENDIENTE }
+        const skip = (page - 1) * limit
+        const [items, total] = await Promise.all([
+            this.model.find(filter)
+                .sort({ 'verificacion.fechaActualizacion': -1 })
+                .skip(skip)
+                .limit(limit),
+            this.model.countDocuments(filter),
+        ])
+        return { items, total }
+    }
+
+    async countPendientesVerificacion() {
+        return await this.model.countDocuments({
+            'verificacion.estadoVerificacion': EstadoVerificacion.PENDIENTE,
+        })
+    }
+
+    // Devuelve solo los _id de paseadores VERIFICADOS. Útil para filtrar servicios
+    // públicos a nivel DB sin traer todos los servicios a memoria.
+    async findVerificadosIds() {
+        const filter = { 'verificacion.estadoVerificacion': EstadoVerificacion.VERIFICADO }
+        const docs = await this.model.find(filter).select('_id').lean()
+        return docs.map((d) => d._id)
     }
 }
